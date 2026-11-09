@@ -2,7 +2,7 @@
 
 > 状态：草案，未冻结 · T02 已开始，待业务决策与人审。不得据此实现未批准的状态、权限或判定规则。
 > 输入：`GEO产品文档.md` v3.4 §3–4、§6、§8–9、§11–14、§16–19；`api-spec-template.md`。
-> 本稿区分“事实源已定”与“待批准建议”。路径及事件名是接口设计草案，均需人审。AGENTS.md 标注事实源已冻结，但产品文件页首仍写评审稿，本稿不修改其状态。
+> 本稿区分“事实源已定”“用户已批准决策”与“待批准建议”。路径及事件名是接口设计草案，均需人审。AGENTS.md 标注事实源已冻结，但产品文件页首仍写评审稿，本稿不修改其状态。
 
 ## 0. 冻结流程与审阅 checklist
 
@@ -50,6 +50,14 @@ Web 会话与 per-user API Token（PAT）并存，解析 `(user, role, tenant, a
 - 对比读取基线/复测的测量口径；不一致返回 incomparable，省略差值，不进入差值报告。整池新版本若老簇问句集未变，不自动废弃该簇基线（§3、§19.17）。具体一致性字段与标识关系见阻塞问题。
 - 归档簇软删除，SOV 分母保留 90 天过渡；我方生产内容报告必须披露且有对照组。
 - 无 search_volume 业务字段，不输出绝对搜索次数或承诺。C 类数据需书面授权及入库自动脱敏，解约后 30 天内删除；无全量原文导出接口。
+
+### 1.5 已批准决策
+
+用户于本次会话明确批准以下三项，并授权合并 T01/T02 PR。该批准不代表整份规格冻结，也不自动批准其余枚举、权限矩阵或接口工程细节。
+
+- 事实块管理审核状态，发布进度另行记录；修订开新版本。具体状态枚举、出边及终态仍须补全人审。
+- 权限按职责最小开放；Admin 不默认读取原文。具体角色的逐操作授权与关联任务边界仍待审，未明确的组合不开放。
+- 记忆轨：3 问句 × 4 模型 × 温度 0 × 3 轮 = 36 条/簇，仅对建议的 3 簇加测；与检索轨分快照、分报告。模型具体 ID 与原生联网能力仍在 T14 当日核实。
 
 ## 2. 资源清单
 
@@ -263,7 +271,7 @@ mention_rate/citation_rate/avg_position/accuracy/sov；leads 表字段预留，�
 
 | 对象 | 输入中已有状态/迁移 | 触发、条件、副作用 | 尚未闭合的边界 |
 |---|---|---|---|
-| claim_block | 模板 draft→pending_review→approved；reject 回 draft；approved→retracted；重新修订开新版 draft | 作者 submit，四问/来源/必配过闸；FactCheck 非作者 approve，reject 理由必填；retract 关联工单 | published/revision_needed 无完整迁移；建议见 §6，不自行采用 |
+| claim_block | 模板 draft→pending_review→approved；reject 回 draft；approved→retracted；重新修订开新版 draft | 作者 submit，四问/来源/必配过闸；FactCheck 非作者 approve，reject 理由必填；retract 关联工单 | 发布进度另行记录已批准；具体审核枚举及迁移见 §6，仍待审 |
 | content_asset | 产品仅给 review_status，未给枚举 | 作者提交、FactCheck 唯一放行，先审后发 | 全部状态枚举与块级审核关系待批准 |
 | opportunity_card | 模板候选→评分→建议→确认→在测→归档 | Strategist 建卡/建议，Owner 人工确认3簇，生产前需求来源必填 | 英文枚举、失败/返工/撤销及终态待定 |
 | intent_cluster | 产品 active→archived | 归档原因+时间；软删除，SOV 分母90天过渡 | 操作权限、拆并归档次序、恢复是否允许待定 |
@@ -309,11 +317,11 @@ Job 不是直写库豁免；每个 job 调用 `src/server/api`，显式服务身
 
 ## 6. 阻塞问题与待批准建议
 
-这些不是已定规则。依据 AGENTS.md §3“歧义即停”，相关契约只能列问题，不能直接实现。
+§1.5 的三项方向已获用户批准；以下明确区分已批准方向与剩余问题。依据 AGENTS.md §3“歧义即停”，未批准的细节仍不得直接实现。
 
-1. **状态闭合**：是否允许以模板作为状态机设计起点？claim_block 示例列 published/revision_needed 无完整迁移；content_asset 无枚举。建议事实块仅 draft/pending_review/approved/retracted，驳回回draft，修订创建新版本；发布进度归内容资产/发布登记，避免一块多平台发布冲突。content_asset 建议 draft/pending_review/approved/revision_needed/retracted，需另审全部出边及终态。
-2. **权限边界**：建议原文 Strategist/FactCheck/CS 按职责读取；Content/Evidence 限关联任务；Admin 不因管理员身份默认读原文。成员和品牌基础配置归Admin，品牌词表/官方口径归Strategist。这些为建议，仍需补全逐操作 allow/deny 矩阵、内部跨品牌边界、客户Editor可读范围及diagnosis模式写权限。
-3. **记忆轨采样**：§4给36条/簇未给完整参数。建议3问句×4模型×温度0×3轮=36；人审前不排记忆轨任务。检索轨模型ID需T14当天复核。
+1. **状态闭合**：是否允许以模板作为状态机设计起点？claim_block 示例列 published/revision_needed 无完整迁移；content_asset 无枚举。已批准事实块管理审核状态、发布进度另行记录、修订开新版本。具体枚举仍建议 draft/pending_review/approved/retracted，驳回回draft，待批准；content_asset 建议 draft/pending_review/approved/revision_needed/retracted，需另审全部出边及终态。
+2. **权限边界**：最小职责权限及 Admin 不默认读取原文已批准。细分建议原文 Strategist/FactCheck/CS 按职责读取，Content/Evidence 限关联任务；成员和品牌基础配置归Admin，品牌词表/官方口径归Strategist。这些为建议，仍需补全逐操作 allow/deny 矩阵、内部跨品牌边界、客户Editor可读范围及diagnosis模式写权限。
+3. **记忆轨采样（已关闭）**：用户已批准 §1.5 的 3问句×4模型×温度0×3轮=36条/簇。模型ID仍需T14当天复核；本次不实施探针调用。
 4. **快照身份**：同snapshot只写一次、重跑开新snapshot，与“前后同快照”需区分采样配置身份和执行批次身份；不得擅自增加状态/字段解决。建议人审明确比较字段及簇级问句原文等价判定。
 5. **数据定义差异**：§18实际19张表，模板17资源，业务工单等缺表；溯源五字段的最终语义、通用审核队列表、PAT存储、批次/引用类型及指标口径字段需T04前定稿。
 6. **审核与异议**：诊断结论的对象类型、证据包提交驳回路径、放行与封版是否同一步；异议批准权/时效/CS陪同技术判据/水印字段及重复调阅；viewed写入不能借GET裸改状态。

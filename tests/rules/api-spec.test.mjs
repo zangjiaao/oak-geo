@@ -10,3 +10,12 @@ test('T02 草案覆盖模板各节且不得自行冻结', () => {
  assert.match(spec, /object_type \+ object_id/);
  assert.match(spec, /rule_manual_v1/);
 });
+test('人审决定与剩余未冻结规则明确分开', () => {
+ const spec = readFileSync('docs/api-spec.md', 'utf8');
+ assert.match(spec, /### 1\.5 已批准决策/);
+ assert.match(spec, /记忆轨：3 问句 × 4 模型 × 温度 0 × 3 轮 = 36 条\/簇/);
+ assert.match(spec, /Admin 不默认读取原文/);
+ assert.match(spec, /事实块管理审核状态，发布进度另行记录；修订开新版本/);
+ assert.doesNotMatch(spec, /人审前不排记忆轨任务|建议尚未获批准/);
+ assert.match(spec, /状态：草案，未冻结/);
+});
