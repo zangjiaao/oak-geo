@@ -19,3 +19,9 @@ open-next/
 # logs / tmp
 *.log
 tmp/
+
+.open-next/
+*.tsbuildinfo
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

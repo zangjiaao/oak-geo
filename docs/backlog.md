@@ -63,3 +63,8 @@
 - B3：C 类数据授权合同模板（法务）
 - B4：模型 API key / SERP API / 5118 账号采购（**第一天就启动**）
 - B5：`keyword_layer_v2.md` 数字复核（阻塞对外引用，不阻塞开发）
+
+## 本次执行记录
+
+- T01：`review`；按用户本次指令扩展为 Next.js App Router + Cloudflare Workers 脚手架、astryx 安装及入口 CSS；原“AGENTS.md 人签字”不由 agent 代办，不修改 AGENTS.md。
+- 范围备注：本次仅初始化，不顺带实现数据库、业务 API、Agent/MCP、自动采集或发布功能。

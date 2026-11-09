@@ -36,12 +36,43 @@ AI 时代用户不再搜索，而是提问。oak-geo 让品牌在模型回答里
 
 - ✅ 产品设计定稿（v3.4，评审稿）
 - ✅ 技术栈拍板：Next.js（App Router）+ astryx + Cloudflare Workers + Neon Postgres
-- ⬜ 脚手架初始化（backlog T01）
+- 待人审：脚手架初始化（本次 T01）
 - ⬜ API 契约与状态机（T02，agent 产出 → 人审冻结）
 
 ## Setup
 
-> 脚手架尚未初始化（T01）。初始化后此处将补充安装与运行说明。UI 依赖 astryx：安装 `@astryxdesign/core` 后，须在应用入口 import `reset.css` 与 `astryx.css`（详见 `AGENTS.md` §11）。
+Next.js App Router + OpenNext Workers，首页来自 astryx AppShellContentOnly 模板。
+
+本地需要 Node.js 22.13.0 或更高版本：
+
+```sh
+npm ci
+cp .dev.vars.example .dev.vars
+npm run dev
+```
+
+在 Workers 运行时预览：
+
+```sh
+npm run build:worker
+npm run dev:worker
+# 或 npm run preview（构建后启动 Wrangler）
+```
+
+检查：
+
+```sh
+npm test
+npm run typecheck
+npm run build:worker
+npm run doctor
+```
+
+`build` 是 Next.js 构建，`build:worker` 再生成 `.open-next/worker.js` 与静态资源。发布前必须先构建；`npm run deploy` 会发布到 Cloudflare，仅在人审授权后执行。当前无需 Cloudflare 账号即可本地构建/预览，尚未配置 Neon/Hyperdrive 或业务鉴权，不提供任何业务数据写入口。
+
+配置参考：[OpenNext 官方接入说明](https://opennext.js.org/cloudflare/get-started)、[Cloudflare Next.js 指南](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/)。未启用 ISR/R2 缓存或数据库绑定，后续按任务接入。
+
+测试采用 Node 内置测试运行器；隔离关闭以适应本地受限环境。当前覆盖脚手架约束，完整产品硬规则及权限测试属 T03，不能据此声称业务规则已验证。
 
 ## License
 
