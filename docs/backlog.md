@@ -68,3 +68,5 @@
 
 - T01：`review`；按用户本次指令扩展为 Next.js App Router + Cloudflare Workers 脚手架、astryx 安装及入口 CSS；原“AGENTS.md 人签字”不由 agent 代办，不修改 AGENTS.md。
 - 范围备注：本次仅初始化，不顺带实现数据库、业务 API、Agent/MCP、自动采集或发布功能。
+
+- T02：`doing`；已产出 `docs/api-spec.md` 草案及覆盖测试。状态/权限/记忆轨参数等问题见草案 §6，建议尚未获批准；未冻结，不作为后续业务实现授权。
