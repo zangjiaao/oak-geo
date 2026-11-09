@@ -12,7 +12,7 @@ const conditions = (role,e) => {
  if(e.method==='POST'&&['owner','editor','viewer'].includes(role)&&e.id!=='objection.create')rules.push('mode_full');
  if(['approve','grant','confirm','retire','upgrade_anchor','cleanup'].includes(e.operation))rules.push('human_decision');
  if(['revise','submit','withdraw'].includes(e.operation))rules.push('author_self_when_object_authored');
- if(e.operation==='approve'&&['claim_block','evidence_package','diagnosis_report','review_queue'].includes(e.resource))rules.push('not_author');
+ if(e.operation==='approve'&&['claim_block','evidence_package','diagnosis_report','review_queue','official_fact'].includes(e.resource))rules.push('not_author');
  if(e.resource==='backflow_ticket'&&e.operation==='complete')rules.push('assigned_user_self');
  if(e.resource==='objection'&&e.operation==='read')rules.push('applicant_or_cs_or_sensitive_factcheck');
  if(e.resource==='objection'&&e.operation==='create'&&['editor','viewer'].includes(role))rules.push('diagnosis_only_proposed');
@@ -25,12 +25,14 @@ const conditions = (role,e) => {
  if(role==='editor'&&e.resource==='review_queue')rules.push('claim_block_only','content_workbench_entry');
  if(e.resource==='probe_batch'&&e.operation==='read'&&['content','evidence'].includes(role))rules.push('probes_projection_only');
  if(e.resource==='cluster_score'&&e.operation==='read'&&['owner','editor','viewer'].includes(role))rules.push('exclude_question_scores');
+ if(e.resource==='brand_lexicon'&&e.operation==='submit')rules.push('version_author_self');
+ if(e.resource==='brand_lexicon'&&e.operation==='create')rules.push('new_version_only');
  rules.push('endpoint_validation');return rules.join(';');
 };
 for(const e of d.endpoints)if(JSON.stringify(e.risk_tags)!==JSON.stringify(requiredReviewRisks(e)))throw new Error(`Risk routing stale: ${e.id}`);
 const rows=['# 未出现 (role, resource, operation) allow 行即 deny','role,resource,operation,effect,scope,basis,conditions'];
 for(const e of d.endpoints)for(const role of e.grants){
- rows.push([role,e.resource,e.operation,'allow',scope(role,e),'产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3',conditions(role,e)].join(','));
+ rows.push([role,e.resource,e.operation,'allow',scope(role,e),('产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3'+(['brand_lexicon','official_fact'].includes(e.resource)?';裁定v4':'')),conditions(role,e)].join(','));
 }
 emit('docs/api/permissions.csv',rows.join('\n')+'\n');
 const pretty=x=>JSON.stringify(x,null,2);
@@ -47,7 +49,7 @@ const coreSet=new Set(d.review.core_endpoint_ids);
 let core='# 核心审阅集\n\n'+intro+'从[一页地图](../spec-map.md)进入；20个承重审阅项中的组合动作逐接口展开，每个接口示例只出现一次。其余raw_answer/C类/配额风险接口也必须审，支撑件合并为[抽检附录](generated/endpoints.md)。\n\n| 项 | 承重项 | 端点 |\n|---|---|---|\n';
 for(const g of d.review.core_groups)core+=`| ${g.number} | ${g.title} | ${g.endpoint_ids.map(id=>link(id,'core-set.md')).join(' / ')} |\n`;
 core+='\n';for(const id of d.review.core_endpoint_ids){const e=d.endpoints.find(e=>e.id===id);if(!e)throw new Error(`Missing core ${id}`);core+=render(e);}
-core+=errors;emit('docs/api/core-set.md',core);
+core+=errors;core=core.replaceAll('20个',`${d.review.core_groups.length}个`);emit('docs/api/core-set.md',core);
 if(!process.argv.includes('--check'))mkdirSync('docs/api/generated',{recursive:true});
 let supporting='# 支撑端点抽检附录\n\n'+intro+'[返回主入口](../../spec-map.md)。本文件只含非核心端点，默认抽检；涉及原文/C类/配额的端点不得下沉。\n\n';
 for(const resource of d.resources){
@@ -65,14 +67,16 @@ for(const g of d.review.core_groups)map+=`| ${g.number} | ${g.title} | ${g.endpo
 map+='\n## 一个事实块的旅程\n\n```mermaid\nflowchart LR\n  C[claim_block.create] --> S[claim_block.submit]\n  S --> A[claim_block.approve]\n  A --> R[content_asset.transition 自动ready]\n  R --> P[publish_registration.register]\n  P --> B[probe_batch.start / execute]\n  B --> J[probe_result.judge 复测命中]\n  J --> M[cluster_score.compare 可比才出差值]\n```\n\n[修订](api/core-set.md#claim_blockrevise)、[撤回下线](api/core-set.md#claim_blockretract)及同事务链式回退不绕过独立审核。\n\n## 13个状态机索引\n\n| 对象 | 完整迁移表 |\n|---|---|\n';
 for(const name of Object.keys(d.states))map+=`| ${name} | [状态/出边/终态](api/states.md#${anchor(name)}) |\n`;
 map+='\n[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；本次不实现API、不合并、不自行冻结。\n';
+map=map.replaceAll('20个',`${d.review.core_groups.length}个`).replace('归并后28个，原31个全部有归宿',`${d.resources.length}个；原资源归并并补v4判定输入`).replace('27张物理表不变','v4补齐后29张物理表').replaceAll('13个',`${Object.keys(d.states).length}个`);
 if(map.trimEnd().split('\n').length>120)throw new Error('spec-map exceeds 120 lines');
 emit('docs/spec-map.md',map);
-let states='# T02 状态迁移表\n\n> 未冻结。枚举来源：一轮/二轮裁定优先，其次 api-spec-template §3；不增加裁定外状态。表内系统触发通过服务层执行。终态“不可改”作用于该行/版本，不禁止创建新行。\n\n';
+let states='# T02 状态迁移表\n\n> 未冻结。枚举来源：各轮负责人裁定及v4优先，其次 api-spec-template §3；不增加裁定外状态。表内系统触发通过服务层执行。终态“不可改”作用于该行/版本，不禁止创建新行。\n\n';
 for(const [name,s]of Object.entries(d.states)){
  states+=`## ${name}\n\n状态：${s.states.map(x=>'`'+x+'`').join(' / ')}。终态：${s.terminal.join(' / ')||'无永久终态（按裁定修订新版本）'}。\n\n| 迁移 | 显式触发 | 执行者 | 前置条件 | 副作用 |\n|---|---|---|---|---|\n`;
  for(const t of s.transitions)states+=`| ${t.from} → ${t.to} | ${t.trigger} | ${t.actor} | ${t.condition} | ${t.effect} |\n`;
  states+='\n';
 }
+states+='## brand_lexicon版本审核（不新增状态枚举）\n\ncreate生成完整新version（不生效）；submit创建waiting队列；FactCheck非版本作者approve后该版本生效。rejected/withdrawn按既有队列规则退回未生效草稿，旧版本始终只读。词表表不增加status列，审核结果由review_queue承载。\n';
 emit('docs/api/states.md',states);
 for(const file of readdirSync('docs/api/generated')){const path=`docs/api/generated/${file}`;if(!outputs.has(path)){if(process.argv.includes('--check'))throw new Error(`Unexpected generated file ${path}`);unlinkSync(path);}}
 console.log(`${d.resources.length} resources; ${d.endpoints.length} endpoints; ${rows.length-2} allow rows`);

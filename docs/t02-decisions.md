@@ -146,3 +146,30 @@ objection.grant / view、api_token.revoke、backflow_ticket.assign
 
 交付状态不变：未冻结、不合并，`--check` 与 14 项测试保持绿；
 R1/R2/R3 造成的行数变化须全部可用测试与生成器解释。
+
+T02 裁定 v4（接入输入补齐；执行边界同前：追加 docs/t02-decisions.md，授权另改产品文档 §18 与决策记录）
+
+背景：§10.2 五类接入输入中，"品牌词表"与"官方口径"两类在数据模型与 API 均无承载，而它们是 brand_mentioned 与 error 判定的输入。补齐如下：
+
+1. 新增资源 brand_lexicon（品牌词表）
+- 字段：id, tenant_id, brand_id, version, kind(brand_alias / product_line / model / competitor / exclusion)，term, created_by, created_at
+- 语义：每品牌词表带版本号，变更 = 开新版本（旧版本只读）；判定 job 与 metric_snapshot 记录判定时的 lexicon_version，保证批次可解释
+- exclusion 类 = "纯品类词不算点名"白名单（erp、软件、多少钱……）
+- 权限：strategy 写草稿；变更走 review_queue 人审（见 3）
+- 端点：read / create / submit（约 3 个）
+
+2. 新增资源 official_fact（官方口径）
+- 字段：id, tenant_id, brand_id, fact_category(price / spec / boundary / service_promise)，content, source_level(准入 L1)，status(draft→approved→retracted)，effective_from
+- 用途：error 判定唯一比对基准；judge job 只读 approved 口径
+- 端点：read / create / approve / retract（约 4 个）
+
+3. review_queue 的 object_type 枚举扩展：claim_block / evidence_package / diagnosis_report / brand_lexicon / official_fact
+- 理由：判定基准的变更与内容放行同属可审计关口，同人禁令同样适用（写词表的人不能封自己的词表版本）
+- 放行语义：lexicon = 开新版本生效；fact = approved 生效
+
+4. 权限与测试
+- permissions.csv 重跑（预计 +15 行 allow 左右）；29→31 资源、105→~112 端点，数字变化须由生成器与测试解释
+- 新增测试：①官方口径 retract 后 judge 拒绝引用（无比对基准不出 error 分）；②lexicon 版本变更后旧批次判定可按历史版本还原
+- spec-map 同步：资源归属图 + 承重清单（official_fact.read 承重：judge 输入）
+
+5. 产品文档授权修改（§18）：新增上述两表（字段照抄本裁定）；文末决策记录追加：品牌词表与官方口径补齐（T02 v4 裁定）。其余章节不动。

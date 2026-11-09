@@ -28,7 +28,9 @@
     "publish_registration",
     "diagnosis_report",
     "offboarding",
-    "deletion_ledger"
+    "deletion_ledger",
+    "brand_lexicon",
+    "official_fact"
   ],
   "roles": [
     "owner",
@@ -1608,18 +1610,27 @@
         "generic_i": 0.5,
         "competitor_i": 0,
         "spec_score": 3,
-        "note": "人工示例"
+        "note": "人工示例",
+        "batch_id": "bt1",
+        "lexicon_version": 1,
+        "official_fact_ids": [
+          "f1"
+        ]
       },
       "response": {
         "id": "r1",
-        "judged": true
+        "judged": true,
+        "lexicon_version": 1,
+        "official_fact_ids": [
+          "f1"
+        ]
       },
-      "validation": "judging-spec先人审冻结；refused排除所有分母；样例不定义判定算法",
-      "side_effects": "保留判定审计；已出分需重新判定则换judge配置与基线",
+      "validation": "judging-spec先人审冻结；refused排除所有分母；样例不定义判定算法；输入必须读取已审历史lexicon_version与L1 approved官方口径；被指定口径retract即拒绝，缺基准error_i=null；不得替换为latest或claim_block",
+      "side_effects": "保留判定审计；已出分需重新判定则换judge配置与基线；job及审计记录lexicon_version、official_fact_ids；不覆盖历史判定与聚合",
       "grants": [
         "factcheck"
       ],
-      "system_job": null,
+      "system_job": "judge",
       "risk_tags": [
         "quota"
       ]
@@ -1641,7 +1652,8 @@
         "snapshot_id": "snp1",
         "batch_id": "bt1",
         "mention_rate": 0.5,
-        "citation_rate": 0.25
+        "citation_rate": 0.25,
+        "lexicon_version": 1
       },
       "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
       "side_effects": "无业务副作用",
@@ -2101,12 +2113,14 @@
         "batch_id": "bt2",
         "snapshot_id": "snp1",
         "cluster_id": "c1",
-        "committed_attempt_no": 1
+        "committed_attempt_no": 1,
+        "lexicon_version": 1
       },
       "response": {
-        "id": "m2"
+        "id": "m2",
+        "lexicon_version": 1
       },
-      "validation": "按批次追加，历史不可变；拒答排除；显式/隐式引用计算层推导；citation_rate仅规范化URL全等explicit；指纹及仅域名命中只内部分析；仅completed批次选定完整尝试，禁止从failed批次或多次部分尝试拼样本",
+      "validation": "按批次追加，历史不可变；拒答排除；显式/隐式引用计算层推导；citation_rate仅规范化URL全等explicit；指纹及仅域名命中只内部分析；仅completed批次选定完整尝试，禁止从failed批次或多次部分尝试拼样本；lexicon_version必须与该批次判定记录一致，不读当前最新版本",
       "side_effects": "不写cluster_score；触发回流扫描",
       "grants": [],
       "system_job": "metric_aggregate",
@@ -2193,7 +2207,7 @@
         "id": "rv2",
         "status": "waiting"
       },
-      "validation": "作者本人；只收三个MVP类型；plan_draft仅预留不接受",
+      "validation": "作者本人；MVP五类object_type：claim_block/evidence_package/diagnosis_report/brand_lexicon/official_fact；plan_draft仅预留不接受；strategist仅本人词表/口径/诊断，evidence仅本人证据包",
       "side_effects": "入waiting，通知FactCheck",
       "grants": [
         "evidence",
@@ -2218,8 +2232,8 @@
         "id": "rv1",
         "status": "approved"
       },
-      "validation": "waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人",
-      "side_effects": "原子修改对象态及队列终态；无通用裸状态update",
+      "validation": "waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人；品牌词表版本或官方口径同样检查创建者，不能封自己版本",
+      "side_effects": "原子修改对象态及队列终态；无通用裸状态update；lexicon批准即新版本生效，official_fact批准即approved；保留旧批次引用版本",
       "grants": [
         "factcheck"
       ],
@@ -2770,7 +2784,7 @@
         "snapshot_id": "snp1"
       },
       "validation": "冻结配置；事件3目标+3对照，锚定版本未变；baseline/event/monthly；保存各簇锚定清单，执行/比较不得读取最新池替代该清单",
-      "side_effects": "独立batch_id；复测共用snapshot，probe_result可追加",
+      "side_effects": "独立batch_id；复测共用snapshot，probe_result可追加；判定开始时记录该批次lexicon_version，后续新版词表不改旧批次解释",
       "grants": [
         "cs"
       ],
@@ -3293,6 +3307,246 @@
       "system_job": "weekly_pool",
       "legacy_endpoint_id": "intent_cluster.refresh",
       "risk_tags": []
+    },
+    {
+      "id": "brand_lexicon.read",
+      "resource": "brand_lexicon",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "brand_id": "b1",
+        "version": 1,
+        "entries": [
+          {
+            "kind": "brand_alias",
+            "term": "简造"
+          },
+          {
+            "kind": "exclusion",
+            "term": "erp"
+          }
+        ]
+      },
+      "validation": "明确tenant/brand/version；历史版本只读，禁止无版本默认latest；Content/Evidence仅关联任务；judge仅已批准的指定版本",
+      "side_effects": "读取不改状态；返回lexicon_version供判定记录",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": "judge",
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "brand_lexicon.create",
+      "resource": "brand_lexicon",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/brand-lexicons",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "brand_lexicon.create",
+      "request": {
+        "entries": [
+          {
+            "kind": "brand_alias",
+            "term": "简造"
+          },
+          {
+            "kind": "exclusion",
+            "term": "erp"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "version_object_id": "lx1",
+        "effective": false
+      },
+      "validation": "strategy映射既有strategist；创建完整版本，新version新行，旧版本只读；kind为五类；created_by/created_at服务端记录",
+      "side_effects": "不立即生效；version_object_id引用该版本首行id，审核整版本条目集合",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "brand_lexicon.submit",
+      "resource": "brand_lexicon",
+      "operation": "submit",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}/submit",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "brand_lexicon.submit",
+      "request": {},
+      "response": {
+        "review_entry_id": "rv-lx1",
+        "object_type": "brand_lexicon",
+        "object_id": "lx1",
+        "status": "waiting"
+      },
+      "validation": "版本作者本人；只能提交完整未生效版本，所有条目归属同品牌/版本；不另发明lexicon状态枚举",
+      "side_effects": "入review_queue，FactCheck≠版本作者；approve即该新版本生效，旧版本保留可还原",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.read",
+      "resource": "official_fact",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "fact_ids": [
+          "f1"
+        ],
+        "as_of": "2026-11-09T00:00:00Z",
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "f1",
+            "tenant_id": "t1",
+            "brand_id": "b1",
+            "fact_category": "price",
+            "content": "示例官方价格口径，非产品承诺",
+            "source_level": "L1",
+            "status": "approved",
+            "effective_from": "2026-01-01T00:00:00Z"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "judge只读同品牌L1、approved且effective_from已到期的指定口径；请求含retracted/draft/缺失基准则422 validation_failed且error_i=null，不以其他资料替代",
+      "side_effects": "error唯一比对基准；人工内部读取可按权限查看审核元数据，judge不可引用retracted",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": "judge",
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.create",
+      "resource": "official_fact",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "official_fact.create",
+      "request": {
+        "fact_category": "price",
+        "content": "示例官方价格口径，非产品承诺",
+        "source_level": "L1",
+        "effective_from": "2026-01-01T00:00:00Z"
+      },
+      "response": {
+        "id": "f1",
+        "status": "draft",
+        "review_entry_id": "rv-f1"
+      },
+      "validation": "四类fact_category；只准L1；effective_from为UTC；作者从创建审计及review_queue.submitted_by溯源",
+      "side_effects": "同事务创建draft与waiting条目，无额外submit端点；未批准不得供judge使用",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.approve",
+      "resource": "official_fact",
+      "operation": "approve",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts/{id}/approve",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "official_fact.approve",
+      "request": {},
+      "response": {
+        "id": "f1",
+        "status": "approved"
+      },
+      "validation": "human、draft且对应waiting；FactCheck≠创建者；与review_queue.approve同一原子服务动作",
+      "side_effects": "口径approved生效（仍受effective_from限制），结算队列approved",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.retract",
+      "resource": "official_fact",
+      "operation": "retract",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts/{id}/retract",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "official_fact.retract",
+      "request": {
+        "reason": "官方口径已失效"
+      },
+      "response": {
+        "id": "f1",
+        "status": "retracted"
+      },
+      "validation": "human；approved→retracted；reason必填；不改历史metric_snapshot",
+      "side_effects": "后续judge拒绝引用，不出无基准error分；终态保留审计",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
     }
   ],
   "states": {
@@ -3789,6 +4043,34 @@
       "terminal": [
         "reported"
       ]
+    },
+    "official_fact": {
+      "states": [
+        "draft",
+        "approved",
+        "retracted"
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "approved",
+          "trigger": "approve（同通用队列放行）",
+          "actor": "factcheck",
+          "condition": "L1；waiting；非创建者",
+          "effect": "生效且结算队列approved，judge还须校验effective_from"
+        },
+        {
+          "from": "approved",
+          "to": "retracted",
+          "trigger": "retract",
+          "actor": "factcheck",
+          "condition": "理由必填",
+          "effect": "后续judge拒绝引用，历史指标保持不变"
+        }
+      ],
+      "terminal": [
+        "retracted"
+      ]
     }
   },
   "jobs": {
@@ -3954,6 +4236,19 @@
       "affected_object_required": true,
       "trigger_allowed": [
         "cron",
+        "event_id"
+      ]
+    },
+    "judge": {
+      "endpoints": [
+        "brand_lexicon.read",
+        "official_fact.read",
+        "probe_result.judge"
+      ],
+      "batch_required": true,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
         "event_id"
       ]
     }
@@ -4200,6 +4495,13 @@
         "endpoint_ids": [
           "backflow_ticket.assign"
         ]
+      },
+      {
+        "number": 21,
+        "title": "官方口径读取·judge唯一比对基准",
+        "endpoint_ids": [
+          "official_fact.read"
+        ]
       }
     ],
     "core_endpoint_ids": [
@@ -4227,6 +4529,7 @@
       "objection.view",
       "api_token.revoke",
       "backflow_ticket.assign",
+      "official_fact.read",
       "tenant.read",
       "tenant.configure",
       "keyword_raw.read",
@@ -4254,7 +4557,13 @@
       "offboarding.execute",
       "offboarding.cleanup",
       "deletion_ledger.append",
-      "api_token.record_use"
+      "api_token.record_use",
+      "brand_lexicon.read",
+      "brand_lexicon.create",
+      "brand_lexicon.submit",
+      "official_fact.create",
+      "official_fact.approve",
+      "official_fact.retract"
     ],
     "resource_layers": {
       "需求层": [
@@ -4268,7 +4577,9 @@
         "cluster_score",
         "cluster_platform_signal",
         "industry_score",
-        "diagnosis_report"
+        "diagnosis_report",
+        "brand_lexicon",
+        "official_fact"
       ],
       "生产层": [
         "content_asset",
@@ -4293,6 +4604,18 @@
         "offboarding",
         "deletion_ledger"
       ]
+    },
+    "v4_delta": {
+      "before_resources": 28,
+      "added_resources": 2,
+      "after_resources": 30,
+      "before_endpoints": 105,
+      "added_endpoints": 7,
+      "after_endpoints": 112,
+      "before_allow_rows": 230,
+      "added_allow_rows": 15,
+      "after_allow_rows": 245,
+      "note": "裁定29→31为估计，实际基数按R3归并后28计算"
     }
   },
   "layout_migration": {
@@ -4419,5 +4742,26 @@
     },
     "policy_change": false,
     "physical_tables_change": false
+  },
+  "review_object_types": [
+    "claim_block",
+    "evidence_package",
+    "diagnosis_report",
+    "brand_lexicon",
+    "official_fact"
+  ],
+  "judge_inputs_policy": {
+    "lexicon_version_required": true,
+    "latest_fallback": false,
+    "lexicon_review_required": true,
+    "official_source_level": "L1",
+    "official_status": "approved",
+    "no_official_baseline_error_i": null,
+    "record_on": [
+      "judge_job",
+      "metric_snapshot"
+    ],
+    "exclusion_kind": "exclusion",
+    "historical_versions_immutable": true
   }
 }

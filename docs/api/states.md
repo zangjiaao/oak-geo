@@ -1,6 +1,6 @@
 # T02 状态迁移表
 
-> 未冻结。枚举来源：一轮/二轮裁定优先，其次 api-spec-template §3；不增加裁定外状态。表内系统触发通过服务层执行。终态“不可改”作用于该行/版本，不禁止创建新行。
+> 未冻结。枚举来源：各轮负责人裁定及v4优先，其次 api-spec-template §3；不增加裁定外状态。表内系统触发通过服务层执行。终态“不可改”作用于该行/版本，不禁止创建新行。
 
 ## claim_block
 
@@ -134,3 +134,15 @@
 | registered → retesting | 批次启动 | system | 登记排期开始 | 审计并执行关联副作用 |
 | retesting → reported | 月报产出 | system | 相关批次指标和报告完成 | 审计并执行关联副作用 |
 
+## official_fact
+
+状态：`draft` / `approved` / `retracted`。终态：retracted。
+
+| 迁移 | 显式触发 | 执行者 | 前置条件 | 副作用 |
+|---|---|---|---|---|
+| draft → approved | approve（同通用队列放行） | factcheck | L1；waiting；非创建者 | 生效且结算队列approved，judge还须校验effective_from |
+| approved → retracted | retract | factcheck | 理由必填 | 后续judge拒绝引用，历史指标保持不变 |
+
+## brand_lexicon版本审核（不新增状态枚举）
+
+create生成完整新version（不生效）；submit创建waiting队列；FactCheck非版本作者approve后该版本生效。rejected/withdrawn按既有队列规则退回未生效草稿，旧版本始终只读。词表表不增加status列，审核结果由review_queue承载。

@@ -966,7 +966,8 @@
     "snapshot_id": "snp1",
     "batch_id": "bt1",
     "mention_rate": 0.5,
-    "citation_rate": 0.25
+    "citation_rate": 0.25,
+    "lexicon_version": 1
   },
   "meta": {
     "snapshot_id": "snp1",
@@ -1017,7 +1018,7 @@
 
 权限候选：人类九角色全部deny；system：metric_aggregate。权限行：`(role, metric_snapshot, append)`。审阅风险：承重动作。
 
-校验：按批次追加，历史不可变；拒答排除；显式/隐式引用计算层推导；citation_rate仅规范化URL全等explicit；指纹及仅域名命中只内部分析；仅completed批次选定完整尝试，禁止从failed批次或多次部分尝试拼样本。
+校验：按批次追加，历史不可变；拒答排除；显式/隐式引用计算层推导；citation_rate仅规范化URL全等explicit；指纹及仅域名命中只内部分析；仅completed批次选定完整尝试，禁止从failed批次或多次部分尝试拼样本；lexicon_version必须与该批次判定记录一致，不读当前最新版本。
 
 审计：metric_snapshot.append。副作用：不写cluster_score；触发回流扫描。
 
@@ -1028,7 +1029,8 @@
   "batch_id": "bt2",
   "snapshot_id": "snp1",
   "cluster_id": "c1",
-  "committed_attempt_no": 1
+  "committed_attempt_no": 1,
+  "lexicon_version": 1
 }
 ```
 
@@ -1037,7 +1039,8 @@
 ```json
 {
   "data": {
-    "id": "m2"
+    "id": "m2",
+    "lexicon_version": 1
   },
   "meta": {
     "snapshot_id": "snp1",
@@ -1170,7 +1173,7 @@
 
 权限候选：evidence / strategist；system：无。权限行：`(role, review_queue, submit)`。审阅风险：承重动作。
 
-校验：作者本人；只收三个MVP类型；plan_draft仅预留不接受。
+校验：作者本人；MVP五类object_type：claim_block/evidence_package/diagnosis_report/brand_lexicon/official_fact；plan_draft仅预留不接受；strategist仅本人词表/口径/诊断，evidence仅本人证据包。
 
 审计：review_queue.submit。副作用：入waiting，通知FactCheck。
 

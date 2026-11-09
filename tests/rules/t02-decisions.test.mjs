@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 const read = p => readFileSync(p, 'utf8');
 const data = () => JSON.parse(read('docs/api/contracts.json'));
 test('授权范围外的产品文档逐字保留', () => {
- const text = read('docs/GEO产品文档.md').replace(/## 18\. 表结构[\s\S]*?(?=## 19\. 硬规则汇总)/,'').replace(/^\| T02 阻塞项 10 条裁定：.*\n/m,'');
+ const text = read('docs/GEO产品文档.md').replace(/## 18\. 表结构[\s\S]*?(?=## 19\. 硬规则汇总)/,'').replace(/^\| T02 阻塞项 10 条裁定：.*\n/m,'').replace(/^\| 品牌词表与官方口径补齐（T02 v4 裁定）.*\n/m,'');
  assert.equal(createHash('sha256').update(text).digest('hex'), '89324b8af488a76230a65152b31986b181dc4226658e948fa014901ff8531121');
 });
 test('六表及快照双身份只在授权处补充', () => {
@@ -21,8 +21,8 @@ test('全资源端点均有独立请求响应及语义和审计定义', () => {
  const d=data(); const product=read('docs/GEO产品文档.md').split('## 18. 表结构')[1].split('```')[1];
  const tables=[...product.matchAll(/^(\w+)\s{2,}/gm)].map(m=>m[1]);
  for(const table of tables) assert.ok(d.resources.includes(table)||d.embedded_models?.[table],table);
- assert.equal(d.resources.length,28);
- const map=read('docs/spec-map.md');assert.ok(map.trimEnd().split('\n').length<=120);assert.equal(d.review.core_groups.length,20);
+ assert.equal(d.resources.length,30);
+ const map=read('docs/spec-map.md');assert.ok(map.trimEnd().split('\n').length<=120);assert.equal(d.review.core_groups.length,21);
  const core=read('docs/api/core-set.md');for(const id of d.review.core_endpoint_ids)assert.ok(core.includes('### '+id),id);
  for(const e of d.endpoints){assert.deepEqual(e.risk_tags,requiredReviewRisks(e));if(e.risk_tags.length)assert.ok(d.review.core_endpoint_ids.includes(e.id),e.id);}
  const files=['docs/api/core-set.md','docs/api/generated/endpoints.md'];
@@ -49,7 +49,7 @@ test('定稿的块状态不携带发布进度且GET异议访问不改状态', ()
 });
 test('所有状态均有合法出边或声明终态，终态行不可再迁移', () => {
  const current=data();
- const projection=d=>({states:Object.fromEntries(Object.entries(d.states).map(([k,v])=>[k,{states:v.states,terminal:v.terminal,edges:v.transitions.map(({trigger,...x})=>x)}])),citation:d.citation_policy,retraction:d.content_retraction_policy,retention:d.retention_policy});
+ const projection=d=>({states:Object.fromEntries(Object.entries(d.states).filter(([k])=>k!=='official_fact').map(([k,v])=>[k,{states:v.states,terminal:v.terminal,edges:v.transitions.map(({trigger,...x})=>x)}])),citation:d.citation_policy,retraction:d.content_retraction_policy,retention:d.retention_policy});
  assert.equal(createHash('sha256').update(JSON.stringify(projection(current))).digest('hex'),'04d009ffa5f00c1462242db5e7444d36580684ace6a054226e1a1803bc6ea7b7');
  for(const [name,s] of Object.entries(current.states)) {
   for(const t of s.transitions){assert.ok(s.states.includes(t.from),name);assert.ok(s.states.includes(t.to),name);assert.ok(!s.terminal.includes(t.from),`${name}:${t.from}`);}
@@ -85,4 +85,27 @@ test('docs目录保持精简，主入口及生成附件的本地链接有效', (
    assert.ok(existsSync(resolve(dirname(file),target)),`${file}: ${target}`);
   }
  }
+});
+test('官方口径撤回后不能作为judge输入，无有效口径不出error分', async () => {
+ const { resolveJudgeInputs }=await import('../../scripts/t02-judge-inputs.mjs');
+ const context={tenant_id:'t1',brand_id:'b1',lexicon_version:1,at:'2026-11-09T00:00:00Z'};
+ const lexicons=[{id:'l1',tenant_id:'t1',brand_id:'b1',version:1,kind:'brand_alias',term:'简造'}];
+ const reviews=[{object_type:'brand_lexicon',object_id:'l1',status:'approved'}];
+ const fact={id:'f1',tenant_id:'t1',brand_id:'b1',source_level:'L1',status:'approved',effective_from:'2026-01-01T00:00:00Z'};
+ assert.equal(resolveJudgeInputs({context,lexicons,reviews,facts:[fact],fact_ids:['f1']}).status,200);
+ for(const facts of [[{...fact,status:'retracted'}],[],[{...fact,status:'draft'}],[{...fact,source_level:'L2'}]]){
+  const result=resolveJudgeInputs({context,lexicons,reviews,facts,fact_ids:['f1']});
+  assert.equal(result.status,422);assert.equal(result.error_i,null);assert.equal(result.error.code,'validation_failed');
+ }
+});
+test('lexicon变更不改旧版本，旧批次按记录的lexicon_version还原', async () => {
+ const { resolveJudgeInputs }=await import('../../scripts/t02-judge-inputs.mjs');
+ const context={tenant_id:'t1',brand_id:'b1',lexicon_version:1,at:'2026-11-09T00:00:00Z'};
+ const oldVersion=[{id:'l1',tenant_id:'t1',brand_id:'b1',version:1,kind:'brand_alias',term:'旧品牌别名'}];
+ const newVersion=[{id:'l2',tenant_id:'t1',brand_id:'b1',version:2,kind:'brand_alias',term:'新品牌别名'}];
+ const facts=[{id:'f1',tenant_id:'t1',brand_id:'b1',source_level:'L1',status:'approved',effective_from:'2026-01-01T00:00:00Z'}];
+ const reviews=[{object_type:'brand_lexicon',object_id:'l1',status:'approved'},{object_type:'brand_lexicon',object_id:'l2',status:'approved'}];
+ const result=resolveJudgeInputs({context,lexicons:[...oldVersion,...newVersion],reviews,facts,fact_ids:['f1']});
+ assert.deepEqual(result.lexicon,oldVersion);assert.equal(result.lexicon_version,1);assert.deepEqual(oldVersion[0].term,'旧品牌别名');
+ assert.equal(resolveJudgeInputs({context:{...context,lexicon_version:3},lexicons:[...oldVersion,...newVersion],reviews,facts,fact_ids:['f1']}).status,422);
 });

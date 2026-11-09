@@ -93,12 +93,14 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 ## 2. 资源清单
 
-产品§18的27张物理表不变，API由31资源归并为28资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`api/contracts.json.layout_migration`。31→28资源，112→105端点，41→39操作；权限230 = 246 − 问句分数5 − 证据条目7 − 探针读5 − 锚定合并1 + 批次任务投影2。CSV连规则与列头共232行，不再输出deny行。
+R3阶段将API由31资源归并为28资源；v4补齐brand_lexicon与official_fact后，现有29张物理表、30个API资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`api/contracts.json.layout_migration`。31→28资源，112→105端点，41→39操作；权限230 = 246 − 问句分数5 − 证据条目7 − 探针读5 − 锚定合并1 + 批次任务投影2。这是R3阶段历史基数。v4增加7端点与15个allow，现为112端点、245个allow（CSV连规则与列头247行），操作名仍39种；裁定中的29→31为估计，本稿按实际28→30计算，不额外造第三个资源。
 
 | API资源 | 契约位置 |
 |---|---|
 | `tenant` | [核心集](api/core-set.md) |
 | `brand` | [支撑件](api/generated/endpoints.md) |
+| `brand_lexicon` | [核心集](api/core-set.md) |
+| `official_fact` | [核心集](api/core-set.md) |
 | `user_member` | [支撑件](api/generated/endpoints.md) |
 | `seed_list` | [支撑件](api/generated/endpoints.md) |
 | `keyword_raw` | [核心集](api/core-set.md) |
@@ -128,7 +130,21 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 嵌入并不扩权：question_scores节只给原内部五角色，客户簇级read仍不返回该节；evidence items继承原父包封版/任务/摘录限制；Content/Evidence仅可经batch读取原分派probe投影，不能查看完整批次或其他任务。子资源写入通过父对象的显式服务动作原子完成。
 
-模板下载作为evidence_package投影，不新增模板表；完整客户包下载与受限原文/摘录分离。review_queue使用 object_type + object_id，动态按object_type处理，MVP只接受claim_block/evidence_package/diagnosis_report；plan_draft仅P1预留，MVP拒绝，不实现Agent产出。
+模板下载作为evidence_package投影，不新增模板表；完整客户包下载与受限原文/摘录分离。review_queue使用 object_type + object_id，动态按object_type处理，MVP接受claim_block/evidence_package/diagnosis_report/brand_lexicon/official_fact；plan_draft仅P1预留，MVP拒绝，不实现Agent产出。
+
+### v4 接入判定输入
+
+`strategy`沿用既有角色名`strategist`，不新增第十角色。新增权限按既有职责矩阵生成后随本PR审阅：两类资源各给内部五角色read（Content/Evidence仍限任务关联对象）；词表create/submit与口径create给Strategist；口径approve/retract给FactCheck，共15行allow。客户和Admin没有因此获得新写入口。
+
+brand_lexicon以`(tenant_id, brand_id, version)`表示完整词表版本，每条term带kind，exclusion是纯品类词不算点名的白名单。变更通过create新完整版本，旧行只读；submit入通用review_queue，FactCheck非版本作者放行即新版本生效。不向词表表追加status枚举。版本的review_queue.object_id引用create返回的version_object_id（该版本首行id）；该行解析至完整版本集合，不能只批准其中一条term。版本集合和作者从创建记录固定，不能通过重排条目或追加term绕过复核；所有条目归属同品牌、版本与创建人。该对象标识/完整集合约束作为实现草案随PR审。
+
+official_fact仅L1准入，四类为price/spec/boundary/service_promise。create同事务创建draft及waiting审核条目（无需新增submit接口）；作者从创建审计与submitted_by验证。approve与通用review_queue.approve是同一原子动作：FactCheck≠创建者，approved后且effective_from到达才可用于judge；reject/withdraw不新增事实状态，仍保持draft。approved→retracted后不得再次用于judge输入；修订基准另建新事实记录并重新审核，历史指标不覆盖。
+
+error唯一比对基准是同品牌、L1、approved、已生效的official_fact。judge请求必须显式带official_fact_ids与lexicon_version，不能把claim_block或外部文本当基准；引用retracted/draft/不存在/未生效口径时422 validation_failed，缺有效基准时error_i=null，不填0或猜分。错误判定正则、spec_score等仍留judging-spec，不在本任务实现。
+
+判定job以batch_id记录实际lexicon_version，并将同版本写入metric_snapshot；后续词表生效不重写旧批次。旧批次按明确历史版本还原，不默认latest，也不把旧版本删除或替换；不存在或未审版本必须拒绝。job记录的lexicon_version、official_fact_ids与版本集合引用属于行为必要字段草案，依既有常设授权随PR审，metric_snapshot.lexicon_version已按本裁定补入§18。
+
+这次补充记录判定输入，不额外修改既定快照可比性判据或判定算法。`scripts/t02-judge-inputs.mjs`仅为两项输入契约测试提供可执行示例，不是生产judge实现，不访问数据库或模型。
 
 ### 字段草案（依二轮②常设授权，随PR审）
 
@@ -150,7 +166,7 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 ## 3. 状态机规格
 
-[逐对象完整迁移表](api/states.md)覆盖模板10对象以及probe_batch/review_queue/diagnosis_report。终态无出边是明确终态，非遗漏；claim_block的回draft由新版本行承接，旧版不改。只有声明的出边合法，其他状态组合一律409。
+[逐对象完整迁移表](api/states.md)覆盖模板10对象、probe_batch/review_queue/diagnosis_report及新增official_fact；brand_lexicon版本生效沿通用队列描述，不另造状态枚举。终态无出边是明确终态，非遗漏；claim_block的回draft由新版本行承接，旧版不改。只有声明的出边合法，其他状态组合一律409。
 
 队列waiting不是给evidence_package增加pending_review状态：对象仍draft，但队列有waiting条目时不能修改被审版本；reject/withdraw后仍draft可修改，approve直接sealed。claim_block approve/reject与通用review_queue approve/reject为同一服务动作的两个入口，必须原子结算同一队列条目、同一对象，不能重复审核。队列三个终态条目不可重用；再提交新waiting条目。FactCheck≠作者在两入口都校验。
 
@@ -168,6 +184,7 @@ content_asset的registered块retract时，同事务先registered→ready，逐�
 | c_import | 已书面授权CSV批次 | keyword_raw.import | 入库前脱敏；新增/重复/拒绝计数；不写自动爬虫 |
 | event_schedule | 发布登记、月度、首次评分排期或模型/判定/轨道变更事件 | probe_batch.create、scoring_snapshot.create/freeze | 按登记+时点/月份去重，D+3/14/30，目标3+对照3；baseline/月度30簇；模型主版本/判定/轨道变化新配置新基线，全量重跑与报告标注，不与旧期比较 |
 | probe_execute | pending批次到期 | probe_batch.start/execute/complete/fail | 按冻结配置、簇锚定执行；批次追加，原文不进指令位 |
+| judge | 批次回答待判定 | brand_lexicon.read、official_fact.read、probe_result.judge | 仅批准版本/口径；记录lexicon_version与基准IDs，无有效口径不出error分 |
 | baseline_scoring | 基线判定完成 | cluster_score.append（内含question_scores）、cluster_platform_signal.append | cluster+snapshot唯一；拒答排除；不足样本不出分；复测不重写分数 |
 | metric_aggregate | 全批判定完成 | metric_snapshot.append | 按batch追加；同口径比较；我方生产披露与对照组 |
 | backflow_scan | 指标快照完成 | backflow_ticket.create | §8五信号；证据probe/责任角色/时限；说错24h红色 |
@@ -178,13 +195,13 @@ content_asset的registered块retract时，同事务先registered→ready，逐�
 | publication_lifecycle | 登记排期与报告完成 | publish_registration.transition | 注册进度与资产状态分离，保留历史 |
 | offboarding | 显式解约流程及获批人工清理 | offboarding.execute、deletion_ledger.append | 删除原文，保留聚合/审计及合同保留期；过程可追溯 |
 
-原始probe_result判定由人工FactCheck在judging-spec冻结后操作；MVP规则计算如何经同一服务动作执行按T16冻结规则实现，不能将system解释为任意判定权限。引用匹配阈值、拒答判据、悬空指代正则、spec_score全部留judging-spec人审，本次不补算法。
+原始probe_result判定由人工FactCheck或本次v4明确的受控judge job，在judging-spec冻结后经同一服务层输入闸门操作；MVP规则计算如何经同一服务动作执行按T16冻结规则实现，不能将system解释为任意判定权限。引用匹配阈值、拒答判据、悬空指代正则、spec_score全部留judging-spec人审，本次不补算法。
 
 配额按tenant+operation_type计数probe/judge/drafting并分token限流；没有新增Agent功能或默认配额。原始回答访问与C类访问全审计；没有raw批量读取/批量导出内部调试端点。
 
 ### 4.1 job_name受控注册表
 
-受控枚举固定为上表job_name列：weekly_pool / c_import / event_schedule / probe_execute / baseline_scoring / metric_aggregate / backflow_scan / ticket_deadline / content_reconcile / audit_middleware / opportunity_lifecycle / publication_lifecycle / offboarding。拒绝任意自由字符串；同一job只能执行其端点白名单。audit_middleware写原调用者actor_type，不以system掩盖human/agent/external_agent；仅后台job本身为system。
+受控枚举固定为上表job_name列：judge / weekly_pool / c_import / event_schedule / probe_execute / baseline_scoring / metric_aggregate / backflow_scan / ticket_deadline / content_reconcile / audit_middleware / opportunity_lifecycle / publication_lifecycle / offboarding。拒绝任意自由字符串；同一job只能执行其端点白名单。audit_middleware写原调用者actor_type，不以system掩盖human/agent/external_agent；仅后台job本身为system。
 
 非探针job以trigger_source加对象追踪；探针类batch_id必须与端点目标及tenant一致。普通列表/GET可追加访问审计与凭证last_used_at，但绝不迁移被读取业务对象状态。
 
@@ -204,7 +221,7 @@ job白名单结构化定义同时保存于 `api/contracts.json.jobs`；执行参
 
 ## 6. 阻塞问题关闭与人审说明
 
-三轮裁定原文已全部存档，已知规则歧义已关闭。当前停止点为“人审冻结”，不是agent宣告冻结。
+既有裁定与v4接入输入补充原文已全部存档，已知规则歧义已关闭。当前停止点为“人审冻结”，不是agent宣告冻结。
 
 人审仍需确认核心集、allow规范及支撑件抽检中的候选细节：diagnosis下editor/viewer异议申请行、Admin的PAT配置管理、游标编码/排序、审计可空字段、批次锚定与失败尝试存储、diagnosis_report/publish_registration/offboarding/deletion_ledger持久化草案。它们属于本次提交人审的设计材料，不自动作为已实现权限或新增产品功能。
 

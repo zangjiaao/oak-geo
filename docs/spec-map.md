@@ -14,14 +14,14 @@ flowchart LR
   X -.-> V
 ```
 
-| 层 | API资源（归并后28个，原31个全部有归宿） |
+| 层 | API资源（30个；原资源归并并补v4判定输入） |
 |---|---|
-| 需求层 | seed_list、keyword_raw、keyword_pool_snapshot、intent_cluster、question_pool、opportunity_card、scoring_snapshot、cluster_score（内含question_score）、cluster_platform_signal、industry_score、diagnosis_report |
+| 需求层 | seed_list、keyword_raw、keyword_pool_snapshot、intent_cluster、question_pool、opportunity_card、scoring_snapshot、cluster_score（内含question_score）、cluster_platform_signal、industry_score、diagnosis_report、brand_lexicon、official_fact |
 | 生产层 | content_asset、claim_block、review_queue、evidence_package（内含evidence_item）、publish_registration |
 | 验证层 | probe_batch（内含probe）、probe_result、metric_snapshot、objection、backflow_ticket |
 | 横切支撑 | tenant、brand、user_member、audit_log、api_token、offboarding、deletion_ledger |
 
-仅合并API边界，27张物理表不变；snapshot是配置、batch是执行，簇级问句锚定规则不变。
+仅合并API边界，v4补齐后29张物理表；snapshot是配置、batch是执行，簇级问句锚定规则不变。
 
 ## 九角色
 
@@ -37,9 +37,9 @@ flowchart LR
 | cs | 本租户全品牌复测排期、异议授权与陪同、工单派发。 |
 | admin | 配置与审计；原文默认不可读，单次理由调阅+审计。 |
 
-## 20个承重审阅项
+## 21个承重审阅项
 
-组合动作按负责人R4逐接口展开；不是把不同职责压成20个HTTP接口。
+组合动作按负责人R4逐接口展开；不是把不同职责压成21个HTTP接口。
 
 | 项 | 审什么 | 完整接口示例 |
 |---|---|---|
@@ -63,6 +63,7 @@ flowchart LR
 | 18 | 异议发起调阅 | [objection.view](api/core-set.md#objectionview) |
 | 19 | 令牌撤销 | [api_token.revoke](api/core-set.md#api_tokenrevoke) |
 | 20 | 回流派单 | [backflow_ticket.assign](api/core-set.md#backflow_ticketassign) |
+| 21 | 官方口径读取·judge唯一比对基准 | [official_fact.read](api/core-set.md#official_factread) |
 
 ## 一个事实块的旅程
 
@@ -79,7 +80,7 @@ flowchart LR
 
 [修订](api/core-set.md#claim_blockrevise)、[撤回下线](api/core-set.md#claim_blockretract)及同事务链式回退不绕过独立审核。
 
-## 13个状态机索引
+## 14个状态机索引
 
 | 对象 | 完整迁移表 |
 |---|---|
@@ -96,5 +97,6 @@ flowchart LR
 | scoring_snapshot | [状态/出边/终态](api/states.md#scoring_snapshot) |
 | opportunity_card | [状态/出边/终态](api/states.md#opportunity_card) |
 | publish_registration | [状态/出边/终态](api/states.md#publish_registration) |
+| official_fact | [状态/出边/终态](api/states.md#official_fact) |
 
 [全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；本次不实现API、不合并、不自行冻结。

@@ -855,7 +855,7 @@ probe_result        探针结果（回答级，不取整）
   -- refused 不进任何分母
 
 metric_snapshot     指标快照（差值计算必须校验 snapshot 口径）
-  id, tenant_id, brand_id, intent_cluster_id, snapshot_id, batch_id, date, mention_rate,
+  id, tenant_id, brand_id, intent_cluster_id, snapshot_id, batch_id, lexicon_version, date, mention_rate,
   citation_rate, avg_position, accuracy, sov, leads
 
 industry_score      14 行业外部策略表（排产用，不进对外报告）
@@ -871,7 +871,7 @@ audit_log           审计日志（原始回答 / C 类数据访问全量记录�
 review_queue        通用审核队列（T02裁定）
   id, tenant_id, object_type, object_id, submitted_by, submitted_at,
   status, decided_by, decided_at, reject_reason
-  -- object_type：claim_block/evidence_package/diagnosis_report；plan_draft仅P1预留
+  -- object_type：claim_block/evidence_package/diagnosis_report/brand_lexicon/official_fact；plan_draft仅P1预留
   -- status：waiting→approved/rejected/withdrawn，后三者均为条目终态
 
 objection           单条异议申请（T02裁定）
@@ -906,6 +906,16 @@ probe_batch         执行批次身份（T02裁定）
   id, tenant_id, type(baseline/event/monthly), scheduled_at, snapshot_id, status
   -- pending→running→completed/failed；pending→cancelled
   -- completed/failed/cancelled终态不可改；failed入dead-letter告警，补偿开新batch
+
+brand_lexicon       品牌词表（T02 v4裁定）
+  id, tenant_id, brand_id, version,
+  kind(brand_alias/product_line/model/competitor/exclusion), term, created_by, created_at
+  -- 变更开新版本，旧版本只读；review_queue人审后生效；exclusion为纯品类词白名单
+
+official_fact       官方口径（T02 v4裁定）
+  id, tenant_id, brand_id, fact_category(price/spec/boundary/service_promise),
+  content, source_level(L1), status(draft/approved/retracted), effective_from
+  -- error判定唯一比对基准；judge只读approved；同人不得放行
 ```
 
 聚合链：`probe_result`（回答级档位）→ `question_score`（问句级连续值）→ `cluster_score`（簇级 raw + score）。L3 来源只落归档表用于复盘，不进 `claim_block`。
@@ -958,6 +968,7 @@ probe_batch         执行批次身份（T02裁定）
 | 双轨口径：检索轨（API+原生联网，主轨对外）与记忆轨（裸 API，防守视角）分开测分开报；换轨=换快照 | v3.3 |
 | 浏览器直采不进主轨（可复现性/条款/维护量/成本四条否决）；Playwright 定位于校准轨（半自动+人工复核） | v3.4 |
 | T02 阻塞项 10 条裁定：状态机闭合 / 权限细化 / 快照双身份 / 六表补充 / 接口约定 | v3.5 |
+| 品牌词表与官方口径补齐（T02 v4 裁定） | v3.5 |
 
 ## 待定
 

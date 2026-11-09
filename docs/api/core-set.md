@@ -2,7 +2,7 @@
 
 > 未冻结。所有POST携带Idempotency-Key（24h），响应含snapshot_id/data_as_of；完整权限依据allow规范与全局条件，未出现三键即deny。例子为虚构数据，不能直接执行模型调用。
 
-从[一页地图](../spec-map.md)进入；20个承重审阅项中的组合动作逐接口展开，每个接口示例只出现一次。其余raw_answer/C类/配额风险接口也必须审，支撑件合并为[抽检附录](generated/endpoints.md)。
+从[一页地图](../spec-map.md)进入；21个承重审阅项中的组合动作逐接口展开，每个接口示例只出现一次。其余raw_answer/C类/配额风险接口也必须审，支撑件合并为[抽检附录](generated/endpoints.md)。
 
 | 项 | 承重项 | 端点 |
 |---|---|---|
@@ -26,6 +26,7 @@
 | 18 | 异议发起调阅 | [objection.view](core-set.md#objectionview) |
 | 19 | 令牌撤销 | [api_token.revoke](core-set.md#api_tokenrevoke) |
 | 20 | 回流派单 | [backflow_ticket.assign](core-set.md#backflow_ticketassign) |
+| 21 | 官方口径读取·judge唯一比对基准 | [official_fact.read](core-set.md#official_factread) |
 
 ### probe_batch.start
 
@@ -330,11 +331,11 @@
 
 `POST /tenants/{tid}/brands/{bid}/probe-results/{id}/judgments` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, probe_result, judge)`。审阅风险：quota。
+权限候选：factcheck；system：judge。权限行：`(role, probe_result, judge)`。审阅风险：quota。
 
-校验：judging-spec先人审冻结；refused排除所有分母；样例不定义判定算法。
+校验：judging-spec先人审冻结；refused排除所有分母；样例不定义判定算法；输入必须读取已审历史lexicon_version与L1 approved官方口径；被指定口径retract即拒绝，缺基准error_i=null；不得替换为latest或claim_block。
 
-审计：probe_result.judge。副作用：保留判定审计；已出分需重新判定则换judge配置与基线。
+审计：probe_result.judge。副作用：保留判定审计；已出分需重新判定则换judge配置与基线；job及审计记录lexicon_version、official_fact_ids；不覆盖历史判定与聚合。
 
 请求JSON（另带Idempotency-Key）：
 
@@ -345,7 +346,12 @@
   "generic_i": 0.5,
   "competitor_i": 0,
   "spec_score": 3,
-  "note": "人工示例"
+  "note": "人工示例",
+  "batch_id": "bt1",
+  "lexicon_version": 1,
+  "official_fact_ids": [
+    "f1"
+  ]
 }
 ```
 
@@ -355,7 +361,11 @@
 {
   "data": {
     "id": "r1",
-    "judged": true
+    "judged": true,
+    "lexicon_version": 1,
+    "official_fact_ids": [
+      "f1"
+    ]
   },
   "meta": {
     "snapshot_id": "snp1",
@@ -548,9 +558,9 @@
 
 权限候选：factcheck；system：无。权限行：`(role, review_queue, approve)`。审阅风险：承重动作。
 
-校验：waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人。
+校验：waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人；品牌词表版本或官方口径同样检查创建者，不能封自己版本。
 
-审计：review_queue.approve。副作用：原子修改对象态及队列终态；无通用裸状态update。
+审计：review_queue.approve。副作用：原子修改对象态及队列终态；无通用裸状态update；lexicon批准即新版本生效，official_fact批准即approved；保留旧批次引用版本。
 
 请求JSON（另带Idempotency-Key）：
 
@@ -883,6 +893,55 @@
     "snapshot_id": null,
     "data_as_of": "2026-11-09T00:00:00Z"
   }
+}
+```
+
+### official_fact.read
+
+`GET /tenants/{tid}/brands/{bid}/official-facts` · 语义 read-only · destructive=false · 幂等=不适用
+
+权限候选：strategist / factcheck / cs / content / evidence；system：judge。权限行：`(role, official_fact, read)`。审阅风险：judge_input。
+
+校验：judge只读同品牌L1、approved且effective_from已到期的指定口径；请求含retracted/draft/缺失基准则422 validation_failed且error_i=null，不以其他资料替代。
+
+审计：普通只读无业务审计。副作用：error唯一比对基准；人工内部读取可按权限查看审核元数据，judge不可引用retracted。GET不迁移业务对象状态。
+
+请求查询参数：
+
+```json
+{
+  "fact_ids": [
+    "f1"
+  ],
+  "as_of": "2026-11-09T00:00:00Z",
+  "cursor": null,
+  "limit": 20
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "f1",
+        "tenant_id": "t1",
+        "brand_id": "b1",
+        "fact_category": "price",
+        "content": "示例官方价格口径，非产品承诺",
+        "source_level": "L1",
+        "status": "approved",
+        "effective_from": "2026-01-01T00:00:00Z"
+      }
+    ]
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  },
+  "next_cursor": null
 }
 ```
 
@@ -1631,7 +1690,7 @@
 
 校验：冻结配置；事件3目标+3对照，锚定版本未变；baseline/event/monthly；保存各簇锚定清单，执行/比较不得读取最新池替代该清单。
 
-审计：probe_batch.create。副作用：独立batch_id；复测共用snapshot，probe_result可追加。
+审计：probe_batch.create。副作用：独立batch_id；复测共用snapshot，probe_result可追加；判定开始时记录该批次lexicon_version，后续新版词表不改旧批次解释。
 
 请求JSON（另带Idempotency-Key）：
 
@@ -1911,6 +1970,224 @@
 {
   "data": {
     "last_used_at": "2026-11-09T00:00:00Z"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### brand_lexicon.read
+
+`GET /tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}` · 语义 read-only · destructive=false · 幂等=不适用
+
+权限候选：strategist / factcheck / cs / content / evidence；system：judge。权限行：`(role, brand_lexicon, read)`。审阅风险：judge_input。
+
+校验：明确tenant/brand/version；历史版本只读，禁止无版本默认latest；Content/Evidence仅关联任务；judge仅已批准的指定版本。
+
+审计：普通只读无业务审计。副作用：读取不改状态；返回lexicon_version供判定记录。GET不迁移业务对象状态。
+
+请求查询参数：
+
+```json
+{}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "brand_id": "b1",
+    "version": 1,
+    "entries": [
+      {
+        "kind": "brand_alias",
+        "term": "简造"
+      },
+      {
+        "kind": "exclusion",
+        "term": "erp"
+      }
+    ]
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### brand_lexicon.create
+
+`POST /tenants/{tid}/brands/{bid}/brand-lexicons` · 语义 draft · destructive=false · 幂等=24h
+
+权限候选：strategist；system：无。权限行：`(role, brand_lexicon, create)`。审阅风险：judge_input。
+
+校验：strategy映射既有strategist；创建完整版本，新version新行，旧版本只读；kind为五类；created_by/created_at服务端记录。
+
+审计：brand_lexicon.create。副作用：不立即生效；version_object_id引用该版本首行id，审核整版本条目集合。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "entries": [
+    {
+      "kind": "brand_alias",
+      "term": "简造"
+    },
+    {
+      "kind": "exclusion",
+      "term": "erp"
+    }
+  ]
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "version": 1,
+    "version_object_id": "lx1",
+    "effective": false
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### brand_lexicon.submit
+
+`POST /tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}/submit` · 语义 write · destructive=false · 幂等=24h
+
+权限候选：strategist；system：无。权限行：`(role, brand_lexicon, submit)`。审阅风险：judge_input。
+
+校验：版本作者本人；只能提交完整未生效版本，所有条目归属同品牌/版本；不另发明lexicon状态枚举。
+
+审计：brand_lexicon.submit。副作用：入review_queue，FactCheck≠版本作者；approve即该新版本生效，旧版本保留可还原。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "review_entry_id": "rv-lx1",
+    "object_type": "brand_lexicon",
+    "object_id": "lx1",
+    "status": "waiting"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### official_fact.create
+
+`POST /tenants/{tid}/brands/{bid}/official-facts` · 语义 draft · destructive=false · 幂等=24h
+
+权限候选：strategist；system：无。权限行：`(role, official_fact, create)`。审阅风险：judge_input。
+
+校验：四类fact_category；只准L1；effective_from为UTC；作者从创建审计及review_queue.submitted_by溯源。
+
+审计：official_fact.create。副作用：同事务创建draft与waiting条目，无额外submit端点；未批准不得供judge使用。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "fact_category": "price",
+  "content": "示例官方价格口径，非产品承诺",
+  "source_level": "L1",
+  "effective_from": "2026-01-01T00:00:00Z"
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "f1",
+    "status": "draft",
+    "review_entry_id": "rv-f1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### official_fact.approve
+
+`POST /tenants/{tid}/brands/{bid}/official-facts/{id}/approve` · 语义 write · destructive=false · 幂等=24h
+
+权限候选：factcheck；system：无。权限行：`(role, official_fact, approve)`。审阅风险：judge_input。
+
+校验：human、draft且对应waiting；FactCheck≠创建者；与review_queue.approve同一原子服务动作。
+
+审计：official_fact.approve。副作用：口径approved生效（仍受effective_from限制），结算队列approved。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "f1",
+    "status": "approved"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### official_fact.retract
+
+`POST /tenants/{tid}/brands/{bid}/official-facts/{id}/retract` · 语义 write · destructive=true · 幂等=24h
+
+权限候选：factcheck；system：无。权限行：`(role, official_fact, retract)`。审阅风险：judge_input。
+
+校验：human；approved→retracted；reason必填；不改历史metric_snapshot。
+
+审计：official_fact.retract。副作用：后续judge拒绝引用，不出无基准error分；终态保留审计。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "reason": "官方口径已失效"
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "f1",
+    "status": "retracted"
   },
   "meta": {
     "snapshot_id": null,
