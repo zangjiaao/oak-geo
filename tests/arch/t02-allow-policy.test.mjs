@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolveSpecPermission, readAllowSet } from '../../scripts/t02-allow-policy.mjs';
-const d=JSON.parse(readFileSync('docs/t02-contracts.json','utf8'));
+const d=JSON.parse(readFileSync('docs/api/contracts.json','utf8'));
 test('allow规范：所有不在集合中的三键请求均返回403', () => {
  const allows=readAllowSet();
  for(const role of [...d.roles,'unknown_role'])for(const resource of [...d.resources,'unknown_resource'])for(const operation of [...d.operations,'unknown_operation']){

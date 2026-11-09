@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { requiredReviewRisks } from '../../scripts/t02-review-policy.mjs';
+import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 const read = p => readFileSync(p, 'utf8');
-const data = () => JSON.parse(read('docs/t02-contracts.json'));
+const data = () => JSON.parse(read('docs/api/contracts.json'));
 test('授权范围外的产品文档逐字保留', () => {
  const text = read('docs/GEO产品文档.md').replace(/## 18\. 表结构[\s\S]*?(?=## 19\. 硬规则汇总)/,'').replace(/^\| T02 阻塞项 10 条裁定：.*\n/m,'');
  assert.equal(createHash('sha256').update(text).digest('hex'), '89324b8af488a76230a65152b31986b181dc4226658e948fa014901ff8531121');
@@ -22,16 +23,16 @@ test('全资源端点均有独立请求响应及语义和审计定义', () => {
  for(const table of tables) assert.ok(d.resources.includes(table)||d.embedded_models?.[table],table);
  assert.equal(d.resources.length,28);
  const map=read('docs/spec-map.md');assert.ok(map.trimEnd().split('\n').length<=120);assert.equal(d.review.core_groups.length,20);
- const core=read('docs/core-set.md');for(const id of d.review.core_endpoint_ids)assert.ok(core.includes('### '+id),id);
+ const core=read('docs/api/core-set.md');for(const id of d.review.core_endpoint_ids)assert.ok(core.includes('### '+id),id);
  for(const e of d.endpoints){assert.deepEqual(e.risk_tags,requiredReviewRisks(e));if(e.risk_tags.length)assert.ok(d.review.core_endpoint_ids.includes(e.id),e.id);}
- const files=['docs/core-set.md',...readdirSync('docs/generated').filter(f=>f.endsWith('.md')).map(f=>'docs/generated/'+f)];
+ const files=['docs/api/core-set.md','docs/api/generated/endpoints.md'];
  const documented=files.flatMap(f=>[...read(f).matchAll(/^### ([a-z_]+\.[a-z_]+)$/gm)].map(m=>m[1]));
  assert.equal(documented.length,d.endpoints.length);assert.equal(new Set(documented).size,d.endpoints.length);
  const ids=new Set();
  for(const e of d.endpoints){assert.ok(!ids.has(e.id));ids.add(e.id);assert.ok(d.resources.includes(e.resource));assert.ok(d.operations.includes(e.operation));assert.ok(e.request && e.response && e.validation && e.side_effects);assert.ok(['read-only','draft','proposal','write'].includes(e.semantic));assert.equal(typeof e.destructive,'boolean');if(e.method==='POST'){assert.ok(e.audit);assert.equal(e.idempotency_hours,24);}if(e.method==='GET')assert.equal(e.mutates_state,false);}
 });
 test('权限规范仅含allow且每行有依据，默认拒绝不再展开', () => {
- const d=data();const lines=read('docs/t02-permissions.csv').trim().split('\n');
+ const d=data();const lines=read('docs/api/permissions.csv').trim().split('\n');
  assert.equal(lines[0],'# 未出现 (role, resource, operation) allow 行即 deny');
  const rows=lines.slice(2).map(x=>x.split(','));assert.equal(rows.length,d.endpoints.reduce((n,e)=>n+e.grants.length,0));
  const keys=new Set();for(const [role,resource,operation,effect,scope,basis,condition]of rows){const k=[role,resource,operation].join(':');assert.ok(!keys.has(k),k);keys.add(k);assert.equal(effect,'allow');assert.ok(basis.includes('§9.3')||basis.includes('裁定'));assert.ok(scope&&condition);}
@@ -72,4 +73,16 @@ test('job名注册表与内部端点白名单一致，不授予人类system权�
  assert.ok(d.jobs.probe_execute.batch_required);
  assert.equal(d.jobs.weekly_pool.batch_required,false);
  assert.ok(d.endpoints.some(e=>e.resource==='deletion_ledger'&&e.operation==='append'&&e.system_job==='offboarding'));
+});
+test('docs目录保持精简，主入口及生成附件的本地链接有效', () => {
+ const files=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(`${dir}/${e.name}`):[`${dir}/${e.name}`]);
+ const all=files('docs');assert.ok(all.length<=12,`文档膨胀为${all.length}份`);
+ assert.deepEqual(readdirSync('docs/api/generated'),['endpoints.md']);
+ for(const file of all.filter(p=>p.endsWith('.md'))){
+  const source=read(file).replace(/```[\s\S]*?```/g,'');
+  for(const match of source.matchAll(/\[[^\]]*\]\(([^\s)]+)\)/g)){
+   const target=match[1].split('#')[0];if(!target||/^(https?:|mailto:|\/)/.test(target))continue;
+   assert.ok(existsSync(resolve(dirname(file),target)),`${file}: ${target}`);
+  }
+ }
 });

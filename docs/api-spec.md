@@ -2,7 +2,7 @@
 
 > 状态：草案，未冻结 · T02 人审候选稿。不得自行冻结。
 > 事实依据：[产品文档](GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定覆盖早期模板及本稿旧版本的冲突描述；产品文档仅按授权修改 §18 和决策记录，其余原文保留。
-> 人审从[一页地图](spec-map.md)进入，再读[核心集](core-set.md)和[allow权限规范](t02-permissions.csv)；[支撑端点](generated/README.md)默认抽检。[结构化源](t02-contracts.json)用于生成与机器校验，不要求人逐行审。
+> 人审从[一页地图](spec-map.md)进入，再读[核心集](api/core-set.md)和[allow权限规范](api/permissions.csv)；[支撑端点](api/generated/endpoints.md)默认抽检。[结构化源](api/contracts.json)用于生成与机器校验，不要求人逐行审。
 
 ## 0. 冻结流程与审阅 checklist
 
@@ -93,38 +93,38 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 ## 2. 资源清单
 
-产品§18的27张物理表不变，API由31资源归并为28资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`t02-contracts.json.layout_migration`。
+产品§18的27张物理表不变，API由31资源归并为28资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`api/contracts.json.layout_migration`。31→28资源，112→105端点，41→39操作；权限230 = 246 − 问句分数5 − 证据条目7 − 探针读5 − 锚定合并1 + 批次任务投影2。CSV连规则与列头共232行，不再输出deny行。
 
 | API资源 | 契约位置 |
 |---|---|
-| `tenant` | [核心集](core-set.md) |
-| `brand` | [支撑件](generated/README.md) |
-| `user_member` | [支撑件](generated/README.md) |
-| `seed_list` | [支撑件](generated/README.md) |
-| `keyword_raw` | [核心集](core-set.md) |
-| `keyword_pool_snapshot` | [支撑件](generated/README.md) |
-| `intent_cluster` | [支撑件](generated/README.md) |
-| `question_pool` | [核心集](core-set.md) |
-| `opportunity_card` | [支撑件](generated/README.md) |
-| `scoring_snapshot` | [核心集](core-set.md) |
-| `cluster_score` | [核心集](core-set.md) |
-| `cluster_platform_signal` | [支撑件](generated/README.md) |
-| `content_asset` | [核心集](core-set.md) |
-| `claim_block` | [核心集](core-set.md) |
-| `probe_result` | [核心集](core-set.md) |
-| `metric_snapshot` | [支撑件](generated/README.md) |
-| `industry_score` | [支撑件](generated/README.md) |
-| `audit_log` | [核心集](core-set.md) |
-| `review_queue` | [核心集](core-set.md) |
-| `objection` | [核心集](core-set.md) |
-| `backflow_ticket` | [核心集](core-set.md) |
-| `evidence_package` | [核心集](core-set.md) |
-| `api_token` | [核心集](core-set.md) |
-| `probe_batch` | [核心集](core-set.md) |
-| `publish_registration` | [核心集](core-set.md) |
-| `diagnosis_report` | [核心集](core-set.md) |
-| `offboarding` | [核心集](core-set.md) |
-| `deletion_ledger` | [核心集](core-set.md) |
+| `tenant` | [核心集](api/core-set.md) |
+| `brand` | [支撑件](api/generated/endpoints.md) |
+| `user_member` | [支撑件](api/generated/endpoints.md) |
+| `seed_list` | [支撑件](api/generated/endpoints.md) |
+| `keyword_raw` | [核心集](api/core-set.md) |
+| `keyword_pool_snapshot` | [支撑件](api/generated/endpoints.md) |
+| `intent_cluster` | [支撑件](api/generated/endpoints.md) |
+| `question_pool` | [核心集](api/core-set.md) |
+| `opportunity_card` | [支撑件](api/generated/endpoints.md) |
+| `scoring_snapshot` | [核心集](api/core-set.md) |
+| `cluster_score` | [核心集](api/core-set.md) |
+| `cluster_platform_signal` | [支撑件](api/generated/endpoints.md) |
+| `content_asset` | [核心集](api/core-set.md) |
+| `claim_block` | [核心集](api/core-set.md) |
+| `probe_result` | [核心集](api/core-set.md) |
+| `metric_snapshot` | [支撑件](api/generated/endpoints.md) |
+| `industry_score` | [支撑件](api/generated/endpoints.md) |
+| `audit_log` | [核心集](api/core-set.md) |
+| `review_queue` | [核心集](api/core-set.md) |
+| `objection` | [核心集](api/core-set.md) |
+| `backflow_ticket` | [核心集](api/core-set.md) |
+| `evidence_package` | [核心集](api/core-set.md) |
+| `api_token` | [核心集](api/core-set.md) |
+| `probe_batch` | [核心集](api/core-set.md) |
+| `publish_registration` | [核心集](api/core-set.md) |
+| `diagnosis_report` | [核心集](api/core-set.md) |
+| `offboarding` | [核心集](api/core-set.md) |
+| `deletion_ledger` | [核心集](api/core-set.md) |
 
 嵌入并不扩权：question_scores节只给原内部五角色，客户簇级read仍不返回该节；evidence items继承原父包封版/任务/摘录限制；Content/Evidence仅可经batch读取原分派probe投影，不能查看完整批次或其他任务。子资源写入通过父对象的显式服务动作原子完成。
 
@@ -150,7 +150,7 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 ## 3. 状态机规格
 
-[逐对象完整迁移表](t02-states.md)覆盖模板10对象以及probe_batch/review_queue/diagnosis_report。终态无出边是明确终态，非遗漏；claim_block的回draft由新版本行承接，旧版不改。只有声明的出边合法，其他状态组合一律409。
+[逐对象完整迁移表](api/states.md)覆盖模板10对象以及probe_batch/review_queue/diagnosis_report。终态无出边是明确终态，非遗漏；claim_block的回draft由新版本行承接，旧版不改。只有声明的出边合法，其他状态组合一律409。
 
 队列waiting不是给evidence_package增加pending_review状态：对象仍draft，但队列有waiting条目时不能修改被审版本；reject/withdraw后仍draft可修改，approve直接sealed。claim_block approve/reject与通用review_queue approve/reject为同一服务动作的两个入口，必须原子结算同一队列条目、同一对象，不能重复审核。队列三个终态条目不可重用；再提交新waiting条目。FactCheck≠作者在两入口都校验。
 
@@ -188,11 +188,11 @@ content_asset的registered块retract时，同事务先registered→ready，逐�
 
 非探针job以trigger_source加对象追踪；探针类batch_id必须与端点目标及tenant一致。普通列表/GET可追加访问审计与凭证last_used_at，但绝不迁移被读取业务对象状态。
 
-job白名单结构化定义同时保存于 `t02-contracts.json.jobs`；执行参数必须携触发来源。publication_lifecycle与metric_aggregate需要batch_id，opportunity_lifecycle的归档事件可无batch_id，但评分/监测出边必须携batch_id。失败尝试与完整尝试选择字段为实现草案；禁止跨尝试拼凑有效样本。
+job白名单结构化定义同时保存于 `api/contracts.json.jobs`；执行参数必须携触发来源。publication_lifecycle与metric_aggregate需要batch_id，opportunity_lifecycle的归档事件可无batch_id，但评分/监测出边必须携batch_id。失败尝试与完整尝试选择字段为实现草案；禁止跨尝试拼凑有效样本。
 
 ## 5. 语义分级汇总表
 
-承重及敏感端点见[核心集](core-set.md)，其他操作见[支撑件索引](generated/README.md)，其每行同时列semantic与destructive；对应JSON为机器可审阅输入，未来MCP只映射注解，不在MVP实现。
+承重及敏感端点见[核心集](api/core-set.md)，其他操作见[支撑件索引](api/generated/endpoints.md)，其每行同时列semantic与destructive；对应JSON为机器可审阅输入，未来MCP只映射注解，不在MVP实现。
 
 | 语义 | 操作类型 | destructive |
 |---|---|---|

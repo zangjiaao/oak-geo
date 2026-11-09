@@ -2,7 +2,7 @@
 
 > 未冻结。所有POST携带Idempotency-Key（24h），响应含snapshot_id/data_as_of；完整权限依据allow规范与全局条件，未出现三键即deny。例子为虚构数据，不能直接执行模型调用。
 
-从[一页地图](spec-map.md)进入；20个承重审阅项中的组合动作逐接口展开，每个接口示例只出现一次。其余raw_answer/C类/配额风险接口也必须审，支撑件移至[generated](generated/README.md)。
+从[一页地图](../spec-map.md)进入；20个承重审阅项中的组合动作逐接口展开，每个接口示例只出现一次。其余raw_answer/C类/配额风险接口也必须审，支撑件合并为[抽检附录](generated/endpoints.md)。
 
 | 项 | 承重项 | 端点 |
 |---|---|---|

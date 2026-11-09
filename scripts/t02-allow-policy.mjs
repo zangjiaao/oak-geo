@@ -2,7 +2,7 @@
 // An allow row is conditional; this resolver never turns it into an unconditional 200.
 import { readFileSync } from 'node:fs';
 export const defaultRule = '# 未出现 (role, resource, operation) allow 行即 deny';
-export function readAllowSet(path = 'docs/t02-permissions.csv') {
+export function readAllowSet(path = 'docs/api/permissions.csv') {
   const lines = readFileSync(path, 'utf8').trimEnd().split('\n');
   if (lines.shift() !== defaultRule) throw new Error('Missing normative default-deny rule');
   if (lines.shift() !== 'role,resource,operation,effect,scope,basis,conditions') throw new Error('Invalid CSV header');
