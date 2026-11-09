@@ -11,12 +11,10 @@
     "question_pool",
     "opportunity_card",
     "scoring_snapshot",
-    "question_score",
     "cluster_score",
     "cluster_platform_signal",
     "content_asset",
     "claim_block",
-    "probe",
     "probe_result",
     "metric_snapshot",
     "industry_score",
@@ -25,7 +23,6 @@
     "objection",
     "backflow_ticket",
     "evidence_package",
-    "evidence_item",
     "api_token",
     "probe_batch",
     "publish_registration",
@@ -46,8 +43,6 @@
   ],
   "operations": [
     "access",
-    "advance",
-    "anchor",
     "append",
     "approve",
     "archive",
@@ -67,14 +62,13 @@
     "export",
     "fail",
     "freeze",
+    "grant",
     "import",
     "judge",
     "read",
     "read_raw",
     "recommend",
-    "reconcile",
     "record_use",
-    "refresh",
     "register",
     "reject",
     "retire",
@@ -83,7 +77,8 @@
     "revoke",
     "start",
     "submit",
-    "upgrade",
+    "transition",
+    "upgrade_anchor",
     "view",
     "withdraw"
   ],
@@ -109,7 +104,10 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "tenant.configure",
@@ -136,7 +134,10 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "brand.read",
@@ -167,7 +168,8 @@
         "evidence",
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "brand.configure",
@@ -192,7 +194,8 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "user_member.read",
@@ -224,7 +227,8 @@
         "owner",
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "user_member.configure",
@@ -250,7 +254,8 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "seed_list.read",
@@ -284,7 +289,8 @@
         "factcheck",
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "seed_list.create",
@@ -312,7 +318,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "seed_list.revise",
@@ -339,7 +346,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "keyword_raw.read",
@@ -372,7 +380,10 @@
         "factcheck",
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "keyword_raw.import",
@@ -400,7 +411,10 @@
       "grants": [
         "strategist"
       ],
-      "system_job": "c_import"
+      "system_job": "c_import",
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "keyword_raw.read_raw",
@@ -427,7 +441,10 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "keyword_pool_snapshot.read",
@@ -454,7 +471,8 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "intent_cluster.read",
@@ -485,7 +503,8 @@
         "editor",
         "viewer"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "question_pool.read",
@@ -513,7 +532,10 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "opportunity_card.read",
@@ -544,7 +566,8 @@
         "editor",
         "viewer"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "scoring_snapshot.read",
@@ -572,34 +595,10 @@
         "content",
         "evidence"
       ],
-      "system_job": null
-    },
-    {
-      "id": "question_score.read",
-      "resource": "question_score",
-      "operation": "read",
-      "method": "GET",
-      "path": "/tenants/{tid}/brands/{bid}/question-scores/{id}",
-      "semantic": "read-only",
-      "destructive": false,
-      "mutates_state": false,
-      "idempotency_hours": null,
-      "audit": null,
-      "request": {},
-      "response": {
-        "question_id": "q1",
-        "n_valid": 24
-      },
-      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
-      "side_effects": "无业务副作用",
-      "grants": [
-        "strategist",
-        "factcheck",
-        "cs",
-        "content",
-        "evidence"
-      ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "cluster_score.read",
@@ -619,9 +618,15 @@
         "blank_score": null,
         "n_valid": 8,
         "model_coverage": 2,
-        "insufficient_sample": true
+        "insufficient_sample": true,
+        "question_scores": [
+          {
+            "question_id": "q1",
+            "n_valid": 24
+          }
+        ]
       },
-      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文；question_scores节仅原question_score.read的内部五角色可见，客户不因父资源可读而新增问句级权限",
       "side_effects": "无业务副作用",
       "grants": [
         "strategist",
@@ -633,7 +638,8 @@
         "editor",
         "viewer"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "cluster_platform_signal.read",
@@ -672,7 +678,8 @@
         "editor",
         "viewer"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "intent_cluster.archive",
@@ -700,63 +707,44 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
-      "id": "intent_cluster.anchor",
-      "resource": "intent_cluster",
-      "operation": "anchor",
+      "id": "question_pool.upgrade_anchor",
+      "resource": "question_pool",
+      "operation": "upgrade_anchor",
       "method": "POST",
-      "path": "/tenants/{tid}/brands/{bid}/clusters/{id}/anchor",
-      "semantic": "write",
-      "destructive": false,
-      "mutates_state": true,
-      "idempotency_hours": 24,
-      "audit": "intent_cluster.anchor",
-      "request": {
-        "question_pool_version": 1,
-        "question_ids": [
-          "q1",
-          "q2",
-          "q3"
-        ]
-      },
-      "response": {
-        "id": "c1",
-        "question_pool_version": 1
-      },
-      "validation": "human显式动作；初次入测锚定，版本只读",
-      "side_effects": "仅新簇入测，不改其他簇",
-      "grants": [
-        "strategist"
-      ],
-      "system_job": null
-    },
-    {
-      "id": "intent_cluster.upgrade",
-      "resource": "intent_cluster",
-      "operation": "upgrade",
-      "method": "POST",
-      "path": "/tenants/{tid}/brands/{bid}/clusters/{id}/upgrade-questions",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/upgrade-anchor",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
       "idempotency_hours": 24,
       "audit": "intent_cluster.upgrade",
       "request": {
+        "cluster_id": "c1",
         "question_pool_version": 2,
-        "reason": "问法漂移"
+        "reason": "人工升级问句",
+        "question_ids": [
+          "q4",
+          "q5",
+          "q6"
+        ]
       },
       "response": {
-        "id": "c1",
+        "cluster_id": "c1",
         "question_pool_version": 2
       },
-      "validation": "human拍板；升级或拆并，禁止自动改锚",
-      "side_effects": "新建基线执行批次；旧数据保留不可比",
+      "validation": "Strategist human显式动作；未锚定簇首次入测写锚，已锚定簇只有人工升级/拆并可改；同版本校验ID集合，跨版本重开基线",
+      "side_effects": "原anchor与upgrade两个入口合并；不动其他簇锚定；旧结果保留不可比",
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "legacy_endpoint_id": "intent_cluster.upgrade",
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "question_pool.create",
@@ -788,7 +776,10 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "question_pool.freeze",
@@ -813,7 +804,10 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "question_pool.revise",
@@ -840,7 +834,10 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "question_pool.archive",
@@ -865,7 +862,10 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
     },
     {
       "id": "opportunity_card.create",
@@ -894,7 +894,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "opportunity_card.recommend",
@@ -927,7 +928,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "opportunity_card.confirm",
@@ -960,7 +962,8 @@
       "grants": [
         "owner"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "scoring_snapshot.create",
@@ -994,7 +997,10 @@
       "grants": [
         "cs"
       ],
-      "system_job": "event_schedule"
+      "system_job": "event_schedule",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "scoring_snapshot.freeze",
@@ -1017,7 +1023,10 @@
       "grants": [
         "cs"
       ],
-      "system_job": "event_schedule"
+      "system_job": "event_schedule",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "keyword_pool_snapshot.append",
@@ -1039,30 +1048,8 @@
       "validation": "pool_version唯一，归簇稳定ID",
       "side_effects": "服务层追加，不覆盖配置下已有分数",
       "grants": [],
-      "system_job": "weekly_pool"
-    },
-    {
-      "id": "question_score.append",
-      "resource": "question_score",
-      "operation": "append",
-      "method": "POST",
-      "path": "/internal/question-scores/append",
-      "semantic": "write",
-      "destructive": false,
-      "mutates_state": true,
-      "idempotency_hours": 24,
-      "audit": "question_score.append",
-      "request": {
-        "question_id": "q1",
-        "snapshot_id": "snp1"
-      },
-      "response": {
-        "recorded": true
-      },
-      "validation": "基线判定聚合，拒答排除，连续值4位",
-      "side_effects": "服务层追加，不覆盖配置下已有分数",
-      "grants": [],
-      "system_job": "baseline_scoring"
+      "system_job": "weekly_pool",
+      "risk_tags": []
     },
     {
       "id": "cluster_score.append",
@@ -1077,15 +1064,22 @@
       "audit": "cluster_score.append",
       "request": {
         "cluster_id": "c1",
-        "snapshot_id": "snp1"
+        "snapshot_id": "snp1",
+        "question_scores": [
+          {
+            "question_id": "q1",
+            "snapshot_id": "snp1"
+          }
+        ]
       },
       "response": {
         "recorded": true
       },
-      "validation": "仅基线评分；(cluster,snapshot)唯一；不足样本分数null",
+      "validation": "仅基线评分；(cluster,snapshot)唯一；不足样本分数null；同一事务先写问句分数再写簇分数，保留原question_score内部表，不再有独立API族",
       "side_effects": "服务层追加，不覆盖配置下已有分数",
       "grants": [],
-      "system_job": "baseline_scoring"
+      "system_job": "baseline_scoring",
+      "risk_tags": []
     },
     {
       "id": "cluster_platform_signal.append",
@@ -1108,7 +1102,8 @@
       "validation": "基线评分顺带产生；计数可回溯probe",
       "side_effects": "服务层追加，不覆盖配置下已有分数",
       "grants": [],
-      "system_job": "baseline_scoring"
+      "system_job": "baseline_scoring",
+      "risk_tags": []
     },
     {
       "id": "content_asset.read",
@@ -1135,7 +1130,8 @@
         "editor",
         "content"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.read",
@@ -1164,35 +1160,8 @@
         "editor",
         "content"
       ],
-      "system_job": null
-    },
-    {
-      "id": "probe.read",
-      "resource": "probe",
-      "operation": "read",
-      "method": "GET",
-      "path": "/tenants/{tid}/brands/{bid}/probes/{id}",
-      "semantic": "read-only",
-      "destructive": false,
-      "mutates_state": false,
-      "idempotency_hours": null,
-      "audit": null,
-      "request": {},
-      "response": {
-        "id": "p1",
-        "batch_id": "bt1",
-        "model": "T14待核实"
-      },
-      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
-      "side_effects": "无业务副作用",
-      "grants": [
-        "strategist",
-        "factcheck",
-        "cs",
-        "content",
-        "evidence"
-      ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "probe_result.read",
@@ -1224,7 +1193,8 @@
         "editor",
         "viewer"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "content_asset.create",
@@ -1252,7 +1222,8 @@
         "editor",
         "content"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "content_asset.retire",
@@ -1278,14 +1249,15 @@
         "strategist",
         "owner"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
-      "id": "content_asset.reconcile",
+      "id": "content_asset.transition",
       "resource": "content_asset",
-      "operation": "reconcile",
+      "operation": "transition",
       "method": "POST",
-      "path": "/internal/content-assets/{id}/reconcile",
+      "path": "/internal/content-assets/{id}/transition",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
@@ -1304,10 +1276,12 @@
         ],
         "cause_event_id": "evt-retract-1"
       },
-      "validation": "按§3裁定派生；绝不让人工直接指定目标状态",
+      "validation": "按§3裁定派生；绝不让人工直接指定目标状态；只允许本资源状态表命名事件，不接受任意status裸更新",
       "side_effects": "同事务先事件降一级再派生重算、逐跳同cause审计；非必配retract且必配条件成立停ready；无registered→draft直达",
       "grants": [],
-      "system_job": "content_reconcile"
+      "system_job": "content_reconcile",
+      "legacy_endpoint_id": "content_asset.reconcile",
+      "risk_tags": []
     },
     {
       "id": "claim_block.create",
@@ -1340,7 +1314,8 @@
         "editor",
         "content"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.revise",
@@ -1374,7 +1349,8 @@
         "editor",
         "content"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.submit",
@@ -1399,7 +1375,8 @@
         "editor",
         "content"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.approve",
@@ -1422,7 +1399,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.reject",
@@ -1447,7 +1425,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.retract",
@@ -1473,7 +1452,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "claim_block.citations",
@@ -1504,7 +1484,8 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "probe_result.read_raw",
@@ -1531,7 +1512,10 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "probe_result.access",
@@ -1556,65 +1540,56 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
-      "id": "probe.append",
-      "resource": "probe",
-      "operation": "append",
+      "id": "probe_batch.execute",
+      "resource": "probe_batch",
+      "operation": "execute",
       "method": "POST",
-      "path": "/internal/probes/append",
-      "semantic": "write",
-      "destructive": false,
-      "mutates_state": true,
-      "idempotency_hours": 24,
-      "audit": "probe.append",
-      "request": {
-        "batch_id": "bt1",
-        "cluster_id": "c1",
-        "question_id": "q1",
-        "model": "T14待核实",
-        "temperature": 0,
-        "round": 1,
-        "attempt_no": 1
-      },
-      "response": {
-        "id": "p1"
-      },
-      "validation": "running批次且锁定配置/簇锚定；使用冻结问句原文",
-      "side_effects": "仅所属批次追加",
-      "grants": [],
-      "system_job": "probe_execute"
-    },
-    {
-      "id": "probe_result.append",
-      "resource": "probe_result",
-      "operation": "append",
-      "method": "POST",
-      "path": "/internal/probe-results/append",
+      "path": "/internal/probe-batches/{id}/execute",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
       "idempotency_hours": 24,
       "audit": "probe_result.append",
       "request": {
-        "probe_id": "p1",
-        "refused": false,
-        "raw_answer": "官方API返回数据",
-        "cited_domains": [
-          "example.com"
-        ],
-        "cited_urls": [
-          "https://example.com/article"
-        ]
+        "probe": {
+          "batch_id": "bt1",
+          "cluster_id": "c1",
+          "question_id": "q1",
+          "model": "T14待核实",
+          "temperature": 0,
+          "round": 1,
+          "attempt_no": 1
+        },
+        "result": {
+          "probe_id": "p1",
+          "refused": false,
+          "raw_answer": "官方API返回数据",
+          "cited_domains": [
+            "example.com"
+          ],
+          "cited_urls": [
+            "https://example.com/article"
+          ]
+        }
       },
       "response": {
         "id": "r1"
       },
-      "validation": "probe所属running batch；全文按不可信数据；禁止当作指令；完整citation元数据/正文URL归一化抽取，不丢路径",
-      "side_effects": "按batch追加；不覆盖旧回答",
+      "validation": "probe所属running batch；全文按不可信数据；禁止当作指令；完整citation元数据/正文URL归一化抽取，不丢路径；probe与result均属路径指定batch，running状态、完整尝试号及冻结锚定校验；原probe.append与probe_result.append合并为一个服务层原子写入口",
+      "side_effects": "先生成/关联probe再追加回答，按batch/attempt留痕，未改变原始结果存储或失败补偿规则",
       "grants": [],
-      "system_job": "probe_execute"
+      "system_job": "probe_execute",
+      "legacy_endpoint_id": "probe_result.append",
+      "risk_tags": [
+        "raw_answer",
+        "quota"
+      ]
     },
     {
       "id": "probe_result.judge",
@@ -1644,7 +1619,10 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "metric_snapshot.read",
@@ -1675,7 +1653,8 @@
         "viewer",
         "editor"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "industry_score.read",
@@ -1706,7 +1685,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "audit_log.read",
@@ -1737,7 +1717,10 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "review_queue.read",
@@ -1770,7 +1753,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "evidence_package.read",
@@ -1787,9 +1771,18 @@
       "response": {
         "id": "ev1",
         "version": 1,
-        "status": "sealed"
+        "status": "sealed",
+        "items": [
+          {
+            "id": "ei1",
+            "package_id": "ev1",
+            "probe_id": "p1",
+            "source_level": "L1",
+            "conclusion_text": "可复核结论"
+          }
+        ]
       },
-      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文；items仅该package子资源，父包租户/任务校验及sealed客户投影继承，受限excerpt继续不返回",
       "side_effects": "无业务副作用",
       "grants": [
         "strategist",
@@ -1799,38 +1792,8 @@
         "owner",
         "editor"
       ],
-      "system_job": null
-    },
-    {
-      "id": "evidence_item.read",
-      "resource": "evidence_item",
-      "operation": "read",
-      "method": "GET",
-      "path": "/tenants/{tid}/brands/{bid}/evidence-items/{id}",
-      "semantic": "read-only",
-      "destructive": false,
-      "mutates_state": false,
-      "idempotency_hours": null,
-      "audit": null,
-      "request": {},
-      "response": {
-        "id": "ei1",
-        "package_id": "ev1",
-        "probe_id": "p1",
-        "source_level": "L1",
-        "conclusion_text": "可复核结论"
-      },
-      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
-      "side_effects": "无业务副作用",
-      "grants": [
-        "strategist",
-        "factcheck",
-        "cs",
-        "evidence",
-        "owner",
-        "editor"
-      ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "objection.read",
@@ -1858,7 +1821,8 @@
         "cs",
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "backflow_ticket.read",
@@ -1886,7 +1850,8 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "api_token.read",
@@ -1922,7 +1887,10 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.read",
@@ -1935,21 +1903,35 @@
       "mutates_state": false,
       "idempotency_hours": null,
       "audit": null,
-      "request": {},
+      "request": {
+        "include": "probes"
+      },
       "response": {
         "id": "bt1",
         "type": "baseline",
         "snapshot_id": "snp1",
-        "status": "pending"
+        "status": "pending",
+        "probes": [
+          {
+            "id": "p1",
+            "batch_id": "bt1",
+            "model": "T14待核实"
+          }
+        ]
       },
-      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文；Content/Evidence仅能请求probes投影并按所分派机会卡/簇/来源过滤，不获得批次完整配置/其他任务探针；probe仅batch内查询",
       "side_effects": "无业务副作用",
       "grants": [
         "strategist",
         "factcheck",
-        "cs"
+        "cs",
+        "content",
+        "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "publish_registration.read",
@@ -1977,7 +1959,8 @@
         "editor",
         "owner"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "diagnosis_report.read",
@@ -2008,7 +1991,8 @@
         "owner",
         "editor"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "offboarding.read",
@@ -2031,11 +2015,12 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
-      "id": "metric_snapshot.compare",
-      "resource": "metric_snapshot",
+      "id": "cluster_score.compare",
+      "resource": "cluster_score",
       "operation": "compare",
       "method": "GET",
       "path": "/tenants/{tid}/brands/{bid}/metric-snapshots/compare",
@@ -2066,7 +2051,9 @@
         "viewer",
         "editor"
       ],
-      "system_job": null
+      "system_job": null,
+      "legacy_endpoint_id": "metric_snapshot.compare",
+      "risk_tags": []
     },
     {
       "id": "metric_snapshot.export",
@@ -2096,7 +2083,8 @@
         "viewer",
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "metric_snapshot.append",
@@ -2121,7 +2109,8 @@
       "validation": "按批次追加，历史不可变；拒答排除；显式/隐式引用计算层推导；citation_rate仅规范化URL全等explicit；指纹及仅域名命中只内部分析；仅completed批次选定完整尝试，禁止从failed批次或多次部分尝试拼样本",
       "side_effects": "不写cluster_score；触发回流扫描",
       "grants": [],
-      "system_job": "metric_aggregate"
+      "system_job": "metric_aggregate",
+      "risk_tags": []
     },
     {
       "id": "industry_score.revise",
@@ -2147,7 +2136,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "audit_log.append",
@@ -2179,7 +2169,10 @@
       "validation": "仅服务层审计中间件；不允许人类/Agent提交伪造审计；job_name必须注册表枚举；探针类batch必填，非探针可null且trigger_source与对象必填；audit_middleware继承调用者actor",
       "side_effects": "只追加，禁止更新/删除；敏感访问也记录",
       "grants": [],
-      "system_job": "audit_middleware"
+      "system_job": "audit_middleware",
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "review_queue.submit",
@@ -2206,7 +2199,8 @@
         "evidence",
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "review_queue.approve",
@@ -2229,7 +2223,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "review_queue.reject",
@@ -2254,7 +2249,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "review_queue.withdraw",
@@ -2280,7 +2276,8 @@
         "evidence",
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "evidence_package.create",
@@ -2294,19 +2291,30 @@
       "idempotency_hours": 24,
       "audit": "evidence_package.create",
       "request": {
-        "brand_id": "b1"
+        "brand_id": "b1",
+        "items": [
+          {
+            "conclusion_text": "结论示例",
+            "probe_id": "p1",
+            "source_level": "L1",
+            "excerpt": "受限单条摘录"
+          }
+        ]
       },
       "response": {
         "id": "ev1",
         "version": 1,
         "status": "draft"
       },
-      "validation": "任务关联；作者created_by留痕",
+      "validation": "任务关联；作者created_by留痕；条目随父包草稿或新版提交，同原evidence_item.create作者与draft约束；不再提供独立条目接口族",
       "side_effects": "无业务副作用",
       "grants": [
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "evidence_package.revise",
@@ -2320,19 +2328,30 @@
       "idempotency_hours": 24,
       "audit": "evidence_package.revise",
       "request": {
-        "reason": "补充证据"
+        "reason": "补充证据",
+        "items": [
+          {
+            "conclusion_text": "结论示例",
+            "probe_id": "p1",
+            "source_level": "L1",
+            "excerpt": "受限单条摘录"
+          }
+        ]
       },
       "response": {
         "id": "ev2",
         "version": 2,
         "status": "draft"
       },
-      "validation": "新行，新version；sealed不可变",
+      "validation": "新行，新version；sealed不可变；条目随父包草稿或新版提交，同原evidence_item.create作者与draft约束；不再提供独立条目接口族",
       "side_effects": "旧版保留；新队列重新审核",
       "grants": [
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "evidence_package.approve",
@@ -2355,7 +2374,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "evidence_package.export",
@@ -2383,34 +2403,8 @@
         "owner",
         "cs"
       ],
-      "system_job": null
-    },
-    {
-      "id": "evidence_item.create",
-      "resource": "evidence_item",
-      "operation": "create",
-      "method": "POST",
-      "path": "/tenants/{tid}/brands/{bid}/evidence-packages/{id}/items",
-      "semantic": "draft",
-      "destructive": false,
-      "mutates_state": true,
-      "idempotency_hours": 24,
-      "audit": "evidence_item.create",
-      "request": {
-        "conclusion_text": "结论示例",
-        "probe_id": "p1",
-        "source_level": "L1",
-        "excerpt": "受限单条摘录"
-      },
-      "response": {
-        "id": "ei1"
-      },
-      "validation": "任务关联；仅draft包；excerpt不经普通read/export泄露",
-      "side_effects": "条目经父包继承tenant；sealed版不改",
-      "grants": [
-        "evidence"
-      ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "objection.create",
@@ -2442,14 +2436,15 @@
         "editor",
         "viewer"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
-      "id": "objection.approve",
+      "id": "objection.grant",
       "resource": "objection",
-      "operation": "approve",
+      "operation": "grant",
       "method": "POST",
-      "path": "/tenants/{tid}/brands/{bid}/objections/{id}/approve",
+      "path": "/tenants/{tid}/brands/{bid}/objections/{id}/grant",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
@@ -2468,7 +2463,11 @@
         "cs",
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "legacy_endpoint_id": "objection.approve",
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "objection.reject",
@@ -2494,7 +2493,8 @@
         "cs",
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "objection.view",
@@ -2521,11 +2521,14 @@
       "grants": [
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
-      "id": "objection.excerpt",
-      "resource": "objection",
+      "id": "diagnosis_report.excerpt",
+      "resource": "diagnosis_report",
       "operation": "excerpt",
       "method": "GET",
       "path": "/tenants/{tid}/brands/{bid}/objections/{id}/excerpt",
@@ -2545,7 +2548,7 @@
           "at": "2026-11-09T00:00:00Z"
         }
       },
-      "validation": "仅POST已建会话，申请人本人或发起CS；24h内只读查看；每次GET留审计但不改状态；禁下载/批量",
+      "validation": "仅POST已建会话，申请人本人或发起CS；24h内只读查看；每次GET留审计但不改状态；禁下载/批量；诊断/证据结论的通用异议链投影，仍沿conclusion_ref校验；沿用原objection.excerpt路径，不新增直读raw_answer能力",
       "side_effects": "无业务副作用",
       "grants": [
         "owner",
@@ -2553,7 +2556,11 @@
         "viewer",
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "legacy_endpoint_id": "objection.excerpt",
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "backflow_ticket.create",
@@ -2581,7 +2588,8 @@
       "validation": "§8五信号；cited_wrong urgent且deadline24h；证据链必填",
       "side_effects": "出工单通知责任角色",
       "grants": [],
-      "system_job": "backflow_scan"
+      "system_job": "backflow_scan",
+      "risk_tags": []
     },
     {
       "id": "backflow_ticket.assign",
@@ -2607,7 +2615,8 @@
       "grants": [
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "backflow_ticket.complete",
@@ -2637,7 +2646,8 @@
         "content",
         "evidence"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "backflow_ticket.expire",
@@ -2658,7 +2668,8 @@
       "validation": "open/assigned且超过deadline",
       "side_effects": "超时告警，保留原责任人",
       "grants": [],
-      "system_job": "ticket_deadline"
+      "system_job": "ticket_deadline",
+      "risk_tags": []
     },
     {
       "id": "api_token.create",
@@ -2686,7 +2697,10 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "api_token.revoke",
@@ -2710,7 +2724,10 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.create",
@@ -2757,7 +2774,10 @@
       "grants": [
         "cs"
       ],
-      "system_job": "event_schedule"
+      "system_job": "event_schedule",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.cancel",
@@ -2782,7 +2802,10 @@
       "grants": [
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.compensate",
@@ -2808,7 +2831,10 @@
       "grants": [
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.start",
@@ -2829,7 +2855,10 @@
       "validation": "start仅pending，其余仅running；completed/failed/cancelled终态",
       "side_effects": "失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试",
       "grants": [],
-      "system_job": "probe_execute"
+      "system_job": "probe_execute",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.complete",
@@ -2850,7 +2879,10 @@
       "validation": "start仅pending，其余仅running；completed/failed/cancelled终态",
       "side_effects": "失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试",
       "grants": [],
-      "system_job": "probe_execute"
+      "system_job": "probe_execute",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "probe_batch.fail",
@@ -2871,7 +2903,10 @@
       "validation": "start仅pending，其余仅running；completed/failed/cancelled终态；整批尝试编号/结果提交草案：≤3次整批重试，成功只选完整一次尝试，不合并多次部分结果",
       "side_effects": "失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试",
       "grants": [],
-      "system_job": "probe_execute"
+      "system_job": "probe_execute",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
       "id": "publish_registration.register",
@@ -2900,7 +2935,8 @@
       "grants": [
         "editor"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "diagnosis_report.create",
@@ -2932,7 +2968,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "diagnosis_report.approve",
@@ -2955,7 +2992,8 @@
       "grants": [
         "factcheck"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "diagnosis_report.export",
@@ -2981,7 +3019,8 @@
         "editor",
         "cs"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "offboarding.execute",
@@ -3009,14 +3048,18 @@
       "grants": [
         "admin"
       ],
-      "system_job": "offboarding"
+      "system_job": "offboarding",
+      "risk_tags": [
+        "raw_answer",
+        "C_data"
+      ]
     },
     {
-      "id": "opportunity_card.advance",
+      "id": "opportunity_card.transition",
       "resource": "opportunity_card",
-      "operation": "advance",
+      "operation": "transition",
       "method": "POST",
-      "path": "/internal/opportunity-cards/{id}/advance",
+      "path": "/internal/opportunity-cards/{id}/transition",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
@@ -3029,17 +3072,19 @@
         "id": "o1",
         "status": "评分"
       },
-      "validation": "候选→评分：双筛通过且基线开始；确认→在测：监测开始；在测→归档：关联簇归档；禁止请求直接指定任意目标态",
+      "validation": "候选→评分：双筛通过且基线开始；确认→在测：监测开始；在测→归档：关联簇归档；禁止请求直接指定任意目标态；只允许本资源状态表命名事件，不接受任意status裸更新",
       "side_effects": "仅模板已列出边；基线失败留工单处理，不擅自增状态",
       "grants": [],
-      "system_job": "opportunity_lifecycle"
+      "system_job": "opportunity_lifecycle",
+      "legacy_endpoint_id": "opportunity_card.advance",
+      "risk_tags": []
     },
     {
-      "id": "publish_registration.advance",
+      "id": "publish_registration.transition",
       "resource": "publish_registration",
-      "operation": "advance",
+      "operation": "transition",
       "method": "POST",
-      "path": "/internal/publish-registrations/{id}/advance",
+      "path": "/internal/publish-registrations/{id}/transition",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
@@ -3052,10 +3097,12 @@
         "id": "pub1",
         "status": "retesting"
       },
-      "validation": "registered→retesting：登记排期执行；retesting→reported：相关报告完成；reported终态不改",
+      "validation": "registered→retesting：登记排期执行；retesting→reported：相关报告完成；reported终态不改；只允许本资源状态表命名事件，不接受任意status裸更新",
       "side_effects": "重登记新增登记事件/审计历史，asset单独registered",
       "grants": [],
-      "system_job": "publication_lifecycle"
+      "system_job": "publication_lifecycle",
+      "legacy_endpoint_id": "publish_registration.advance",
+      "risk_tags": []
     },
     {
       "id": "diagnosis_report.revise",
@@ -3084,7 +3131,8 @@
       "grants": [
         "strategist"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "offboarding.cleanup",
@@ -3115,7 +3163,11 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer",
+        "C_data"
+      ]
     },
     {
       "id": "deletion_ledger.read",
@@ -3152,7 +3204,8 @@
       "grants": [
         "admin"
       ],
-      "system_job": null
+      "system_job": null,
+      "risk_tags": []
     },
     {
       "id": "deletion_ledger.append",
@@ -3181,7 +3234,10 @@
       "validation": "仅显式offboarding链路，独立追加；按合同/法务授权，不允许自由伪造actor",
       "side_effects": "独立tombstone，生命周期不随源删除",
       "grants": [],
-      "system_job": "offboarding"
+      "system_job": "offboarding",
+      "risk_tags": [
+        "raw_answer"
+      ]
     },
     {
       "id": "api_token.record_use",
@@ -3203,14 +3259,17 @@
       "validation": "认证服务层在成功认证后显式记录使用；只更改该token时间，不改业务对象状态",
       "side_effects": "记录凭证元数据，不在日志中放明文",
       "grants": [],
-      "system_job": "audit_middleware"
+      "system_job": "audit_middleware",
+      "risk_tags": [
+        "quota"
+      ]
     },
     {
-      "id": "intent_cluster.refresh",
+      "id": "intent_cluster.transition",
       "resource": "intent_cluster",
-      "operation": "refresh",
+      "operation": "transition",
       "method": "POST",
-      "path": "/internal/clusters/refresh",
+      "path": "/internal/clusters/transition",
       "semantic": "write",
       "destructive": false,
       "mutates_state": true,
@@ -3228,10 +3287,12 @@
         "pool_version": 2,
         "question_pool_version": 1
       },
-      "validation": "词池周批稳定ID匹配与规则归簇；只新增active或更新需求快照引用，不改已锚定question_pool_version，不恢复archived",
+      "validation": "词池周批稳定ID匹配与规则归簇；只新增active或更新需求快照引用，不改已锚定question_pool_version，不恢复archived；只允许本资源状态表命名事件，不接受任意status裸更新",
       "side_effects": "周快照与双筛候选联动；拆并只提案，人工upgrade后重开基线，不自动换题",
       "grants": [],
-      "system_job": "weekly_pool"
+      "system_job": "weekly_pool",
+      "legacy_endpoint_id": "intent_cluster.refresh",
+      "risk_tags": []
     }
   ],
   "states": {
@@ -3297,7 +3358,7 @@
         {
           "from": "draft",
           "to": "ready",
-          "trigger": "reconcile",
+          "trigger": "transition",
           "actor": "system",
           "condition": "全部必配块当前版approved",
           "effect": "审计并执行关联副作用"
@@ -3305,7 +3366,7 @@
         {
           "from": "ready",
           "to": "draft",
-          "trigger": "reconcile",
+          "trigger": "transition",
           "actor": "system",
           "condition": "必配块retract或新版本draft/pending_review",
           "effect": "审计并执行关联副作用"
@@ -3453,7 +3514,7 @@
         {
           "from": "submitted",
           "to": "granted",
-          "trigger": "approve",
+          "trigger": "grant",
           "actor": "cs/敏感升级factcheck",
           "condition": "3工作日内响应",
           "effect": "审计并执行关联副作用"
@@ -3746,7 +3807,7 @@
     "weekly_pool": {
       "endpoints": [
         "keyword_pool_snapshot.append",
-        "intent_cluster.refresh"
+        "intent_cluster.transition"
       ],
       "batch_required": false,
       "trigger_required": true,
@@ -3758,7 +3819,6 @@
     },
     "baseline_scoring": {
       "endpoints": [
-        "question_score.append",
         "cluster_score.append",
         "cluster_platform_signal.append"
       ],
@@ -3772,7 +3832,7 @@
     },
     "content_reconcile": {
       "endpoints": [
-        "content_asset.reconcile"
+        "content_asset.transition"
       ],
       "batch_required": false,
       "trigger_required": true,
@@ -3784,8 +3844,7 @@
     },
     "probe_execute": {
       "endpoints": [
-        "probe.append",
-        "probe_result.append",
+        "probe_batch.execute",
         "probe_batch.start",
         "probe_batch.complete",
         "probe_batch.fail"
@@ -3876,7 +3935,7 @@
     },
     "opportunity_lifecycle": {
       "endpoints": [
-        "opportunity_card.advance"
+        "opportunity_card.transition"
       ],
       "batch_required": false,
       "trigger_required": true,
@@ -3888,7 +3947,7 @@
     },
     "publication_lifecycle": {
       "endpoints": [
-        "publish_registration.advance"
+        "publish_registration.transition"
       ],
       "batch_required": true,
       "trigger_required": true,
@@ -3937,5 +3996,428 @@
     "automatic_delete": false,
     "explicit_cleanup": "human_contract_or_legal",
     "independent_tombstone": true
+  },
+  "embedded_models": {
+    "question_score": {
+      "parent_resource": "cluster_score",
+      "field": "question_scores",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "write_via": "cluster_score.append",
+      "source_endpoint_ids": [
+        "question_score.read",
+        "question_score.append"
+      ]
+    },
+    "evidence_item": {
+      "parent_resource": "evidence_package",
+      "field": "items",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "evidence",
+        "owner",
+        "editor"
+      ],
+      "write_grants": [
+        "evidence"
+      ],
+      "write_via": [
+        "evidence_package.create",
+        "evidence_package.revise"
+      ],
+      "source_endpoint_ids": [
+        "evidence_item.read",
+        "evidence_item.create"
+      ]
+    },
+    "probe": {
+      "parent_resource": "probe_batch",
+      "field": "probes",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "write_via": "probe_batch.execute",
+      "source_endpoint_ids": [
+        "probe.read",
+        "probe.append"
+      ]
+    }
+  },
+  "review": {
+    "core_groups": [
+      {
+        "number": 1,
+        "title": "批次启动与执行",
+        "endpoint_ids": [
+          "probe_batch.start",
+          "probe_batch.execute"
+        ]
+      },
+      {
+        "number": 2,
+        "title": "失败整批补偿",
+        "endpoint_ids": [
+          "probe_batch.compensate"
+        ]
+      },
+      {
+        "number": 3,
+        "title": "采样配置冻结",
+        "endpoint_ids": [
+          "scoring_snapshot.freeze"
+        ]
+      },
+      {
+        "number": 4,
+        "title": "问句冻结与锚定升级",
+        "endpoint_ids": [
+          "question_pool.freeze",
+          "question_pool.upgrade_anchor"
+        ]
+      },
+      {
+        "number": 5,
+        "title": "簇级出数与不可比",
+        "endpoint_ids": [
+          "cluster_score.read",
+          "cluster_score.compare"
+        ]
+      },
+      {
+        "number": 6,
+        "title": "判定写入",
+        "endpoint_ids": [
+          "probe_result.judge"
+        ]
+      },
+      {
+        "number": 7,
+        "title": "块创建",
+        "endpoint_ids": [
+          "claim_block.create"
+        ]
+      },
+      {
+        "number": 8,
+        "title": "块新版本修订",
+        "endpoint_ids": [
+          "claim_block.revise"
+        ]
+      },
+      {
+        "number": 9,
+        "title": "块提交",
+        "endpoint_ids": [
+          "claim_block.submit"
+        ]
+      },
+      {
+        "number": 10,
+        "title": "块放行",
+        "endpoint_ids": [
+          "claim_block.approve"
+        ]
+      },
+      {
+        "number": 11,
+        "title": "块撤回下线",
+        "endpoint_ids": [
+          "claim_block.retract"
+        ]
+      },
+      {
+        "number": 12,
+        "title": "通用队列放行",
+        "endpoint_ids": [
+          "review_queue.approve"
+        ]
+      },
+      {
+        "number": 13,
+        "title": "通用队列驳回",
+        "endpoint_ids": [
+          "review_queue.reject"
+        ]
+      },
+      {
+        "number": 14,
+        "title": "资产三态迁移",
+        "endpoint_ids": [
+          "content_asset.transition",
+          "publish_registration.register",
+          "content_asset.retire"
+        ]
+      },
+      {
+        "number": 15,
+        "title": "发布登记",
+        "endpoint_ids": [
+          "publish_registration.register"
+        ]
+      },
+      {
+        "number": 16,
+        "title": "诊断原文摘录·异议链",
+        "endpoint_ids": [
+          "diagnosis_report.excerpt"
+        ]
+      },
+      {
+        "number": 17,
+        "title": "异议授权",
+        "endpoint_ids": [
+          "objection.grant"
+        ]
+      },
+      {
+        "number": 18,
+        "title": "异议发起调阅",
+        "endpoint_ids": [
+          "objection.view"
+        ]
+      },
+      {
+        "number": 19,
+        "title": "令牌撤销",
+        "endpoint_ids": [
+          "api_token.revoke"
+        ]
+      },
+      {
+        "number": 20,
+        "title": "回流派单",
+        "endpoint_ids": [
+          "backflow_ticket.assign"
+        ]
+      }
+    ],
+    "core_endpoint_ids": [
+      "probe_batch.start",
+      "probe_batch.execute",
+      "probe_batch.compensate",
+      "scoring_snapshot.freeze",
+      "question_pool.freeze",
+      "question_pool.upgrade_anchor",
+      "cluster_score.read",
+      "cluster_score.compare",
+      "probe_result.judge",
+      "claim_block.create",
+      "claim_block.revise",
+      "claim_block.submit",
+      "claim_block.approve",
+      "claim_block.retract",
+      "review_queue.approve",
+      "review_queue.reject",
+      "content_asset.transition",
+      "publish_registration.register",
+      "content_asset.retire",
+      "diagnosis_report.excerpt",
+      "objection.grant",
+      "objection.view",
+      "api_token.revoke",
+      "backflow_ticket.assign",
+      "tenant.read",
+      "tenant.configure",
+      "keyword_raw.read",
+      "keyword_raw.import",
+      "keyword_raw.read_raw",
+      "question_pool.read",
+      "scoring_snapshot.read",
+      "question_pool.create",
+      "question_pool.revise",
+      "question_pool.archive",
+      "scoring_snapshot.create",
+      "probe_result.read_raw",
+      "probe_result.access",
+      "audit_log.read",
+      "api_token.read",
+      "probe_batch.read",
+      "audit_log.append",
+      "evidence_package.create",
+      "evidence_package.revise",
+      "api_token.create",
+      "probe_batch.create",
+      "probe_batch.cancel",
+      "probe_batch.complete",
+      "probe_batch.fail",
+      "offboarding.execute",
+      "offboarding.cleanup",
+      "deletion_ledger.append",
+      "api_token.record_use"
+    ],
+    "resource_layers": {
+      "需求层": [
+        "seed_list",
+        "keyword_raw",
+        "keyword_pool_snapshot",
+        "intent_cluster",
+        "question_pool",
+        "opportunity_card",
+        "scoring_snapshot",
+        "cluster_score",
+        "cluster_platform_signal",
+        "industry_score",
+        "diagnosis_report"
+      ],
+      "生产层": [
+        "content_asset",
+        "claim_block",
+        "review_queue",
+        "evidence_package",
+        "publish_registration"
+      ],
+      "验证层": [
+        "probe_batch",
+        "probe_result",
+        "metric_snapshot",
+        "objection",
+        "backflow_ticket"
+      ],
+      "横切支撑": [
+        "tenant",
+        "brand",
+        "user_member",
+        "audit_log",
+        "api_token",
+        "offboarding",
+        "deletion_ledger"
+      ]
+    }
+  },
+  "layout_migration": {
+    "before": {
+      "resources": 31,
+      "endpoints": 112,
+      "operations": 41,
+      "allow_rows": 246,
+      "deny_rows": 11193
+    },
+    "endpoint_map": {
+      "tenant.read": "tenant.read",
+      "tenant.configure": "tenant.configure",
+      "brand.read": "brand.read",
+      "brand.configure": "brand.configure",
+      "user_member.read": "user_member.read",
+      "user_member.configure": "user_member.configure",
+      "seed_list.read": "seed_list.read",
+      "seed_list.create": "seed_list.create",
+      "seed_list.revise": "seed_list.revise",
+      "keyword_raw.read": "keyword_raw.read",
+      "keyword_raw.import": "keyword_raw.import",
+      "keyword_raw.read_raw": "keyword_raw.read_raw",
+      "keyword_pool_snapshot.read": "keyword_pool_snapshot.read",
+      "intent_cluster.read": "intent_cluster.read",
+      "question_pool.read": "question_pool.read",
+      "opportunity_card.read": "opportunity_card.read",
+      "scoring_snapshot.read": "scoring_snapshot.read",
+      "cluster_score.read": "cluster_score.read",
+      "cluster_platform_signal.read": "cluster_platform_signal.read",
+      "intent_cluster.archive": "intent_cluster.archive",
+      "intent_cluster.upgrade": "question_pool.upgrade_anchor",
+      "question_pool.create": "question_pool.create",
+      "question_pool.freeze": "question_pool.freeze",
+      "question_pool.revise": "question_pool.revise",
+      "question_pool.archive": "question_pool.archive",
+      "opportunity_card.create": "opportunity_card.create",
+      "opportunity_card.recommend": "opportunity_card.recommend",
+      "opportunity_card.confirm": "opportunity_card.confirm",
+      "scoring_snapshot.create": "scoring_snapshot.create",
+      "scoring_snapshot.freeze": "scoring_snapshot.freeze",
+      "keyword_pool_snapshot.append": "keyword_pool_snapshot.append",
+      "cluster_score.append": "cluster_score.append",
+      "cluster_platform_signal.append": "cluster_platform_signal.append",
+      "content_asset.read": "content_asset.read",
+      "claim_block.read": "claim_block.read",
+      "probe_result.read": "probe_result.read",
+      "content_asset.create": "content_asset.create",
+      "content_asset.retire": "content_asset.retire",
+      "content_asset.reconcile": "content_asset.transition",
+      "claim_block.create": "claim_block.create",
+      "claim_block.revise": "claim_block.revise",
+      "claim_block.submit": "claim_block.submit",
+      "claim_block.approve": "claim_block.approve",
+      "claim_block.reject": "claim_block.reject",
+      "claim_block.retract": "claim_block.retract",
+      "claim_block.citations": "claim_block.citations",
+      "probe_result.read_raw": "probe_result.read_raw",
+      "probe_result.access": "probe_result.access",
+      "probe_result.append": "probe_batch.execute",
+      "probe_result.judge": "probe_result.judge",
+      "metric_snapshot.read": "metric_snapshot.read",
+      "industry_score.read": "industry_score.read",
+      "audit_log.read": "audit_log.read",
+      "review_queue.read": "review_queue.read",
+      "evidence_package.read": "evidence_package.read",
+      "objection.read": "objection.read",
+      "backflow_ticket.read": "backflow_ticket.read",
+      "api_token.read": "api_token.read",
+      "probe_batch.read": "probe_batch.read",
+      "publish_registration.read": "publish_registration.read",
+      "diagnosis_report.read": "diagnosis_report.read",
+      "offboarding.read": "offboarding.read",
+      "metric_snapshot.compare": "cluster_score.compare",
+      "metric_snapshot.export": "metric_snapshot.export",
+      "metric_snapshot.append": "metric_snapshot.append",
+      "industry_score.revise": "industry_score.revise",
+      "audit_log.append": "audit_log.append",
+      "review_queue.submit": "review_queue.submit",
+      "review_queue.approve": "review_queue.approve",
+      "review_queue.reject": "review_queue.reject",
+      "review_queue.withdraw": "review_queue.withdraw",
+      "evidence_package.create": "evidence_package.create",
+      "evidence_package.revise": "evidence_package.revise",
+      "evidence_package.approve": "evidence_package.approve",
+      "evidence_package.export": "evidence_package.export",
+      "objection.create": "objection.create",
+      "objection.approve": "objection.grant",
+      "objection.reject": "objection.reject",
+      "objection.view": "objection.view",
+      "objection.excerpt": "diagnosis_report.excerpt",
+      "backflow_ticket.create": "backflow_ticket.create",
+      "backflow_ticket.assign": "backflow_ticket.assign",
+      "backflow_ticket.complete": "backflow_ticket.complete",
+      "backflow_ticket.expire": "backflow_ticket.expire",
+      "api_token.create": "api_token.create",
+      "api_token.revoke": "api_token.revoke",
+      "probe_batch.create": "probe_batch.create",
+      "probe_batch.cancel": "probe_batch.cancel",
+      "probe_batch.compensate": "probe_batch.compensate",
+      "probe_batch.start": "probe_batch.start",
+      "probe_batch.complete": "probe_batch.complete",
+      "probe_batch.fail": "probe_batch.fail",
+      "publish_registration.register": "publish_registration.register",
+      "diagnosis_report.create": "diagnosis_report.create",
+      "diagnosis_report.approve": "diagnosis_report.approve",
+      "diagnosis_report.export": "diagnosis_report.export",
+      "offboarding.execute": "offboarding.execute",
+      "opportunity_card.advance": "opportunity_card.transition",
+      "publish_registration.advance": "publish_registration.transition",
+      "diagnosis_report.revise": "diagnosis_report.revise",
+      "offboarding.cleanup": "offboarding.cleanup",
+      "deletion_ledger.read": "deletion_ledger.read",
+      "deletion_ledger.append": "deletion_ledger.append",
+      "api_token.record_use": "api_token.record_use",
+      "intent_cluster.refresh": "intent_cluster.transition",
+      "question_score.read": "cluster_score.read#question_scores",
+      "question_score.append": "cluster_score.append#question_scores",
+      "evidence_item.read": "evidence_package.read#items",
+      "evidence_item.create": "evidence_package.create/revise#items",
+      "probe.read": "probe_batch.read#probes",
+      "probe.append": "probe_batch.execute#probe",
+      "intent_cluster.anchor": "question_pool.upgrade_anchor#initial_anchor"
+    },
+    "policy_change": false,
+    "physical_tables_change": false
   }
 }

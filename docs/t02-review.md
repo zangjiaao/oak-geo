@@ -2,22 +2,42 @@
 
 状态：待人审冻结，未冻结。依据附件为三轮负责人裁定 `t02-decisions.md`；产品文档页首版本保持原样，仅追加授权的v3.5决策记录，不代人修改冻结标识。
 
-## 审阅入口
+## 人审顺序（R1–R4整改后）
 
-- `api-spec.md`：全局口径、冲突覆盖顺序、模式/权限条件、审核/异议/解约、字段草案。
-- `t02-endpoints.md`：112个端点的独立请求/响应、审计、幂等、副作用、语义与destructive。
-- `t02-permissions.csv`：9角色×31资源×41操作=11,439行，246个条件allow，其余11,193个deny；包括不适用组合，禁止默认允许。每行标依据。31资源=产品§18的27表+4业务投影，投影不代表自动新增物理表。
-- `t02-states.md`：13对象迁移表，出边与明确终态；无裁定外状态。系统reconcile的链式事务约束在主规格§3及JSON单独列明。
-- `t02-contracts.json`：生成材料源；`node scripts/generate-t02-docs.mjs`重新生成CSV/端点/迁移表；`--check`验证生成材料未漂移。生成器只读写文档，无生产权限执行逻辑或数据库路径。
+1. `spec-map.md`：100行主入口，三层架构/横切支撑、28资源（含原31资源归宿）、九角色、20个承重审阅项、事实块旅程、13状态机索引。
+2. `core-set.md`：20项组合动作逐接口展开，及所有原文/C类/配额风险接口，共52个接口完整示例。组合项可以关联多个接口，同一示例仅出现一次。
+3. `t02-permissions.csv`：allow即规范，230个条件allow + 1行默认规则 + 1行列头，共232行；无deny行。每个allow保留依据及条件。
+4. `generated/README.md`：其余53个支撑接口，按资源分文件，人审默认抽检；敏感/配额端点不能下沉。
+5. `api-spec.md`：全局约定；`t02-states.md`：13对象完整迁移表；`t02-contracts.json`仅作为生成与校验源，不要求人逐行审阅。
+
+`t02-endpoints.md`保留为导航，旧链接不会落到整本接口示例。裁定原文包括本次R1–R4整改要求。
+
+## 行数与边界变化（可复算）
+
+| 材料 | 整改前 | 整改后 | 原因 |
+|---|---|---|---|
+| API资源 | 31 | 28 | question_score→cluster_score.question_scores；evidence_item→evidence_package.items；probe→probe_batch.probes |
+| 物理表 | 27 | 27 | 不修改产品文档或数据库结构，归并仅发生于API边界 |
+| 端点 | 112 | 105 | 移除question_score两条、evidence_item两条、probe两条；原anchor/upgrade合并一条，合计减少7条 |
+| 操作名 | 41 | 39 | 移除advance/anchor/upgrade/refresh/reconcile五名；新增transition/upgrade_anchor/grant三名；execute原已存在 |
+| allow三键 | 246 | 230 | question_score.read减少5；evidence_item读写减少7；probe.read减少5；锚定入口合并减少1；batch.read新增两任务角色投影+2 |
+| deny行 | 11,193 | 0 | 全由“未出现 (role, resource, operation) allow 行即 deny”表达 |
+| 权限规范总行 | 11,440（含列头） | 232 | R1先压缩deny，R3进一步合并原allow的资源/操作身份 |
+
+230 = 246 − 5 − 7 − 5 − 1 + 2；仅三键表示改变，不撤销或扩大原有行为权限。问句级分数只给原内部五角色；evidence items继承父包原范围；Content/Evidence的batch.read只允许原分派probe投影，不能读整批配置/其他任务。
+
+20项是负责人R4的审阅单元，包含start/execute、freeze/upgrade_anchor及资产多个迁移等组合动作；不同职责没有强压为20个HTTP接口。`layout_migration.endpoint_map`保存全部112个旧接口归宿；被合并的写路径由父对象服务动作原子承接，原审计事件保留兼容。
 
 ## 验证结果
 
-- 第一轮红：6表/双身份、端点目录、矩阵、状态契约4项失败；对应文件/字段补齐后绿。
-- 第三轮红：URL/同事务链及受控job契约2项失败；补齐后绿。
-- `npm test`：14项通过；含授权范围外产品文档SHA-256逐字保护、全表覆盖、端点审计/幂等元数据、权限三键全笛卡尔积且无重复、定稿状态及终态、系统白名单、原文默认拒绝。
-- `node scripts/generate-t02-docs.mjs --check`：生成产物一致。
-- `npm run typecheck`：通过；`git diff --check`通过。
-- 本次不改UI或运行时，无需重复Next.js/Workers构建与doctor；T01结果不冒充本次业务实现验收。
+- 先红：新allow格式、主入口/核心层与资源归并测试因旧材料失败；新增403规范解析器缺失使架构检查失败。
+- 后绿：原14项检查按新表示更新后通过；新增2项`tests/arch`检查，共16项通过。
+- 默认拒绝检查穷举归并后的九角色×28资源×39操作及未知三键；不存在的三键一律403，allow不产生无条件200，仍须校验行条件。
+- allow越界/重复检查、归并前后数量公式、子资源可见性护栏、敏感接口不得下沉、105端点唯一文档归属、主入口≤120行均有检查。
+- 状态枚举、出边、终态、引用/链式回退/保留策略与整改前的哈希保持一致；仅触发动作命名变化不计入行为哈希。
+- `node scripts/generate-t02-docs.mjs --check`验证所有文档产物，包含已不应存在的generated文件检测；生成器不输出deny行。
+- `npm run typecheck`、`git diff --check`通过。本次只改文档、生成器与规格测试，不声称业务API已实现；真实请求的服务端403集成测试仍属T05。
+- 产品文档与AGENTS.md本次未改；既有授权范围外逐字保护测试保持绿。
 
 ## 架构纪律自查（产品§16.3 / AGENTS§4）
 
@@ -32,7 +52,7 @@
 | 口径元数据与分页 | snapshot_id/data_as_of；列表cursor默认20上限100，≤20KB；不可比422无delta |
 | 双凭证同权限 | 会话/PAT同身份权限，scopes不能扩权；只存hash，撤销显式 |
 | 前端架构预留 | 仅定义作者/状态分离、通用object_type与扩展事件契约，不越任务实现页面 |
-| 操作语义预留 | 112端点逐一分级+destructive；不实现MCP |
+| 操作语义预留 | 105端点逐一分级+destructive；不实现MCP |
 
 ## 数据纪律映射（产品§19全部19条）
 

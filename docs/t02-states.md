@@ -20,8 +20,8 @@
 
 | 迁移 | 显式触发 | 执行者 | 前置条件 | 副作用 |
 |---|---|---|---|---|
-| draft → ready | reconcile | system | 全部必配块当前版approved | 审计并执行关联副作用 |
-| ready → draft | reconcile | system | 必配块retract或新版本draft/pending_review | 审计并执行关联副作用 |
+| draft → ready | transition | system | 全部必配块当前版approved | 审计并执行关联副作用 |
+| ready → draft | transition | system | 必配块retract或新版本draft/pending_review | 审计并执行关联副作用 |
 | ready → registered | register | editor | 已在客户渠道发布；登记URL/时间 | 审计并执行关联副作用 |
 | registered → ready | retract联动 | system | 任一已发布块被retract；须重新发布 | 审计并执行关联副作用 |
 | draft → retired | retire | strategist/owner | human人工下线；不可逆 | 审计并执行关联副作用 |
@@ -55,7 +55,7 @@
 
 | 迁移 | 显式触发 | 执行者 | 前置条件 | 副作用 |
 |---|---|---|---|---|
-| submitted → granted | approve | cs/敏感升级factcheck | 3工作日内响应 | 审计并执行关联副作用 |
+| submitted → granted | grant | cs/敏感升级factcheck | 3工作日内响应 | 审计并执行关联副作用 |
 | submitted → rejected | reject | cs/敏感升级factcheck | 说明理由 | 审计并执行关联副作用 |
 | granted → viewed | POST view | cs | CS发起会话，单probe单次，24h内查看 | 审计并执行关联副作用 |
 

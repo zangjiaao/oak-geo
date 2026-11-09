@@ -98,3 +98,51 @@ T02 补充裁定（第 3 轮，对应你的 ①–③ 与保留策略确认；�
 - 删除只能显式：依合同或法务要求，人工执行 offboarding 清理；删除动作本身在独立 deletion ledger 留 tombstone（对象类型、时间范围、执行人、依据），tombstone 不随删除消失。
 
 §18 授权补充：probe_result.cited_urls[]；audit 字段的 job 名注册表说明（枚举值写在 api-spec）。
+
+API 契约冻结前整改（负责人裁定 v3：重排审阅结构，系统设计本身不推倒）
+
+你交付的规格在纪律与覆盖上合格，未发现裁定外行为。但人审界面失败：
+6,046 行无人能全读，冻结会变成橡皮图章——这违反我们自己定的
+"人审人读得过的东西"原则。按以下四条重排后重新提交：
+
+R1 权限矩阵改为"allow 即规范"
+- permissions.csv 只保留 246 行 allow + 文件头全局规则一行：
+  "未出现 (role, resource, operation) allow 行即 deny"
+- 删除全部 deny 行；11,193 行 deny 的等价物是这一个默认规则
+- 原"每行标依据"保留在 allow 行；deny 语义由两条测试保证：
+  (a) 三键不在 allow 集的请求被 403；(b) allow 集与 9×31×41
+  全集之外无越界（覆盖测试在 tests/arch 里已有基础）
+- CSV 预期 ~247 行；agent 不再产出 deny 行
+
+R2 endpoints 拆成两层 + 一页总览
+- 新增 docs/spec-map.md（人审的主入口，≤120 行）：
+  ① 三层架构 × 31 资源归属图；② 9 角色一览（每个 1 行职责）；
+  ③ 20 个承重端点清单 + 一张"一个事实块的旅程"端点走线图
+  （create→submit→approve→publish 登记→复测命中）
+  ④ 13 个状态机索引（指向 t02-states.md）
+- t02-endpoints.md 拆分：
+  core-set.md：20 个承重端点 + 所有涉及 raw_answer / C 类数据 /
+  money-ish（配额）的端点，保留现在的完整示例格式
+  generated/：其余端点机器生成保留，人审默认抽检
+- 承重清单我口定，见 R4
+
+R3 资源与端点瘦身（授权修改）
+- 取消独立端点族：question_score（改为 cluster_score GET 的
+  一节返回）、evidence_item（仅作为 evidence_package 子资源）
+- probe 仅保留 batch 内查询路径，不再独立资源级 read
+- 预期：31 资源 → 28 资源，112 端点 → ~104；41 种操作动词统一
+  命名（同义动词合并，如 advance/anchor/refresh 类归入迁移名）
+
+R4 承重清单（20 个，逐个列出）：
+probe_batch.start / execute、切批次失败补偿 compensate、
+scoring_snapshot.freeze、question_pool.freeze / upgrade_anchor、
+cluster_score 簇级出数（含 compare + incomparable 422）、
+judge 写入、claim_block.create / revise / submit / approve /
+retract、review_queue.approve / reject、content_asset 三态迁移
+（ready 派生 / registered / retire）、publish_registration.register、
+读：diagnosis_report.read_raw / excerpt（异议链）、
+objection.grant / view、api_token.revoke、backflow_ticket.assign
+其余为我方内部定义的支撑件。
+
+交付状态不变：未冻结、不合并，`--check` 与 14 项测试保持绿；
+R1/R2/R3 造成的行数变化须全部可用测试与生成器解释。

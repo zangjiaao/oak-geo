@@ -2,20 +2,20 @@
 
 > 状态：草案，未冻结 · T02 人审候选稿。不得自行冻结。
 > 事实依据：[产品文档](GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定覆盖早期模板及本稿旧版本的冲突描述；产品文档仅按授权修改 §18 和决策记录，其余原文保留。
-> 交付包含本文件、[逐端点示例](t02-endpoints.md)、[全量权限矩阵](t02-permissions.csv)、[状态迁移表](t02-states.md)、[结构化契约](t02-contracts.json)。均为同一待审规格，不含业务实现。
+> 人审从[一页地图](spec-map.md)进入，再读[核心集](core-set.md)和[allow权限规范](t02-permissions.csv)；[支撑端点](generated/README.md)默认抽检。[结构化源](t02-contracts.json)用于生成与机器校验，不要求人逐行审。
 
 ## 0. 冻结流程与审阅 checklist
 
 以下为 agent 自查结果，不替代负责人冻结签字：
 
-- [x] 角色×资源×操作全量生成 allow/deny；默认deny，每行有 §9.3 或裁定依据
+- [x] allow即规范，未出现三键即deny；每个allow保留 §9.3 或裁定依据，测试穷举全集验证默认拒绝
 - [x] 三轮定稿状态落表；出边或明确终态，修订通过新版本承接
 - [x] 写操作均为显式服务层动作，禁止PATCH状态与页面/脚本直写库
 - [x] 每端点有权限三键、语义、幂等、审计、副作用、请求响应示例
 - [x] 差值端点校验配置身份和簇锚定口径，不一致422 incomparable且无差值
 - [x] read-only/draft/proposal/write 及 destructive 全量标注
 - [x] 原文仅内部按职责单条访问或异议通道查看；没有批量导出端点
-- [ ] 人审全量矩阵、字段草案、端点细节与 §6 问题，确认可以冻结
+- [ ] 人审allow规范、核心集、字段草案，抽检支撑件，确认可以冻结
 
 冻结人：待人审填写；冻结日期：未填写；冻结版本：未分配。自动化检查只验证规格内部约束与授权改动范围，不表示业务功能通过验收。
 
@@ -37,7 +37,7 @@ Web 会话 + per-user PAT，解析 `(user, role, tenant, actor_type)`；PAT scop
 - 客户原文通路唯一为异议查看器；先鉴权单条会话，再返回摘录；证据包普通read/download不得夹带受限excerpt或raw_answer。
 - full客户机会视图仅本品牌簇的筛选只读投影；diagnosis档不提供机会视图。聚合竞品信号不泄露全文。
 
-矩阵条件采用分号连接的逻辑AND；`applicant_or_initiating_cs`等or词表示其名称内的条件分支。完整条件的人类语义在本节及端点validation中定义。矩阵是审核材料，不导入为生产授权代码。未经配置的scope/角色/资源/操作拒绝；系统身份不占用九角色任一行。
+矩阵条件采用分号连接的逻辑AND；`applicant_or_initiating_cs`等or词表示其名称内的条件分支。完整条件的人类语义在本节及端点validation中定义。CSV中的allow集合为授权规范的唯一三键清单；JSON grants为生成输入，--check保证二者一致。测试解析器仅验证规范，T05仍须实现真实服务端鉴权，不能把条件allow当成无条件200。未经配置的scope/角色/资源/操作拒绝；系统身份不占用九角色任一行。
 
 ### 1.2 路径、时间、分页与响应
 
@@ -69,7 +69,7 @@ scoring_snapshot是采样配置身份，不是一次执行。冻结模型集合�
 
 probe_batch是执行身份，type=baseline/event/monthly；probe.batch_id关联批次；metric_snapshot保存snapshot_id、batch_id。baseline与其event/monthly复测共用冻结snapshot_id；只为执行重跑开新batch，不新建采样配置。cluster_score同`(cluster_id,snapshot_id)`只写一次；复测不重写它，probe_result按批次追加，metric_snapshot按批次追加。失败整批新batch补偿，旧记录保留。配置/判定/轨道或簇锚变更则重建基线，分数需新的snapshot身份，不借新batch覆盖旧分数。
 
-簇入测通过显式anchor动作写intent_cluster.question_pool_version；人工升级/拆并显式upgrade，重开该簇基线。新池版本仅新增其他簇，不改老簇锚；新簇锚当前版本。冻结问句版本只读，采样可还原原文。
+簇入测通过question_pool.upgrade_anchor首次锚定动作写intent_cluster.question_pool_version；人工升级/拆并同样显式upgrade_anchor，重开该簇基线。新池版本仅新增其他簇，不改老簇锚；新簇锚当前版本。冻结问句版本只读，采样可还原原文。
 
 可比性：同snapshot_id、同cluster_id、同锚定question_pool_version且该簇question_id集合一致；不同锚定版本一律不可比，即使原文字面相同。不做文本比对；不拿全池最新版本批量作废老簇。比较端点不可比时HTTP422、code=incomparable，不返回delta，不进差值报告。比较样例仅是结构，不承诺实际提升。
 
@@ -87,140 +87,48 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 审计字段自首版保留actor_type、agent_run_id、prompt_version；human/system不适用的后两者可为null（字段草案，待人审）；system额外受控job_name+trigger_source（cron/事件id）+受影响对象，多对象多行；探针评分/复测job必须batch_id，非探针可null；异议全记viewing_session_id、发起CS、实际调阅人和时间。日志不得保存令牌明文或额外复制待删除raw_answer。普通GET不改业务状态，敏感读取仍写访问审计；PAT last_used_at为凭证访问元数据，不触发业务状态迁移。
 
-异议submitted→granted由CS批准，敏感升级FactCheck；3个工作日响应（不是3日自然日）。CS账号通过显式POST view发起会话并原子写viewed，客户仅作为申请人出现在只读查看器；24h会话，watermark_meta=调阅人+时间戳，叠加水印不可导出。viewing_session_id唯一，同异议同probe只建一次；POST幂等重放返回同会话，不算再次调阅；会话内GET不迁移状态。重复调阅须新异议+reason。过期只拒绝访问，不发明expired异议状态。
+异议submitted→granted由CS通过grant批准，敏感升级FactCheck；3个工作日响应（不是3日自然日）。CS账号通过显式POST view发起会话并原子写viewed，客户仅作为申请人出现在只读查看器；24h会话，watermark_meta=调阅人+时间戳，叠加水印不可导出。viewing_session_id唯一，同异议同probe只建一次；POST幂等重放返回同会话，不算再次调阅；会话内GET不迁移状态。重复调阅须新异议+reason。过期只拒绝访问，不发明expired异议状态。
 
 解约显式offboarding：30天内删除C类原文与raw_answer（含副本/缓存及受限摘录副本的删除清单草案）；聚合与audit不可变保留默认2年，合同可另定。默认2年为在线可查窗口，到期转只读冷归档，不自动删除；合同/法务可调取归档层。合同/法务要求删除时，只能由人显式执行offboarding清理，在独立deletion ledger留对象类型、时间范围、执行人、依据的tombstone，tombstone不随源数据删除消失。保留原始回答表的非原文判定与回溯ID，删全文不伪造回答或指标。
 
 ## 2. 资源清单
 
-更新后§18共27张表，全部映射为资源；另有publish_registration/diagnosis_report/offboarding/deletion_ledger四个业务投影契约，非自动授权新增物理表。[逐端点示例](t02-endpoints.md)包含每个资源的请求、响应、权限索引、审计、幂等及副作用；[结构化契约](t02-contracts.json)是生成材料输入，主规格约束优先。
+产品§18的27张物理表不变，API由31资源归并为28资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`t02-contracts.json.layout_migration`。
 
-### tenant
+| API资源 | 契约位置 |
+|---|---|
+| `tenant` | [核心集](core-set.md) |
+| `brand` | [支撑件](generated/README.md) |
+| `user_member` | [支撑件](generated/README.md) |
+| `seed_list` | [支撑件](generated/README.md) |
+| `keyword_raw` | [核心集](core-set.md) |
+| `keyword_pool_snapshot` | [支撑件](generated/README.md) |
+| `intent_cluster` | [支撑件](generated/README.md) |
+| `question_pool` | [核心集](core-set.md) |
+| `opportunity_card` | [支撑件](generated/README.md) |
+| `scoring_snapshot` | [核心集](core-set.md) |
+| `cluster_score` | [核心集](core-set.md) |
+| `cluster_platform_signal` | [支撑件](generated/README.md) |
+| `content_asset` | [核心集](core-set.md) |
+| `claim_block` | [核心集](core-set.md) |
+| `probe_result` | [核心集](core-set.md) |
+| `metric_snapshot` | [支撑件](generated/README.md) |
+| `industry_score` | [支撑件](generated/README.md) |
+| `audit_log` | [核心集](core-set.md) |
+| `review_queue` | [核心集](core-set.md) |
+| `objection` | [核心集](core-set.md) |
+| `backflow_ticket` | [核心集](core-set.md) |
+| `evidence_package` | [核心集](core-set.md) |
+| `api_token` | [核心集](core-set.md) |
+| `probe_batch` | [核心集](core-set.md) |
+| `publish_registration` | [核心集](core-set.md) |
+| `diagnosis_report` | [核心集](core-set.md) |
+| `offboarding` | [核心集](core-set.md) |
+| `deletion_ledger` | [核心集](core-set.md) |
 
-见逐端点附录 `tenant` 节；权限矩阵三键中的resource为 `tenant`。
-
-### brand
-
-见逐端点附录 `brand` 节；权限矩阵三键中的resource为 `brand`。
-
-### user_member
-
-见逐端点附录 `user_member` 节；权限矩阵三键中的resource为 `user_member`。
-
-### seed_list
-
-见逐端点附录 `seed_list` 节；权限矩阵三键中的resource为 `seed_list`。
-
-### keyword_raw
-
-见逐端点附录 `keyword_raw` 节；权限矩阵三键中的resource为 `keyword_raw`。
-
-### keyword_pool_snapshot
-
-见逐端点附录 `keyword_pool_snapshot` 节；权限矩阵三键中的resource为 `keyword_pool_snapshot`。
-
-### intent_cluster
-
-见逐端点附录 `intent_cluster` 节；权限矩阵三键中的resource为 `intent_cluster`。
-
-### question_pool
-
-见逐端点附录 `question_pool` 节；权限矩阵三键中的resource为 `question_pool`。
-
-### opportunity_card
-
-见逐端点附录 `opportunity_card` 节；权限矩阵三键中的resource为 `opportunity_card`。
-
-### scoring_snapshot
-
-见逐端点附录 `scoring_snapshot` 节；权限矩阵三键中的resource为 `scoring_snapshot`。
-
-### question_score
-
-见逐端点附录 `question_score` 节；权限矩阵三键中的resource为 `question_score`。
-
-### cluster_score
-
-见逐端点附录 `cluster_score` 节；权限矩阵三键中的resource为 `cluster_score`。
-
-### cluster_platform_signal
-
-见逐端点附录 `cluster_platform_signal` 节；权限矩阵三键中的resource为 `cluster_platform_signal`。
-
-### content_asset
-
-见逐端点附录 `content_asset` 节；权限矩阵三键中的resource为 `content_asset`。
-
-### claim_block
-
-见逐端点附录 `claim_block` 节；权限矩阵三键中的resource为 `claim_block`。
-
-### probe
-
-见逐端点附录 `probe` 节；权限矩阵三键中的resource为 `probe`。
-
-### probe_result
-
-见逐端点附录 `probe_result` 节；权限矩阵三键中的resource为 `probe_result`。
-
-### metric_snapshot
-
-见逐端点附录 `metric_snapshot` 节；权限矩阵三键中的resource为 `metric_snapshot`。
-
-### industry_score
-
-见逐端点附录 `industry_score` 节；权限矩阵三键中的resource为 `industry_score`。
-
-### audit_log
-
-见逐端点附录 `audit_log` 节；权限矩阵三键中的resource为 `audit_log`。
-
-### review_queue
-
-见逐端点附录 `review_queue` 节；权限矩阵三键中的resource为 `review_queue`。
-
-### objection
-
-见逐端点附录 `objection` 节；权限矩阵三键中的resource为 `objection`。
-
-### backflow_ticket
-
-见逐端点附录 `backflow_ticket` 节；权限矩阵三键中的resource为 `backflow_ticket`。
-
-### evidence_package
-
-见逐端点附录 `evidence_package` 节；权限矩阵三键中的resource为 `evidence_package`。
-
-### evidence_item
-
-见逐端点附录 `evidence_item` 节；权限矩阵三键中的resource为 `evidence_item`。
-
-### api_token
-
-见逐端点附录 `api_token` 节；权限矩阵三键中的resource为 `api_token`。
-
-### probe_batch
-
-见逐端点附录 `probe_batch` 节；权限矩阵三键中的resource为 `probe_batch`。
-
-### publish_registration
-
-见逐端点附录 `publish_registration` 节；权限矩阵三键中的resource为 `publish_registration`。
-
-### diagnosis_report
-
-见逐端点附录 `diagnosis_report` 节；权限矩阵三键中的resource为 `diagnosis_report`。
-
-### offboarding
-
-见逐端点附录 `offboarding` 节；权限矩阵三键中的resource为 `offboarding`。
-
+嵌入并不扩权：question_scores节只给原内部五角色，客户簇级read仍不返回该节；evidence items继承原父包封版/任务/摘录限制；Content/Evidence仅可经batch读取原分派probe投影，不能查看完整批次或其他任务。子资源写入通过父对象的显式服务动作原子完成。
 
 模板下载作为evidence_package投影，不新增模板表；完整客户包下载与受限原文/摘录分离。review_queue使用 object_type + object_id，动态按object_type处理，MVP只接受claim_block/evidence_package/diagnosis_report；plan_draft仅P1预留，MVP拒绝，不实现Agent产出。
-
-### deletion_ledger
-
-独立删除墓碑账本投影；仅Admin读、offboarding链路追加，无删除端点。物理存储方案随T04草案人审。
 
 ### 字段草案（依二轮②常设授权，随PR审）
 
@@ -256,18 +164,18 @@ content_asset的registered块retract时，同事务先registered→ready，逐�
 
 | job_name | 触发 | 允许服务动作 | 幂等/副作用 |
 |---|---|---|---|
-| weekly_pool | 周一 | keyword_pool_snapshot.append、intent_cluster.refresh | pool_version唯一；稳定簇ID/分档/告警，产物需服务层授权，不修改冻结问句 |
+| weekly_pool | 周一 | keyword_pool_snapshot.append、intent_cluster.transition | pool_version唯一；稳定簇ID/分档/告警，产物需服务层授权，不修改冻结问句 |
 | c_import | 已书面授权CSV批次 | keyword_raw.import | 入库前脱敏；新增/重复/拒绝计数；不写自动爬虫 |
 | event_schedule | 发布登记、月度、首次评分排期或模型/判定/轨道变更事件 | probe_batch.create、scoring_snapshot.create/freeze | 按登记+时点/月份去重，D+3/14/30，目标3+对照3；baseline/月度30簇；模型主版本/判定/轨道变化新配置新基线，全量重跑与报告标注，不与旧期比较 |
-| probe_execute | pending批次到期 | probe_batch.start/complete/fail、probe.append、probe_result.append | 按冻结配置、簇锚定执行；批次追加，原文不进指令位 |
-| baseline_scoring | 基线判定完成 | question_score.append、cluster_score.append、cluster_platform_signal.append | cluster+snapshot唯一；拒答排除；不足样本不出分；复测不重写分数 |
+| probe_execute | pending批次到期 | probe_batch.start/execute/complete/fail | 按冻结配置、簇锚定执行；批次追加，原文不进指令位 |
+| baseline_scoring | 基线判定完成 | cluster_score.append（内含question_scores）、cluster_platform_signal.append | cluster+snapshot唯一；拒答排除；不足样本不出分；复测不重写分数 |
 | metric_aggregate | 全批判定完成 | metric_snapshot.append | 按batch追加；同口径比较；我方生产披露与对照组 |
 | backflow_scan | 指标快照完成 | backflow_ticket.create | §8五信号；证据probe/责任角色/时限；说错24h红色 |
 | ticket_deadline | 工单到期 | backflow_ticket.expire | open/assigned→expired，超时保留审计，不抹除原责任人 |
-| content_reconcile | 块approve/retract/修订 | content_asset.reconcile | 系统派生态；注册与发布事实规则见§3 |
+| content_reconcile | 块approve/retract/修订 | content_asset.transition | 系统派生态；注册与发布事实规则见§3 |
 | audit_middleware | 任一写入/敏感读取/成功PAT认证 | audit_log.append、api_token.record_use | 只追加；继承原调用者身份，禁止对外调用伪造日志 |
-| opportunity_lifecycle | 双筛评分/监测开始/簇归档事件 | opportunity_card.advance | 仅已列模板出边，不处理人工建议/确认 |
-| publication_lifecycle | 登记排期与报告完成 | publish_registration.advance | 注册进度与资产状态分离，保留历史 |
+| opportunity_lifecycle | 双筛评分/监测开始/簇归档事件 | opportunity_card.transition | 仅已列模板出边，不处理人工建议/确认 |
+| publication_lifecycle | 登记排期与报告完成 | publish_registration.transition | 注册进度与资产状态分离，保留历史 |
 | offboarding | 显式解约流程及获批人工清理 | offboarding.execute、deletion_ledger.append | 删除原文，保留聚合/审计及合同保留期；过程可追溯 |
 
 原始probe_result判定由人工FactCheck在judging-spec冻结后操作；MVP规则计算如何经同一服务动作执行按T16冻结规则实现，不能将system解释为任意判定权限。引用匹配阈值、拒答判据、悬空指代正则、spec_score全部留judging-spec人审，本次不补算法。
@@ -284,7 +192,7 @@ job白名单结构化定义同时保存于 `t02-contracts.json.jobs`；执行参
 
 ## 5. 语义分级汇总表
 
-逐操作全表见[t02-endpoints.md](t02-endpoints.md)，其每行同时列semantic与destructive；对应JSON为机器可审阅输入，未来MCP只映射注解，不在MVP实现。
+承重及敏感端点见[核心集](core-set.md)，其他操作见[支撑件索引](generated/README.md)，其每行同时列semantic与destructive；对应JSON为机器可审阅输入，未来MCP只映射注解，不在MVP实现。
 
 | 语义 | 操作类型 | destructive |
 |---|---|---|
@@ -298,6 +206,6 @@ job白名单结构化定义同时保存于 `t02-contracts.json.jobs`；执行参
 
 三轮裁定原文已全部存档，已知规则歧义已关闭。当前停止点为“人审冻结”，不是agent宣告冻结。
 
-人审仍需确认整份接口契约和矩阵的候选细节：diagnosis下editor/viewer异议申请行、Admin的PAT配置管理、游标编码/排序、审计可空字段、批次锚定与失败尝试存储、diagnosis_report/publish_registration/offboarding/deletion_ledger持久化草案。它们属于本次提交人审的设计材料，不自动作为已实现权限或新增产品功能。
+人审仍需确认核心集、allow规范及支撑件抽检中的候选细节：diagnosis下editor/viewer异议申请行、Admin的PAT配置管理、游标编码/排序、审计可空字段、批次锚定与失败尝试存储、diagnosis_report/publish_registration/offboarding/deletion_ledger持久化草案。它们属于本次提交人审的设计材料，不自动作为已实现权限或新增产品功能。
 
 已定状态、采样参数、引用口径与审计生命周期不得在后续实现中优化或猜测。新增未覆盖的权限边界、状态枚举或判定规则继续停下询问；行为已裁定的字段缺列按二轮②常设授权提草案随PR审。
