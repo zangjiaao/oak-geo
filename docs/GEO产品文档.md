@@ -791,12 +791,15 @@ keyword_pool_snapshot   词池快照（每周全量）
 intent_cluster      意图簇（词池基本单位）
   id, tenant_id, brand_id, name, intent_type(六类),
   status(active/archived), pool_version,
+  question_pool_version,                 -- 入测时锚定；人工升级/拆并才变更并重开基线
   serp_vacuum, serp_checked_at,          -- 结果页真空度（周更，候选簇预筛用）
   archived_at, archive_reason
 
 question_pool       问句池（测量资产，冻结后不可原地改）
   id, cluster_id, question, source_word_id, intent_type(六类),
   source_channel, collected_at, maintainer,
+  -- 溯源五字段：source_word_id→keyword_raw.id / intent_type(§3六类) /
+  -- source_channel(A/B/C/D) / collected_at / maintainer(具体人名)
   question_pool_version, frozen(bool)
 
 opportunity_card    机会卡
@@ -807,8 +810,9 @@ opportunity_card    机会卡
   snapshot_id,                                    -- 四类留白分与 whitespace 从 cluster_score 读
   score, owner_role, status
 
-scoring_snapshot    一次采样（模型集/温度/轮次与问句一起冻结）
+scoring_snapshot    采样配置身份（基线与复测共用；执行身份见 probe_batch）
   snapshot_id, pool_version, question_pool_version,
+  -- question_pool_version 保留配置创建时记录；可比问句口径以各簇锚定版本为准（T02二轮④）
   model_set[], temperature_set[], rounds,
   judge_version,                             -- 判定方式版本（MVP 填 rule_manual_v1；换判定=换快照）
   grounding_mode(search_on/search_off/self_rag),  -- 接地轨道（换轨=换快照）
@@ -820,6 +824,7 @@ question_score      问句级分数（连续值，4 位小数）
 
 cluster_score       簇级分数（唯一出数口，机会卡只读这张表）
   id, cluster_id, snapshot_id,
+  -- 同一(cluster_id,snapshot_id)分数只写一次；probe_result按执行批次追加
   blank_raw, error_raw, generic_raw, competitor_raw,
   blank_score, error_score, generic_score, competitor_score,
   whitespace_raw, whitespace_score,
@@ -840,17 +845,17 @@ claim_block         事实块
   source_url, source_level(L1/L2/L3), source_checked_at, valid_until, status
 
 probe               验证探针
-  id, tenant_id, intent_cluster_id, question, model, model_version,
+  id, tenant_id, batch_id, intent_cluster_id, question, model, model_version,
   temperature, round, run_at
 
 probe_result        探针结果（回答级，不取整）
   id, tenant_id, probe_id, brand_mentioned(bool), refused(bool),
-  cited_claim_ids[], cited_domains[], blank_i, error_i, generic_i, competitor_i,
+  cited_claim_ids[], cited_urls[], cited_domains[], blank_i, error_i, generic_i, competitor_i,
   fact_errors[], high_err_types[], spec_score, note, raw_answer
   -- refused 不进任何分母
 
 metric_snapshot     指标快照（差值计算必须校验 snapshot 口径）
-  id, tenant_id, brand_id, intent_cluster_id, date, mention_rate,
+  id, tenant_id, brand_id, intent_cluster_id, snapshot_id, batch_id, date, mention_rate,
   citation_rate, avg_position, accuracy, sov, leads
 
 industry_score      14 行业外部策略表（排产用，不进对外报告）
@@ -859,7 +864,48 @@ industry_score      14 行业外部策略表（排产用，不进对外报告）
 
 audit_log           审计日志（原始回答 / C 类数据访问全量记录；agent 动作同等记录）
   id, tenant_id, user_id, action, object_type, object_id, at,
-  actor_type(human/agent/external_agent), agent_run_id, prompt_version
+  actor_type(human/agent/system/external_agent), agent_run_id, prompt_version
+  -- system记录受控job名（注册表枚举见api-spec）、触发来源及受影响对象；探针job必填batch_id，非探针可空
+  -- 异议访问记录viewing_session_id（字段草案见api-spec）
+
+review_queue        通用审核队列（T02裁定）
+  id, tenant_id, object_type, object_id, submitted_by, submitted_at,
+  status, decided_by, decided_at, reject_reason
+  -- object_type：claim_block/evidence_package/diagnosis_report；plan_draft仅P1预留
+  -- status：waiting→approved/rejected/withdrawn，后三者均为条目终态
+
+objection           单条异议申请（T02裁定）
+  id, tenant_id, brand_id, applicant_user_id, probe_id,
+  conclusion_ref(object_type+object_id), reason, status, decided_by, decided_at,
+  viewing_session_id, viewed_at, watermark_meta, created_at
+  -- submitted→granted→viewed；submitted→rejected；viewed/rejected终态
+  -- viewing_session_id唯一；同异议同probe一次，GET不迁移状态
+
+backflow_ticket     回流工单（T02裁定）
+  id, tenant_id, brand_id,
+  signal_type(uncited/cited_wrong/no_demand/competitor_surge/model_version),
+  cluster_id, evidence_probe_ids[], trigger_metric_id, severity(normal/urgent),
+  owner_role, status, assigned_user_id, deadline_at, created_at, resolved_at,
+  resolution_note, followup_batch_id
+  -- open→assigned→done；open/assigned→expired→done，done终态
+
+evidence_package    证据包版本（T02裁定）
+  id, tenant_id, brand_id, version, status(draft/sealed),
+  created_by, sealed_by, sealed_at
+  -- approve即sealed；sealed对该version终态，修订新行
+
+evidence_item       证据包条目（T02二轮裁定）
+  id, package_id, conclusion_text, probe_id, source_level, excerpt, created_at
+  -- 经package_id继承租户边界；不得通过下载包批量导出原始回答
+
+api_token           per-user令牌（T02裁定；仅存hash，绝不存明文）
+  token_hash, scopes, created_at, last_used_at, revoked_at
+  -- 用户/租户绑定等行为必要缺列在api-spec提草案随PR审；不自行扩权限
+
+probe_batch         执行批次身份（T02裁定）
+  id, tenant_id, type(baseline/event/monthly), scheduled_at, snapshot_id, status
+  -- pending→running→completed/failed；pending→cancelled
+  -- completed/failed/cancelled终态不可改；failed入dead-letter告警，补偿开新batch
 ```
 
 聚合链：`probe_result`（回答级档位）→ `question_score`（问句级连续值）→ `cluster_score`（簇级 raw + score）。L3 来源只落归档表用于复盘，不进 `claim_block`。
@@ -911,6 +957,7 @@ audit_log           审计日志（原始回答 / C 类数据访问全量记录�
 | 需求/生产/验证实现方案落文档：三时钟、簇级渠道信号、引用判定四步管道、块级规范与必配闸门 | v3.2 |
 | 双轨口径：检索轨（API+原生联网，主轨对外）与记忆轨（裸 API，防守视角）分开测分开报；换轨=换快照 | v3.3 |
 | 浏览器直采不进主轨（可复现性/条款/维护量/成本四条否决）；Playwright 定位于校准轨（半自动+人工复核） | v3.4 |
+| T02 阻塞项 10 条裁定：状态机闭合 / 权限细化 / 快照双身份 / 六表补充 / 接口约定 | v3.5 |
 
 ## 待定
 
