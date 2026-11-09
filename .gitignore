@@ -1,0 +1,21 @@
+# deps
+node_modules/
+
+# build
+.next/
+.wrangler/
+dist/
+open-next/
+
+# env & secrets
+.env
+.env.*
+*.dev.vars
+*.toml.local
+
+# os
+.DS_Store
+
+# logs / tmp
+*.log
+tmp/
