@@ -173,3 +173,24 @@ T02 裁定 v4（接入输入补齐；执行边界同前：追加 docs/t02-decisi
 - spec-map 同步：资源归属图 + 承重清单（official_fact.read 承重：judge 输入）
 
 5. 产品文档授权修改（§18）：新增上述两表（字段照抄本裁定）；文末决策记录追加：品牌词表与官方口径补齐（T02 v4 裁定）。其余章节不动。
+
+v3.5 产品负责人逐幕走读裁定 · 开发侧补充（产品正文按 A1–A5/A7 授权落盘）
+
+C1 · 服务端闸门裁定
+probe_batch.create 与 call start 的前置校验：必须存在该品牌已封版（approved）的 brand_lexicon 版本，且该品牌 ≥1 条 approved 且 effective_from 已生效的 official_fact；缺任一则 422 judgment_basis_missing（错误体沿用通用业务码）。
+理由：缺基准的批次会"跑完但判定半瘫"（SOV 有数、accuracy 全 null），比开不了车更危险。UI 的"基线可开跑"禁用入口（§13.2 ⑫ A1）与此成对出现。
+测试：baseline 于无词表/无口径时 create 与 start 均拒绝；补齐后放行。
+
+C2 · backlog 追加任务（按现有 T 编号顺延，归 P1·内部工具侧，DoD 注明不进外部验收）
+T-n1 跨行业情报墙读接口：全租户跨行业聚合投影（每行业 ≤10 信号：新簇/环比/告警/竞品占位），数据源 = keyword_pool_snapshot × intent_cluster × 告警表，只读；
+T-n2 周一 digest job：周批完成后生成"上周雷达变化"内部摘要对象（不经审核队列、不进客户报告，对象落内部表即可）；
+T-n3 接入预填 job（内部半自动）：官网抓取+LLM 起草 → 词表/口径草稿数据源 → ⑫ 预填确认界面消费；每条草稿挂来源 URL；采不到字段输出"需客户提供"清单。风险审阅：judge_input（与 brand_lexicon/official_fact 的创建链共用一人审闸）。
+
+C3 · T31 金路径 fixture 强化（DoD 追加）
+fixture 必须含：brand_lexicon（已封版 v1，含 exclusion 类）+ official_fact（≥1 条 approved）——否则 brand_mentioned 与 error 判定全部空跑而测试依然绿；
+fixture 覆盖两份剧本：客户剧本（§13.3 十周）与工作室自运营剧本（§13.4 六周：双机会簇 → 基线 T0 → 登记自动排复测 → D+30 读数）。
+
+C4 · 小改进记账（不阻塞，T04 顺带）
+official_fact 可选 product_line_ref 字段（口径挂品线），MVP 单品牌可空。
+
+产品授权边界：仅 A1 设置页、A2 §15.2需求能力第13项、A3 §9经营属性、A4/A7 §13.4原文、A5 P1情报墙，以及文首版本号/指定决策行；其余产品章节逐字保留。A6未提供，不添加。§13.4按负责人全文落盘；三项拍板（并行上限3、免费/双轨价格结构、品牌SOV主指标与引用总量辅助）以正文为准。接入预填、情报墙、digest、日频副信号归P1内部工具，不改变外部验收。

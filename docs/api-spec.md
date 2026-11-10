@@ -57,11 +57,12 @@ Web 会话 + per-user PAT，解析 `(user, role, tenant, actor_type)`；PAT scop
 |---|---|---|
 | permission_denied | 403 | 身份、租户、scope、角色或操作权限不满足 |
 | state_conflict | 409 | 非法迁移、不可变冲突、幂等键载荷冲突 |
+| judgment_basis_missing | 422 | C1：批次create/start缺品牌已封版词表或已生效approved官方口径 |
 | validation_failed | 422 | 必填/枚举/格式/来源/样本交付闸门失败 |
 | incomparable | 422 | 比较端点两端口径不一致；details列口径原因，不含delta |
 | quota_exceeded | 429 | token或操作类别配额超限并告警 |
 
-废弃模板的数字业务码；不使用HTTP409002。未新增其他业务错误枚举。
+废弃模板的数字业务码；不使用HTTP409002。C1新增judgment_basis_missing沿用同一error结构，不将缺判定基准静默当作合法空判定。
 
 ### 1.4 快照配置、批次与问句锚定
 
@@ -142,9 +143,17 @@ official_fact仅L1准入，四类为price/spec/boundary/service_promise。create
 
 error唯一比对基准是同品牌、L1、approved、已生效的official_fact。judge请求必须显式带official_fact_ids与lexicon_version，不能把claim_block或外部文本当基准；引用retracted/draft/不存在/未生效口径时422 validation_failed，缺有效基准时error_i=null，不填0或猜分。错误判定正则、spec_score等仍留judging-spec，不在本任务实现。
 
-判定job以batch_id记录实际lexicon_version，并将同版本写入metric_snapshot；后续词表生效不重写旧批次。旧批次按明确历史版本还原，不默认latest，也不把旧版本删除或替换；不存在或未审版本必须拒绝。job记录的lexicon_version、official_fact_ids与版本集合引用属于行为必要字段草案，依既有常设授权随PR审，metric_snapshot.lexicon_version已按本裁定补入§18。
+批次create时绑定已封版生效的lexicon_version，判定job沿batch_id使用该记录并将同版本写入metric_snapshot；后续词表生效不重写旧批次。旧批次按明确历史版本还原，不默认latest，也不把旧版本删除或替换；不存在或未审版本必须拒绝。job记录的lexicon_version、official_fact_ids与版本集合引用属于行为必要字段草案，依既有常设授权随PR审，metric_snapshot.lexicon_version已按本裁定补入§18。
 
 这次补充记录判定输入，不额外修改既定快照可比性判据或判定算法。`scripts/t02-judge-inputs.mjs`仅为两项输入契约测试提供可执行示例，不是生产judge实现，不访问数据库或模型。
+
+### v3.5 开通清单与批次闸门（C1）
+
+⑫ 的“基线可开跑”状态灯仅为UI引导，不构成服务端授权。probe_batch.create和start都必须按实际目标簇解析品牌归属，每品牌有已封版词表版本，且≥1条approved、effective_from已生效的official_fact；缺任一返回422、error.code=judgment_basis_missing，沿用统一error/message/details及响应meta结构。未通过时不创建/不启动批次、不扣探针配额；system调用同样校验。create时通过不保证稍后start通过，口径中途retract须再次拦截，pending不能转running。
+
+修订在⑫形成v2草稿，人工逐条确认后提交通用⑥审核队列；不在设置页封版。新版本生效只供后续新批次采用，已建基线继续按v1还原，start和judge不得悄悄切换到v2。create保存lexicon_version作为必要字段草案（T04落迁移），本次不越授权改产品§18。输入可采集不到，须明示“需客户提供”，不以LLM草稿越过人工确认/独立放行。
+
+接入预填、情报墙、digest、日频副信号按§13.4.7归P1内部工具，任务T34–T36定义范围；本次只落正文/规格/可执行输入契约测试，未实现预填抓取、发送客户清单、跨租户接口或Agent Runtime。权限套餐与客户角色互斥仅按产品走读稿呈现，实际权限仍由既定服务端矩阵强制，不能把套餐当作越过“写≠放”的复合超级角色。
 
 ### 字段草案（依二轮②常设授权，随PR审）
 
@@ -154,7 +163,7 @@ error唯一比对基准是同品牌、L1、approved、已生效的official_fact�
 |---|---|---|
 | api_token | id、tenant_id、user_id；只存token_hash/scopes/时间；hash唯一，创建响应明文只展示一次 | per-user PAT、租户隔离；一轮5/§16.3 |
 | audit_log | job_name（受控枚举）、trigger_source、cause_event_id、batch_id、viewing_session_id、reason、viewer_user_id；null语义明确区分human/system | 一轮6/7、二轮异议会话 |
-| probe_batch | cluster_question_sets（簇ID、锚定版本、question_id集合只读映射）、baseline_batch_id、retry_count、attempt_no、committed_attempt_no、compensates_batch_id、dead_letter_ref | 配置与执行双身份、问句锚定、整批补偿 |
+| probe_batch | lexicon_version（创建时固定）、cluster_question_sets（簇ID、锚定版本、question_id集合只读映射）、baseline_batch_id、retry_count、attempt_no、committed_attempt_no、compensates_batch_id、dead_letter_ref | 配置与执行双身份、问句锚定、整批补偿 |
 | probe | question_id、attempt_no，与question原文一起还原冻结问句 | 二轮④集合可比性 |
 | question_pool | archived_at作为模板archived投影，frozen不改回false | 冻结后只读与模板版本归档 |
 | content_asset | review_status存四个裁定值；已发布块版本引用清单 | 一轮1、二轮③发布事实态 |
@@ -162,6 +171,7 @@ error唯一比对基准是同品牌、L1、approved、已生效的official_fact�
 | publish_registration | asset引用、URL/平台/发布时间/状态；重登记历史保留audit | 产品§11、三轮发布裁定 |
 | offboarding | 合同引用、删除对象清单、执行时间、保留政策引用 | 一轮7显式解约 |
 | deletion_ledger | 独立追加账本的object_type/time_range/executed_by/basis/deleted_at，独立存储生命周期 | 三轮保留策略，tombstone不随源数据删除 |
+| official_fact | 可选product_line_ref，MVP单品牌可空；不阻塞，T04顺带定稿 | C4负责人走读裁定 |
 | 所有缺tenant_id业务表及evidence_item | 通过父对象验证租户；T04补tenant_id列与外键草案 | 产品§17.4，既有表列缺省不得当成共享数据 |
 
 ## 3. 状态机规格

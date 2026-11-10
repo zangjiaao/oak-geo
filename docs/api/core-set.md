@@ -34,9 +34,9 @@
 
 权限候选：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, start)`。审阅风险：quota。
 
-校验：start仅pending，其余仅running；completed/failed/cancelled终态。
+校验：start仅pending，其余仅running；completed/failed/cancelled终态；C1服务端独立闸门：实际目标簇所属每品牌必须有已封版brand_lexicon与≥1条approved且effective_from已生效official_fact，缺任一422 judgment_basis_missing；system调用同样校验，不依赖UI禁用；沿用该批次已固定lexicon_version，不能在start改成新版本。
 
-审计：probe_batch.start。副作用：失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试。
+审计：probe_batch.start。副作用：失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试；缺基准不创建/不启动批次，不扣探针配额；start再次核验，失败不迁移running。
 
 请求JSON（另带Idempotency-Key）：
 
@@ -50,7 +50,8 @@
 {
   "data": {
     "id": "bt2",
-    "status": "running"
+    "status": "running",
+    "lexicon_version": 1
   },
   "meta": {
     "snapshot_id": "snp1",
@@ -1688,9 +1689,9 @@
 
 权限候选：cs；system：event_schedule。权限行：`(role, probe_batch, create)`。审阅风险：quota。
 
-校验：冻结配置；事件3目标+3对照，锚定版本未变；baseline/event/monthly；保存各簇锚定清单，执行/比较不得读取最新池替代该清单。
+校验：冻结配置；事件3目标+3对照，锚定版本未变；baseline/event/monthly；保存各簇锚定清单，执行/比较不得读取最新池替代该清单；C1服务端独立闸门：实际目标簇所属每品牌必须有已封版brand_lexicon与≥1条approved且effective_from已生效official_fact，缺任一422 judgment_basis_missing；system调用同样校验，不依赖UI禁用。
 
-审计：probe_batch.create。副作用：独立batch_id；复测共用snapshot，probe_result可追加；判定开始时记录该批次lexicon_version，后续新版词表不改旧批次解释。
+审计：probe_batch.create。副作用：独立batch_id；复测共用snapshot，probe_result可追加；创建时记录该批次lexicon_version，后续新版词表不改旧批次解释；缺基准不创建/不启动批次，不扣探针配额；start再次核验，失败不迁移running；创建时绑定生效词表，v2封版后新批次用v2，已建基线仍用v1。
 
 请求JSON（另带Idempotency-Key）：
 
@@ -1728,7 +1729,8 @@
   "data": {
     "id": "bt2",
     "status": "pending",
-    "snapshot_id": "snp1"
+    "snapshot_id": "snp1",
+    "lexicon_version": 1
   },
   "meta": {
     "snapshot_id": "snp1",
@@ -2237,6 +2239,22 @@ HTTP 422
   "error": {
     "code": "validation_failed",
     "message": "请求未满足契约条件",
+    "details": {}
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+HTTP 422
+
+```json
+{
+  "error": {
+    "code": "judgment_basis_missing",
+    "message": "品牌缺已封版词表或已生效官方口径",
     "details": {}
   },
   "meta": {

@@ -6,9 +6,18 @@ import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 const read = p => readFileSync(p, 'utf8');
 const data = () => JSON.parse(read('docs/api/contracts.json'));
+const protectedProduct = text => text
+ .replace(/> 版本 v\d+\.\d+/, '> 版本 [[VERSION]]')
+ .replace(/^\| v3\.5 \| 开通清单详设与接入预填.*\n/m,'')
+ .replace(/\*\*行业管道的经营属性\*\*[\s\S]*?(?=### 9\.2)/,'')
+ .replace(/### 10\.5 跨行业情报墙[\s\S]*?(?=## 11\.)/,'')
+ .replace(/\*\*⑫ 设置 \/ 审计\*\*[\s\S]*?(?=### 13\.3)/,'[[SETTINGS]]\n\n')
+ .replace(/### 13\.4 工作室自运营剧本（dogfood）[\s\S]*?(?=## 14\.)/,'')
+ .replace(/^\| 接入预填 agent[^\n]*\n/m,'');
+
 test('授权范围外的产品文档逐字保留', () => {
- const text = read('docs/GEO产品文档.md').replace(/## 18\. 表结构[\s\S]*?(?=## 19\. 硬规则汇总)/,'').replace(/^\| T02 阻塞项 10 条裁定：.*\n/m,'').replace(/^\| 品牌词表与官方口径补齐（T02 v4 裁定）.*\n/m,'');
- assert.equal(createHash('sha256').update(text).digest('hex'), '89324b8af488a76230a65152b31986b181dc4226658e948fa014901ff8531121');
+ const text=protectedProduct(read('docs/GEO产品文档.md'));
+ assert.equal(createHash('sha256').update(text).digest('hex'),'311838d42fd415801725736d0360f6a1bd7fbc55cab274ed14821d907cb1f9aa');
 });
 test('六表及快照双身份只在授权处补充', () => {
  const section=read('docs/GEO产品文档.md').split('## 18. 表结构')[1].split('## 19.')[0];
@@ -108,4 +117,26 @@ test('lexicon变更不改旧版本，旧批次按记录的lexicon_version还原'
  const result=resolveJudgeInputs({context,lexicons:[...oldVersion,...newVersion],reviews,facts,fact_ids:['f1']});
  assert.deepEqual(result.lexicon,oldVersion);assert.equal(result.lexicon_version,1);assert.deepEqual(oldVersion[0].term,'旧品牌别名');
  assert.equal(resolveJudgeInputs({context:{...context,lexicon_version:3},lexicons:[...oldVersion,...newVersion],reviews,facts,fact_ids:['f1']}).status,422);
+});
+test('批次create/start都校验品牌已封版词表与已生效官方口径', async () => {
+ const { checkBatchJudgmentBasis }=await import('../../scripts/t02-judge-inputs.mjs');
+ const context={tenant_id:'t1',brand_id:'b1',at:'2026-11-10T00:00:00Z'};
+ const lexicons=[{id:'l1',tenant_id:'t1',brand_id:'b1',version:1,kind:'exclusion',term:'erp'}];
+ const reviews=[{object_type:'brand_lexicon',object_id:'l1',status:'approved'}];
+ const fact={id:'f1',tenant_id:'t1',brand_id:'b1',status:'approved',source_level:'L1',effective_from:'2026-01-01T00:00:00Z'};
+ for(const operation of ['probe_batch.create','probe_batch.start']){
+  for(const overrides of [{lexicons:[]},{reviews:[]},{facts:[]},{facts:[{...fact,status:'draft'}]},{facts:[{...fact,status:'retracted'}]},{facts:[{...fact,effective_from:'2027-01-01T00:00:00Z'}]},{context:{...context,brand_id:'other'}}]){
+   const result=checkBatchJudgmentBasis({operation,context,lexicons,reviews,facts:[fact],...overrides});
+   assert.equal(result.status,422);assert.equal(result.error.code,'judgment_basis_missing');
+  }
+  assert.equal(checkBatchJudgmentBasis({operation,context,lexicons,reviews,facts:[fact]}).status,200);
+  const contract=data().endpoints.find(e=>e.id===operation);assert.match(contract.validation,/judgment_basis_missing/);
+ }
+});
+test('v3.5走读裁定落盘，P1工具及双剧本金路径不扩外部验收', () => {
+ const product=read('docs/GEO产品文档.md');assert.match(product,/> 版本 v3\.5/);
+ for(const text of ['行业管道的经营属性','开通清单','基线可开跑','预填确认','接入预填 agent','跨行业情报墙','13.4 工作室自运营剧本（dogfood）','13.4.7 边界清单','基线批次继续按 v1 判定、下批次起用 v2'])assert.ok(product.includes(text),text);
+ const backlog=read('docs/backlog.md');for(const id of ['T34','T35','T36'])assert.match(backlog,new RegExp(`\\| ${id} \\|`));
+ const t31=backlog.split('\n').find(l=>l.startsWith('| T31 |'));assert.match(t31,/exclusion/);assert.match(t31,/§13.3/);assert.match(t31,/§13.4/);
+ assert.match(backlog,/product_line_ref/);assert.ok(data().batch_basis_gate);
 });
