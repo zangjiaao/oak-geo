@@ -54,7 +54,7 @@ test('定稿的块状态不携带发布进度且GET异议访问不改状态', ()
  const edges=d.states.claim_block.transitions.map(t=>[t.from,t.to]);
  for(const edge of [['draft','pending_review'],['pending_review','approved'],['pending_review','draft'],['approved','retracted'],['retracted','draft']])assert.ok(edges.some(e=>e[0]===edge[0]&&e[1]===edge[1]));
  assert.ok(d.endpoints.some(e=>e.resource==='objection'&&e.operation==='view'&&e.method==='POST'));
- assert.match(read('docs/api-spec.md'),/状态：草案，未冻结/);
+ assert.match(read('docs/api-spec.md'),/状态：已冻结/);
 });
 test('所有状态均有合法出边或声明终态，终态行不可再迁移', () => {
  const current=data();

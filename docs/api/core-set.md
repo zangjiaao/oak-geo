@@ -1,6 +1,6 @@
 # 核心审阅集
 
-> 未冻结。所有POST携带Idempotency-Key（24h），响应含snapshot_id/data_as_of；完整权限依据allow规范与全局条件，未出现三键即deny。例子为虚构数据，不能直接执行模型调用。
+> 已冻结（t02_api_v1，产品负责人批准）。所有POST携带Idempotency-Key（24h），响应含snapshot_id/data_as_of；完整权限依据allow规范与全局条件，未出现三键即deny。例子为虚构数据，不能直接执行模型调用。
 
 从[一页地图](../spec-map.md)进入；21个承重审阅项中的组合动作逐接口展开，每个接口示例只出现一次。其余raw_answer/C类/配额风险接口也必须审，支撑件合并为[抽检附录](generated/endpoints.md)。
 
@@ -32,7 +32,7 @@
 
 `POST /internal/probe-batches/{id}/start` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, start)`。审阅风险：quota。
+权限：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, start)`。审阅风险：quota。
 
 校验：start仅pending，其余仅running；completed/failed/cancelled终态；C1服务端独立闸门：实际目标簇所属每品牌必须有已封版brand_lexicon与≥1条approved且effective_from已生效official_fact，缺任一422 judgment_basis_missing；system调用同样校验，不依赖UI禁用；沿用该批次已固定lexicon_version，不能在start改成新版本。
 
@@ -64,7 +64,7 @@
 
 `POST /internal/probe-batches/{id}/execute` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, execute)`。审阅风险：raw_answer / quota。
+权限：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, execute)`。审阅风险：raw_answer / quota。
 
 校验：probe所属running batch；全文按不可信数据；禁止当作指令；完整citation元数据/正文URL归一化抽取，不丢路径；probe与result均属路径指定batch，running状态、完整尝试号及冻结锚定校验；原probe.append与probe_result.append合并为一个服务层原子写入口。
 
@@ -115,7 +115,7 @@
 
 `POST /tenants/{tid}/probe-batches/{id}/compensate` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs；system：无。权限行：`(role, probe_batch, compensate)`。审阅风险：quota。
+权限：cs；system：无。权限行：`(role, probe_batch, compensate)`。审阅风险：quota。
 
 校验：仅failed；整批补偿；新batch同配置，禁止局部补跑。
 
@@ -149,7 +149,7 @@
 
 `POST /tenants/{tid}/scoring-snapshots/{id}/freeze` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs；system：event_schedule。权限行：`(role, scoring_snapshot, freeze)`。审阅风险：quota。
+权限：cs；system：event_schedule。权限行：`(role, scoring_snapshot, freeze)`。审阅风险：quota。
 
 校验：执行前冻结；模型温度轮次judge接地不变；问句由簇锚定；system仅受控模型/判定/轨道变更事件可创建冻结新配置，不能改已有冻结配置。
 
@@ -180,7 +180,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/question-pools/versions/{version}/freeze` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, question_pool, freeze)`。审阅风险：C_data。
+权限：strategist；system：无。权限行：`(role, question_pool, freeze)`。审阅风险：C_data。
 
 校验：版本open→frozen；校验版本内各问句五字段；冻结整个引用版本原文集合，不只冻单条。
 
@@ -213,7 +213,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/question-pools/upgrade-anchor` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, question_pool, upgrade_anchor)`。审阅风险：C_data。
+权限：strategist；system：无。权限行：`(role, question_pool, upgrade_anchor)`。审阅风险：C_data。
 
 校验：Strategist human显式动作；未锚定簇首次入测写锚，已锚定簇只有人工升级/拆并可改；同版本校验ID集合，跨版本重开基线。
 
@@ -253,7 +253,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/cluster-scores/{id}` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence / owner / editor / viewer；system：无。权限行：`(role, cluster_score, read)`。审阅风险：承重动作。
+权限：strategist / factcheck / cs / content / evidence / owner / editor / viewer；system：无。权限行：`(role, cluster_score, read)`。审阅风险：承重动作。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文；question_scores节仅原question_score.read的内部五角色可见，客户不因父资源可读而新增问句级权限。
 
@@ -294,7 +294,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/metric-snapshots/compare` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / owner / viewer / editor；system：无。权限行：`(role, cluster_score, compare)`。审阅风险：承重动作。
+权限：strategist / factcheck / cs / owner / viewer / editor；system：无。权限行：`(role, cluster_score, compare)`。审阅风险：承重动作。
 
 校验：同snapshot_id+同簇同锚定版本+question_id集合一致；否则422 incomparable无delta。
 
@@ -332,7 +332,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/probe-results/{id}/judgments` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：factcheck；system：judge。权限行：`(role, probe_result, judge)`。审阅风险：quota。
+权限：factcheck；system：judge。权限行：`(role, probe_result, judge)`。审阅风险：quota。
 
 校验：judging-spec先人审冻结；refused排除所有分母；样例不定义判定算法；输入必须读取已审历史lexicon_version与L1 approved官方口径；被指定口径retract即拒绝，缺基准error_i=null；不得替换为latest或claim_block。
 
@@ -379,7 +379,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/claim-blocks` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：editor / content；system：无。权限行：`(role, claim_block, create)`。审阅风险：承重动作。
+权限：editor / content；system：无。权限行：`(role, claim_block, create)`。审阅风险：承重动作。
 
 校验：L3不得入库；四问字段及来源非空；作者留痕。
 
@@ -419,7 +419,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/claim-blocks/{id}/revisions` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：editor / content；system：无。权限行：`(role, claim_block, revise)`。审阅风险：承重动作。
+权限：editor / content；system：无。权限行：`(role, claim_block, revise)`。审阅风险：承重动作。
 
 校验：作者本人；新版本号及新行；保留旧版；retracted→draft由新行承接。
 
@@ -460,9 +460,9 @@
 
 `POST /tenants/{tid}/brands/{bid}/claim-blocks/{id}/submit` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：editor / content；system：无。权限行：`(role, claim_block, submit)`。审阅风险：承重动作。
+权限：editor / content；system：无。权限行：`(role, claim_block, submit)`。审阅风险：承重动作。
 
-校验：作者；draft；四问、L1/L2、整篇必配与自包含校验；judging-spec未冻结不实现正则。
+校验：作者；draft；四问、L1/L2、整篇必配与自包含校验；judging-spec已冻结（t02_api_v1，产品负责人批准）不实现正则。
 
 审计：claim_block.submit。副作用：创建waiting队列条目，通知FactCheck。
 
@@ -492,7 +492,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/claim-blocks/{id}/approve` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, claim_block, approve)`。审阅风险：承重动作。
+权限：factcheck；system：无。权限行：`(role, claim_block, approve)`。审阅风险：承重动作。
 
 校验：仅pending_review，waiting队列条目未结算；FactCheck≠作者；L3禁入、四问与必配校验通过。
 
@@ -523,7 +523,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/claim-blocks/{id}/retract` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, claim_block, retract)`。审阅风险：承重动作。
+权限：factcheck；system：无。权限行：`(role, claim_block, retract)`。审阅风险：承重动作。
 
 校验：仅approved；reason与说错工单必填；FactCheck执行下线。
 
@@ -557,7 +557,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/review-queue/{id}/approve` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, review_queue, approve)`。审阅风险：承重动作。
+权限：factcheck；system：无。权限行：`(role, review_queue, approve)`。审阅风险：承重动作。
 
 校验：waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人；品牌词表版本或官方口径同样检查创建者，不能封自己版本。
 
@@ -588,7 +588,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/review-queue/{id}/reject` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, review_queue, reject)`。审阅风险：承重动作。
+权限：factcheck；system：无。权限行：`(role, review_queue, reject)`。审阅风险：承重动作。
 
 校验：waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人。
 
@@ -621,7 +621,7 @@
 
 `POST /internal/content-assets/{id}/transition` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：content_reconcile。权限行：`(role, content_asset, transition)`。审阅风险：承重动作。
+权限：人类九角色全部deny；system：content_reconcile。权限行：`(role, content_asset, transition)`。审阅风险：承重动作。
 
 校验：按§3裁定派生；绝不让人工直接指定目标状态；只允许本资源状态表命名事件，不接受任意status裸更新。
 
@@ -660,7 +660,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/publish-registrations` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：editor；system：无。权限行：`(role, publish_registration, register)`。审阅风险：承重动作。
+权限：editor；system：无。权限行：`(role, publish_registration, register)`。审阅风险：承重动作。
 
 校验：full本品牌；ready且全部当前必配块approved；仅记录不验证远端URL。
 
@@ -697,7 +697,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/content-assets/{id}/retire` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：strategist / owner；system：无。权限行：`(role, content_asset, retire)`。审阅风险：承重动作。
+权限：strategist / owner；system：无。权限行：`(role, content_asset, retire)`。审阅风险：承重动作。
 
 校验：human；draft/ready/registered→retired；retired不可逆。
 
@@ -730,7 +730,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/objections/{id}/excerpt` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：owner / editor / viewer / cs；system：无。权限行：`(role, diagnosis_report, excerpt)`。审阅风险：raw_answer。
+权限：owner / editor / viewer / cs；system：无。权限行：`(role, diagnosis_report, excerpt)`。审阅风险：raw_answer。
 
 校验：仅POST已建会话，申请人本人或发起CS；24h内只读查看；每次GET留审计但不改状态；禁下载/批量；诊断/证据结论的通用异议链投影，仍沿conclusion_ref校验；沿用原objection.excerpt路径，不新增直读raw_answer能力。
 
@@ -767,7 +767,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/objections/{id}/grant` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs / factcheck；system：无。权限行：`(role, objection, grant)`。审阅风险：raw_answer。
+权限：cs / factcheck；system：无。权限行：`(role, objection, grant)`。审阅风险：raw_answer。
 
 校验：submitted；CS处理，敏感升级FactCheck；必须记录处理人/时间。
 
@@ -800,7 +800,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/objections/{id}/view` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs；system：无。权限行：`(role, objection, view)`。审阅风险：raw_answer。
+权限：cs；system：无。权限行：`(role, objection, view)`。审阅风险：raw_answer。
 
 校验：CS账号发起；granted→viewed；session唯一且同异议probe只一次；客户仅只读查看器。
 
@@ -835,7 +835,7 @@
 
 `POST /tenants/{tid}/api-tokens/{id}/revoke` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：admin；system：无。权限行：`(role, api_token, revoke)`。审阅风险：quota。
+权限：admin；system：无。权限行：`(role, api_token, revoke)`。审阅风险：quota。
 
 校验：显式撤销，重复幂等；撤销后不允许请求。
 
@@ -867,7 +867,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/backflow-tickets/{id}/assign` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs；system：无。权限行：`(role, backflow_ticket, assign)`。审阅风险：承重动作。
+权限：cs；system：无。权限行：`(role, backflow_ticket, assign)`。审阅风险：承重动作。
 
 校验：open→assigned；受理人任务授权内。
 
@@ -901,7 +901,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/official-facts` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：judge。权限行：`(role, official_fact, read)`。审阅风险：judge_input。
+权限：strategist / factcheck / cs / content / evidence；system：judge。权限行：`(role, official_fact, read)`。审阅风险：judge_input。
 
 校验：judge只读同品牌L1、approved且effective_from已到期的指定口径；请求含retracted/draft/缺失基准则422 validation_failed且error_i=null，不以其他资料替代。
 
@@ -950,7 +950,7 @@
 
 `GET /tenants/{tid}` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：admin；system：无。权限行：`(role, tenant, read)`。审阅风险：quota。
+权限：admin；system：无。权限行：`(role, tenant, read)`。审阅风险：quota。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文。
 
@@ -981,7 +981,7 @@
 
 `POST /tenants/{tid}/configure` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：admin；system：无。权限行：`(role, tenant, configure)`。审阅风险：quota。
+权限：admin；system：无。权限行：`(role, tenant, configure)`。审阅风险：quota。
 
 校验：合同范围内配置；禁止借此改业务状态。
 
@@ -1016,7 +1016,7 @@
 
 `GET /tenants/{tid}/keyword-imports` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs；system：无。权限行：`(role, keyword_raw, read)`。审阅风险：C_data。
+权限：strategist / factcheck / cs；system：无。权限行：`(role, keyword_raw, read)`。审阅风险：C_data。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文。
 
@@ -1055,7 +1055,7 @@
 
 `POST /tenants/{tid}/keyword-imports` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：strategist；system：c_import。权限行：`(role, keyword_raw, import)`。审阅风险：C_data。
+权限：strategist；system：c_import。权限行：`(role, keyword_raw, import)`。审阅风险：C_data。
 
 校验：C先书面授权、自动脱敏；B人工/半自动CSV；四渠道枚举。
 
@@ -1091,7 +1091,7 @@
 
 `GET /tenants/{tid}/keywords/{id}/raw` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, keyword_raw, read_raw)`。审阅风险：C_data。
+权限：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, keyword_raw, read_raw)`。审阅风险：C_data。
 
 校验：仅授权C数据或公开源的关联任务，服务端审计，不含已删除数据。
 
@@ -1122,7 +1122,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/question-pools/{id}` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, question_pool, read)`。审阅风险：C_data。
+权限：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, question_pool, read)`。审阅风险：C_data。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文。
 
@@ -1154,7 +1154,7 @@
 
 `GET /tenants/{tid}/scoring-snapshots/{id}` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, scoring_snapshot, read)`。审阅风险：quota。
+权限：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, scoring_snapshot, read)`。审阅风险：quota。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文。
 
@@ -1186,7 +1186,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/question-pools` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, question_pool, create)`。审阅风险：C_data。
+权限：strategist；system：无。权限行：`(role, question_pool, create)`。审阅风险：C_data。
 
 校验：五溯源非空，source_word_id指keyword_raw；intent_type六类；不得凭空造测量题。
 
@@ -1226,7 +1226,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/question-pools/{id}/revisions` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, question_pool, revise)`。审阅风险：C_data。
+权限：strategist；system：无。权限行：`(role, question_pool, revise)`。审阅风险：C_data。
 
 校验：复用五溯源字段并重新校验；旧记录只读。
 
@@ -1261,7 +1261,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/question-pools/versions/{version}/archive` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, question_pool, archive)`。审阅风险：C_data。
+权限：strategist；system：无。权限行：`(role, question_pool, archive)`。审阅风险：C_data。
 
 校验：frozen→archived；停止新锚定，不得删除/改动已锚定版本原文。
 
@@ -1294,7 +1294,7 @@
 
 `POST /tenants/{tid}/scoring-snapshots` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs；system：event_schedule。权限行：`(role, scoring_snapshot, create)`。审阅风险：quota。
+权限：cs；system：event_schedule。权限行：`(role, scoring_snapshot, create)`。审阅风险：quota。
 
 校验：示例model_set是占位，不可执行；T14定具体ID；区分配置与批次；system仅受控模型/判定/轨道变更事件可创建冻结新配置，不能改已有冻结配置。
 
@@ -1336,7 +1336,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/probe-results/{id}/raw-answer` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, probe_result, read_raw)`。审阅风险：raw_answer。
+权限：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, probe_result, read_raw)`。审阅风险：raw_answer。
 
 校验：内部租户级或任务关联对象级；每次审计，不提供列表/导出。
 
@@ -1367,7 +1367,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/probe-results/{id}/admin-access` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：admin；system：无。权限行：`(role, probe_result, access)`。审阅风险：raw_answer。
+权限：admin；system：无。权限行：`(role, probe_result, access)`。审阅风险：raw_answer。
 
 校验：Admin默认deny；本次显式调阅必填理由+审计；不授予永久read_raw。
 
@@ -1400,7 +1400,7 @@
 
 `GET /tenants/{tid}/audit-logs` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：admin；system：无。权限行：`(role, audit_log, read)`。审阅风险：raw_answer。
+权限：admin；system：无。权限行：`(role, audit_log, read)`。审阅风险：raw_answer。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文。
 
@@ -1439,7 +1439,7 @@
 
 `GET /tenants/{tid}/api-tokens` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：admin；system：无。权限行：`(role, api_token, read)`。审阅风险：quota。
+权限：admin；system：无。权限行：`(role, api_token, read)`。审阅风险：quota。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文。
 
@@ -1483,7 +1483,7 @@
 
 `GET /tenants/{tid}/probe-batches/{id}` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, probe_batch, read)`。审阅风险：quota。
+权限：strategist / factcheck / cs / content / evidence；system：无。权限行：`(role, probe_batch, read)`。审阅风险：quota。
 
 校验：按租户/品牌/任务范围查询；不返回raw_answer或C类原文；Content/Evidence仅能请求probes投影并按所分派机会卡/簇/来源过滤，不获得批次完整配置/其他任务探针；probe仅batch内查询。
 
@@ -1525,7 +1525,7 @@
 
 `POST /internal/audit-logs/append` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：audit_middleware。权限行：`(role, audit_log, append)`。审阅风险：raw_answer。
+权限：人类九角色全部deny；system：audit_middleware。权限行：`(role, audit_log, append)`。审阅风险：raw_answer。
 
 校验：仅服务层审计中间件；不允许人类/Agent提交伪造审计；job_name必须注册表枚举；探针类batch必填，非探针可null且trigger_source与对象必填；audit_middleware继承调用者actor。
 
@@ -1567,7 +1567,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/evidence-packages` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：evidence；system：无。权限行：`(role, evidence_package, create)`。审阅风险：raw_answer。
+权限：evidence；system：无。权限行：`(role, evidence_package, create)`。审阅风险：raw_answer。
 
 校验：任务关联；作者created_by留痕；条目随父包草稿或新版提交，同原evidence_item.create作者与draft约束；不再提供独立条目接口族。
 
@@ -1609,7 +1609,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/evidence-packages/{id}/revisions` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：evidence；system：无。权限行：`(role, evidence_package, revise)`。审阅风险：raw_answer。
+权限：evidence；system：无。权限行：`(role, evidence_package, revise)`。审阅风险：raw_answer。
 
 校验：新行，新version；sealed不可变；条目随父包草稿或新版提交，同原evidence_item.create作者与draft约束；不再提供独立条目接口族。
 
@@ -1651,7 +1651,7 @@
 
 `POST /tenants/{tid}/api-tokens` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：admin；system：无。权限行：`(role, api_token, create)`。审阅风险：quota。
+权限：admin；system：无。权限行：`(role, api_token, create)`。审阅风险：quota。
 
 校验：per-user；scopes与该用户权限相交；只存token_hash，日志不含明文。
 
@@ -1687,7 +1687,7 @@
 
 `POST /tenants/{tid}/probe-batches` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：cs；system：event_schedule。权限行：`(role, probe_batch, create)`。审阅风险：quota。
+权限：cs；system：event_schedule。权限行：`(role, probe_batch, create)`。审阅风险：quota。
 
 校验：冻结配置；事件3目标+3对照，锚定版本未变；baseline/event/monthly；保存各簇锚定清单，执行/比较不得读取最新池替代该清单；C1服务端独立闸门：实际目标簇所属每品牌必须有已封版brand_lexicon与≥1条approved且effective_from已生效official_fact，缺任一422 judgment_basis_missing；system调用同样校验，不依赖UI禁用。
 
@@ -1743,7 +1743,7 @@
 
 `POST /tenants/{tid}/probe-batches/{id}/cancel` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：cs；system：无。权限行：`(role, probe_batch, cancel)`。审阅风险：quota。
+权限：cs；system：无。权限行：`(role, probe_batch, cancel)`。审阅风险：quota。
 
 校验：仅pending；其他状态409。
 
@@ -1776,7 +1776,7 @@
 
 `POST /internal/probe-batches/{id}/complete` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, complete)`。审阅风险：quota。
+权限：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, complete)`。审阅风险：quota。
 
 校验：start仅pending，其余仅running；completed/failed/cancelled终态。
 
@@ -1807,7 +1807,7 @@
 
 `POST /internal/probe-batches/{id}/fail` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, fail)`。审阅风险：quota。
+权限：人类九角色全部deny；system：probe_execute。权限行：`(role, probe_batch, fail)`。审阅风险：quota。
 
 校验：start仅pending，其余仅running；completed/failed/cancelled终态；整批尝试编号/结果提交草案：≤3次整批重试，成功只选完整一次尝试，不合并多次部分结果。
 
@@ -1838,7 +1838,7 @@
 
 `POST /tenants/{tid}/offboarding` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：admin；system：offboarding。权限行：`(role, offboarding, execute)`。审阅风险：raw_answer / C_data。
+权限：admin；system：offboarding。权限行：`(role, offboarding, execute)`。审阅风险：raw_answer / C_data。
 
 校验：显式解约；删除C类原文及raw_answer；合同可另定保留期。
 
@@ -1874,7 +1874,7 @@
 
 `POST /tenants/{tid}/offboarding/{id}/cleanup` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：admin；system：无。权限行：`(role, offboarding, cleanup)`。审阅风险：raw_answer / C_data。
+权限：admin；system：无。权限行：`(role, offboarding, cleanup)`。审阅风险：raw_answer / C_data。
 
 校验：human人工执行；合同/法务明确授权；无自动到期清理；仅指定范围；不可删除ledger；Admin身份只代表配置履约职责，仍必须校验本次合同/法务授权依据，不能万能绕过。
 
@@ -1913,7 +1913,7 @@
 
 `POST /internal/deletion-ledger/append` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：offboarding。权限行：`(role, deletion_ledger, append)`。审阅风险：raw_answer。
+权限：人类九角色全部deny；system：offboarding。权限行：`(role, deletion_ledger, append)`。审阅风险：raw_answer。
 
 校验：仅显式offboarding链路，独立追加；按合同/法务授权，不允许自由伪造actor。
 
@@ -1952,7 +1952,7 @@
 
 `POST /internal/api-tokens/{id}/record-use` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：人类九角色全部deny；system：audit_middleware。权限行：`(role, api_token, record_use)`。审阅风险：quota。
+权限：人类九角色全部deny；system：audit_middleware。权限行：`(role, api_token, record_use)`。审阅风险：quota。
 
 校验：认证服务层在成功认证后显式记录使用；只更改该token时间，不改业务对象状态。
 
@@ -1984,7 +1984,7 @@
 
 `GET /tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}` · 语义 read-only · destructive=false · 幂等=不适用
 
-权限候选：strategist / factcheck / cs / content / evidence；system：judge。权限行：`(role, brand_lexicon, read)`。审阅风险：judge_input。
+权限：strategist / factcheck / cs / content / evidence；system：judge。权限行：`(role, brand_lexicon, read)`。审阅风险：judge_input。
 
 校验：明确tenant/brand/version；历史版本只读，禁止无版本默认latest；Content/Evidence仅关联任务；judge仅已批准的指定版本。
 
@@ -2025,7 +2025,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/brand-lexicons` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, brand_lexicon, create)`。审阅风险：judge_input。
+权限：strategist；system：无。权限行：`(role, brand_lexicon, create)`。审阅风险：judge_input。
 
 校验：strategy映射既有strategist；创建完整版本，新version新行，旧版本只读；kind为五类；created_by/created_at服务端记录。
 
@@ -2068,7 +2068,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}/submit` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, brand_lexicon, submit)`。审阅风险：judge_input。
+权限：strategist；system：无。权限行：`(role, brand_lexicon, submit)`。审阅风险：judge_input。
 
 校验：版本作者本人；只能提交完整未生效版本，所有条目归属同品牌/版本；不另发明lexicon状态枚举。
 
@@ -2101,7 +2101,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/official-facts` · 语义 draft · destructive=false · 幂等=24h
 
-权限候选：strategist；system：无。权限行：`(role, official_fact, create)`。审阅风险：judge_input。
+权限：strategist；system：无。权限行：`(role, official_fact, create)`。审阅风险：judge_input。
 
 校验：四类fact_category；只准L1；effective_from为UTC；作者从创建审计及review_queue.submitted_by溯源。
 
@@ -2138,7 +2138,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/official-facts/{id}/approve` · 语义 write · destructive=false · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, official_fact, approve)`。审阅风险：judge_input。
+权限：factcheck；system：无。权限行：`(role, official_fact, approve)`。审阅风险：judge_input。
 
 校验：human、draft且对应waiting；FactCheck≠创建者；与review_queue.approve同一原子服务动作。
 
@@ -2169,7 +2169,7 @@
 
 `POST /tenants/{tid}/brands/{bid}/official-facts/{id}/retract` · 语义 write · destructive=true · 幂等=24h
 
-权限候选：factcheck；system：无。权限行：`(role, official_fact, retract)`。审阅风险：judge_input。
+权限：factcheck；system：无。权限行：`(role, official_fact, retract)`。审阅风险：judge_input。
 
 校验：human；approved→retracted；reason必填；不改历史metric_snapshot。
 

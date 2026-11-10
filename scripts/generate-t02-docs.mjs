@@ -3,7 +3,8 @@ import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 
 import { requiredReviewRisks } from './t02-review-policy.mjs';
 const outputs = new Set();
 const d = JSON.parse(readFileSync('docs/api/contracts.json', 'utf8'));
-const emit = (path, value) => { outputs.add(path); if (process.argv.includes('--check')) { if (readFileSync(path, 'utf8') !== value) throw new Error(`${path} is stale; regenerate documentation`); } else writeFileSync(path, value); };
+const publication = d.status==='frozen' ? `已冻结（${d.freeze.version}，产品负责人批准）` : '未冻结';
+const emit = (path, value) => { value=value.replaceAll('状态：草案，未冻结',`状态：${publication}`).replaceAll('未冻结',publication).replaceAll('权限候选：',d.status==='frozen'?'权限：':'权限候选：'); outputs.add(path); if (process.argv.includes('--check')) { if (readFileSync(path, 'utf8') !== value) throw new Error(`${path} is stale; regenerate documentation`); } else writeFileSync(path, value); };
 const scope = (role, e) => role==='owner' && e.resource==='user_member' ? 'tenant' : ['owner','editor','viewer'].includes(role) ? 'brand' : ['content','evidence'].includes(role) ? 'assigned_object' : 'tenant';
 const conditions = (role,e) => {
  const rules=['tenant_match','pat_intersection','actor_role_policy'];
@@ -66,7 +67,7 @@ map+='\n## 20个承重审阅项\n\n组合动作按负责人R4逐接口展开；�
 for(const g of d.review.core_groups)map+=`| ${g.number} | ${g.title} | ${g.endpoint_ids.map(id=>link(id)).join(' / ')} |\n`;
 map+='\n## 一个事实块的旅程\n\n```mermaid\nflowchart LR\n  C[claim_block.create] --> S[claim_block.submit]\n  S --> A[claim_block.approve]\n  A --> R[content_asset.transition 自动ready]\n  R --> P[publish_registration.register]\n  P --> B[probe_batch.start / execute]\n  B --> J[probe_result.judge 复测命中]\n  J --> M[cluster_score.compare 可比才出差值]\n```\n\n[修订](api/core-set.md#claim_blockrevise)、[撤回下线](api/core-set.md#claim_blockretract)及同事务链式回退不绕过独立审核。\n\n## 13个状态机索引\n\n| 对象 | 完整迁移表 |\n|---|---|\n';
 for(const name of Object.keys(d.states))map+=`| ${name} | [状态/出边/终态](api/states.md#${anchor(name)}) |\n`;
-map+='\n[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；本次不实现API、不合并、不自行冻结。\n';
+map+='\n[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前不实现API。\n';
 map=map.replaceAll('20个',`${d.review.core_groups.length}个`).replace('归并后28个，原31个全部有归宿',`${d.resources.length}个；原资源归并并补v4判定输入`).replace('27张物理表不变','v4补齐后29张物理表').replaceAll('13个',`${Object.keys(d.states).length}个`);
 if(map.trimEnd().split('\n').length>120)throw new Error('spec-map exceeds 120 lines');
 emit('docs/spec-map.md',map);
