@@ -28,6 +28,8 @@ AI 时代用户不再搜索，而是提问。oak-geo 让品牌在模型回答里
 | [`docs/backlog.md`](./docs/backlog.md) | 33 个开发任务切片，带完成定义 | v1.0 |
 | [`docs/api-spec-template.md`](./docs/api-spec-template.md) | API 契约与状态机设计模板（任务 T02 的输入） | 模板就绪 |
 
+API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集、权限、状态机和抽检附录集中在 `docs/api/`。历史验证记录放在 `docs/archive/`。
+
 ## 开发方式
 
 本项目采用 **Agent 开发 + 人工关卡**：所有编码会话以 `AGENTS.md` 为第一读取物（含"歧义即停"清单与测试先红后绿纪律），任务从 `docs/backlog.md` 认领，**合并权在人**。MVP 不做清单与 13 条架构预留（Agent / MCP 预留）见 AGENTS.md §7 与产品文档 §15–16。

@@ -1,0 +1,4784 @@
+{
+  "status": "draft",
+  "resources": [
+    "tenant",
+    "brand",
+    "user_member",
+    "seed_list",
+    "keyword_raw",
+    "keyword_pool_snapshot",
+    "intent_cluster",
+    "question_pool",
+    "opportunity_card",
+    "scoring_snapshot",
+    "cluster_score",
+    "cluster_platform_signal",
+    "content_asset",
+    "claim_block",
+    "probe_result",
+    "metric_snapshot",
+    "industry_score",
+    "audit_log",
+    "review_queue",
+    "objection",
+    "backflow_ticket",
+    "evidence_package",
+    "api_token",
+    "probe_batch",
+    "publish_registration",
+    "diagnosis_report",
+    "offboarding",
+    "deletion_ledger",
+    "brand_lexicon",
+    "official_fact"
+  ],
+  "roles": [
+    "owner",
+    "editor",
+    "viewer",
+    "strategist",
+    "content",
+    "evidence",
+    "factcheck",
+    "cs",
+    "admin"
+  ],
+  "operations": [
+    "access",
+    "append",
+    "approve",
+    "archive",
+    "assign",
+    "cancel",
+    "citations",
+    "cleanup",
+    "compare",
+    "compensate",
+    "complete",
+    "configure",
+    "confirm",
+    "create",
+    "excerpt",
+    "execute",
+    "expire",
+    "export",
+    "fail",
+    "freeze",
+    "grant",
+    "import",
+    "judge",
+    "read",
+    "read_raw",
+    "recommend",
+    "record_use",
+    "register",
+    "reject",
+    "retire",
+    "retract",
+    "revise",
+    "revoke",
+    "start",
+    "submit",
+    "transition",
+    "upgrade_anchor",
+    "view",
+    "withdraw"
+  ],
+  "endpoints": [
+    {
+      "id": "tenant.read",
+      "resource": "tenant",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "t1",
+        "mode": "full"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "tenant.configure",
+      "resource": "tenant",
+      "operation": "configure",
+      "method": "POST",
+      "path": "/tenants/{tid}/configure",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "tenant.configure",
+      "request": {
+        "name": "示例租户",
+        "mode": "full",
+        "plan": "contract_ref"
+      },
+      "response": {
+        "id": "t1",
+        "mode": "full"
+      },
+      "validation": "合同范围内配置；禁止借此改业务状态",
+      "side_effects": "配置审计",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "brand.read",
+      "resource": "brand",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "b1",
+        "industry": "B2B"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "owner",
+        "editor",
+        "viewer",
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence",
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "brand.configure",
+      "resource": "brand",
+      "operation": "configure",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/configure",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "brand.configure",
+      "request": {
+        "name": "示例品牌",
+        "market": "CN"
+      },
+      "response": {
+        "id": "b1"
+      },
+      "validation": "配置操作；不得自动换模型或改已冻结配置",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "user_member.read",
+      "resource": "user_member",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/members",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "user_id": "u1",
+            "role": "editor"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "owner",
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "user_member.configure",
+      "resource": "user_member",
+      "operation": "configure",
+      "method": "POST",
+      "path": "/tenants/{tid}/members/configure",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "user_member.configure",
+      "request": {
+        "user_id": "u1",
+        "role": "editor"
+      },
+      "response": {
+        "user_id": "u1",
+        "role": "editor"
+      },
+      "validation": "同租户，九角色枚举；客户端权限不得扩张",
+      "side_effects": "更新策略，已撤权请求立即重新鉴权",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "seed_list.read",
+      "resource": "seed_list",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/seed-lists",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "s1",
+            "maintainer": "张三",
+            "seed_version": 1
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "seed_list.create",
+      "resource": "seed_list",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/seed-lists",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "seed_list.create",
+      "request": {
+        "word": "排产",
+        "word_type": "场景",
+        "maintainer": "张三",
+        "last_reviewed_at": "2026-11-09T00:00:00Z"
+      },
+      "response": {
+        "id": "s1",
+        "seed_version": 1
+      },
+      "validation": "维护人具体人名、复核时间必填；word_type产品枚举",
+      "side_effects": "新版本；无maintainer不开管道",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "seed_list.revise",
+      "resource": "seed_list",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/seed-lists/{id}/revisions",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "seed_list.revise",
+      "request": {
+        "word": "自动排产",
+        "maintainer": "张三",
+        "last_reviewed_at": "2026-11-09T00:00:00Z"
+      },
+      "response": {
+        "id": "s2",
+        "seed_version": 2
+      },
+      "validation": "新版本，旧版保留",
+      "side_effects": "生成语法只造词，预览确认后调用本操作",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "keyword_raw.read",
+      "resource": "keyword_raw",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/keyword-imports",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "k1",
+            "channel": "B"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "keyword_raw.import",
+      "resource": "keyword_raw",
+      "operation": "import",
+      "method": "POST",
+      "path": "/tenants/{tid}/keyword-imports",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "keyword_raw.import",
+      "request": {
+        "channel": "C",
+        "authorization_ref": "auth1",
+        "csv_ref": "upload1"
+      },
+      "response": {
+        "added": 1,
+        "duplicate": 0,
+        "rejected": 0
+      },
+      "validation": "C先书面授权、自动脱敏；B人工/半自动CSV；四渠道枚举",
+      "side_effects": "归一化、去重；只存指数不存绝对搜索次数",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": "c_import",
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "keyword_raw.read_raw",
+      "resource": "keyword_raw",
+      "operation": "read_raw",
+      "method": "GET",
+      "path": "/tenants/{tid}/keywords/{id}/raw",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": "keyword_raw.read_raw",
+      "request": {},
+      "response": {
+        "id": "k1",
+        "redacted_payload": "已脱敏示例"
+      },
+      "validation": "仅授权C数据或公开源的关联任务，服务端审计，不含已删除数据",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "keyword_pool_snapshot.read",
+      "resource": "keyword_pool_snapshot",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/keyword-pool-snapshots",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "pool_version": 1,
+        "seed_version": 1
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "intent_cluster.read",
+      "resource": "intent_cluster",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/clusters/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "c1",
+        "question_pool_version": 1,
+        "status": "active"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence",
+        "owner",
+        "editor",
+        "viewer"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "question_pool.read",
+      "resource": "question_pool",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "q1",
+        "question_pool_version": 1,
+        "frozen": true
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "opportunity_card.read",
+      "resource": "opportunity_card",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/opportunity-cards/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "o1",
+        "snapshot_id": "snp1",
+        "demand_tier": "S"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence",
+        "owner",
+        "editor",
+        "viewer"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "scoring_snapshot.read",
+      "resource": "scoring_snapshot",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/scoring-snapshots/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "snapshot_id": "snp1",
+        "judge_version": "rule_manual_v1",
+        "grounding_mode": "search_on"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "cluster_score.read",
+      "resource": "cluster_score",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/cluster-scores/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "cluster_id": "c1",
+        "snapshot_id": "snp1",
+        "blank_score": null,
+        "n_valid": 8,
+        "model_coverage": 2,
+        "insufficient_sample": true,
+        "question_scores": [
+          {
+            "question_id": "q1",
+            "n_valid": 24
+          }
+        ]
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文；question_scores节仅原question_score.read的内部五角色可见，客户不因父资源可读而新增问句级权限",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence",
+        "owner",
+        "editor",
+        "viewer"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "cluster_platform_signal.read",
+      "resource": "cluster_platform_signal",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/cluster-platform-signals",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "cluster_id": "c1",
+            "platform": "官网",
+            "model_citation_count": 1
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence",
+        "owner",
+        "editor",
+        "viewer"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "intent_cluster.archive",
+      "resource": "intent_cluster",
+      "operation": "archive",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/clusters/{id}/archive",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "intent_cluster.archive",
+      "request": {
+        "reason": "需求消退",
+        "evidence_probe_ids": [
+          "p1"
+        ]
+      },
+      "response": {
+        "id": "c1",
+        "status": "archived"
+      },
+      "validation": "只能active→archived；§8三条件；保留90天分母",
+      "side_effects": "软删除；过渡补位，单期变化>20%暂停复核",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "question_pool.upgrade_anchor",
+      "resource": "question_pool",
+      "operation": "upgrade_anchor",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/upgrade-anchor",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "intent_cluster.upgrade",
+      "request": {
+        "cluster_id": "c1",
+        "question_pool_version": 2,
+        "reason": "人工升级问句",
+        "question_ids": [
+          "q4",
+          "q5",
+          "q6"
+        ]
+      },
+      "response": {
+        "cluster_id": "c1",
+        "question_pool_version": 2
+      },
+      "validation": "Strategist human显式动作；未锚定簇首次入测写锚，已锚定簇只有人工升级/拆并可改；同版本校验ID集合，跨版本重开基线",
+      "side_effects": "原anchor与upgrade两个入口合并；不动其他簇锚定；旧结果保留不可比",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "legacy_endpoint_id": "intent_cluster.upgrade",
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "question_pool.create",
+      "resource": "question_pool",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "question_pool.create",
+      "request": {
+        "cluster_id": "c1",
+        "question": "排产怎么选？",
+        "source_word_id": "k1",
+        "intent_type": "选型对比",
+        "source_channel": "B",
+        "collected_at": "2026-11-09T00:00:00Z",
+        "maintainer": "张三",
+        "question_pool_version": 1
+      },
+      "response": {
+        "id": "q1",
+        "frozen": false
+      },
+      "validation": "五溯源非空，source_word_id指keyword_raw；intent_type六类；不得凭空造测量题",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "question_pool.freeze",
+      "resource": "question_pool",
+      "operation": "freeze",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/versions/{version}/freeze",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "question_pool.freeze",
+      "request": {
+        "cluster_id": "c1"
+      },
+      "response": {
+        "question_pool_version": 1,
+        "frozen": true
+      },
+      "validation": "版本open→frozen；校验版本内各问句五字段；冻结整个引用版本原文集合，不只冻单条",
+      "side_effects": "改动只能新版本，不重写旧问句",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "question_pool.revise",
+      "resource": "question_pool",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/{id}/revisions",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "question_pool.revise",
+      "request": {
+        "question_pool_version": 2,
+        "reason": "人工升级",
+        "question": "自动排产适合谁？"
+      },
+      "response": {
+        "id": "q4",
+        "question_pool_version": 2
+      },
+      "validation": "复用五溯源字段并重新校验；旧记录只读",
+      "side_effects": "不自动更改簇锚定",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "question_pool.archive",
+      "resource": "question_pool",
+      "operation": "archive",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/versions/{version}/archive",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "question_pool.archive",
+      "request": {
+        "reason": "版本退役"
+      },
+      "response": {
+        "id": "q1",
+        "state": "archived"
+      },
+      "validation": "frozen→archived；停止新锚定，不得删除/改动已锚定版本原文",
+      "side_effects": "仅停止新锚定，历史继续可读取",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ]
+    },
+    {
+      "id": "opportunity_card.create",
+      "resource": "opportunity_card",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/opportunity-cards",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "opportunity_card.create",
+      "request": {
+        "cluster_id": "c1",
+        "pool_version": 1,
+        "snapshot_id": "snp1",
+        "demand_tier": "S",
+        "demand_source": "keyword:k1"
+      },
+      "response": {
+        "id": "o1",
+        "status": "候选"
+      },
+      "validation": "版本ID链齐备，不复制四分",
+      "side_effects": "新卡进候选，需求来源必填",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "opportunity_card.recommend",
+      "resource": "opportunity_card",
+      "operation": "recommend",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/opportunity-cards/recommendations",
+      "semantic": "proposal",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "opportunity_card.recommend",
+      "request": {
+        "opportunity_ids": [
+          "o1",
+          "o2",
+          "o3"
+        ]
+      },
+      "response": {
+        "recommended_ids": [
+          "o1",
+          "o2",
+          "o3"
+        ],
+        "status": "建议"
+      },
+      "validation": "样本满足§14交付门槛；提供证据链",
+      "side_effects": "形成建议，不代Owner拍板",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "opportunity_card.confirm",
+      "resource": "opportunity_card",
+      "operation": "confirm",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/opportunity-cards/confirm",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "opportunity_card.confirm",
+      "request": {
+        "opportunity_ids": [
+          "o1",
+          "o2",
+          "o3"
+        ]
+      },
+      "response": {
+        "confirmed_ids": [
+          "o1",
+          "o2",
+          "o3"
+        ],
+        "status": "确认"
+      },
+      "validation": "human；full；3簇；demand_tier/demand_source必填",
+      "side_effects": "确认→生产，未有T0基线不得声称提升",
+      "grants": [
+        "owner"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "scoring_snapshot.create",
+      "resource": "scoring_snapshot",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/scoring-snapshots",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "scoring_snapshot.create",
+      "request": {
+        "model_set": [
+          "T14待核实"
+        ],
+        "temperature_set": [
+          0,
+          0.7
+        ],
+        "rounds": 3,
+        "judge_version": "rule_manual_v1",
+        "grounding_mode": "search_on"
+      },
+      "response": {
+        "snapshot_id": "snp1",
+        "frozen": false
+      },
+      "validation": "示例model_set是占位，不可执行；T14定具体ID；区分配置与批次；system仅受控模型/判定/轨道变更事件可创建冻结新配置，不能改已有冻结配置",
+      "side_effects": "配置草稿，不直接发探针",
+      "grants": [
+        "cs"
+      ],
+      "system_job": "event_schedule",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "scoring_snapshot.freeze",
+      "resource": "scoring_snapshot",
+      "operation": "freeze",
+      "method": "POST",
+      "path": "/tenants/{tid}/scoring-snapshots/{id}/freeze",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "scoring_snapshot.freeze",
+      "request": {},
+      "response": {
+        "snapshot_id": "snp1",
+        "frozen": true
+      },
+      "validation": "执行前冻结；模型温度轮次judge接地不变；问句由簇锚定；system仅受控模型/判定/轨道变更事件可创建冻结新配置，不能改已有冻结配置",
+      "side_effects": "此后换配置开新snapshot，不因复测新建配置",
+      "grants": [
+        "cs"
+      ],
+      "system_job": "event_schedule",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "keyword_pool_snapshot.append",
+      "resource": "keyword_pool_snapshot",
+      "operation": "append",
+      "method": "POST",
+      "path": "/internal/keyword-pool-snapshots/append",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "keyword_pool_snapshot.append",
+      "request": {
+        "pool_version": 2
+      },
+      "response": {
+        "recorded": true
+      },
+      "validation": "pool_version唯一，归簇稳定ID",
+      "side_effects": "服务层追加，不覆盖配置下已有分数",
+      "grants": [],
+      "system_job": "weekly_pool",
+      "risk_tags": []
+    },
+    {
+      "id": "cluster_score.append",
+      "resource": "cluster_score",
+      "operation": "append",
+      "method": "POST",
+      "path": "/internal/cluster-scores/append",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "cluster_score.append",
+      "request": {
+        "cluster_id": "c1",
+        "snapshot_id": "snp1",
+        "question_scores": [
+          {
+            "question_id": "q1",
+            "snapshot_id": "snp1"
+          }
+        ]
+      },
+      "response": {
+        "recorded": true
+      },
+      "validation": "仅基线评分；(cluster,snapshot)唯一；不足样本分数null；同一事务先写问句分数再写簇分数，保留原question_score内部表，不再有独立API族",
+      "side_effects": "服务层追加，不覆盖配置下已有分数",
+      "grants": [],
+      "system_job": "baseline_scoring",
+      "risk_tags": []
+    },
+    {
+      "id": "cluster_platform_signal.append",
+      "resource": "cluster_platform_signal",
+      "operation": "append",
+      "method": "POST",
+      "path": "/internal/platform-signals/append",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "cluster_platform_signal.append",
+      "request": {
+        "cluster_id": "c1",
+        "snapshot_id": "snp1"
+      },
+      "response": {
+        "recorded": true
+      },
+      "validation": "基线评分顺带产生；计数可回溯probe",
+      "side_effects": "服务层追加，不覆盖配置下已有分数",
+      "grants": [],
+      "system_job": "baseline_scoring",
+      "risk_tags": []
+    },
+    {
+      "id": "content_asset.read",
+      "resource": "content_asset",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/content-assets/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "a1",
+        "review_status": "draft"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "editor",
+        "content"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.read",
+      "resource": "claim_block",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "cl1",
+        "version": 1,
+        "status": "draft",
+        "source_level": "L1"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "editor",
+        "content"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "probe_result.read",
+      "resource": "probe_result",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/probe-results/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "r1",
+        "probe_id": "p1",
+        "brand_mentioned": true,
+        "refused": false
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence",
+        "owner",
+        "editor",
+        "viewer"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "content_asset.create",
+      "resource": "content_asset",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/content-assets",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "content_asset.create",
+      "request": {
+        "opportunity_card_id": "o1",
+        "type": "FAQ",
+        "platform": "官网"
+      },
+      "response": {
+        "id": "a1",
+        "review_status": "draft"
+      },
+      "validation": "Editor本品牌full；Content限任务；仅内容工作台",
+      "side_effects": "挂同机会卡，可含多块",
+      "grants": [
+        "editor",
+        "content"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "content_asset.retire",
+      "resource": "content_asset",
+      "operation": "retire",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/content-assets/{id}/retire",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "content_asset.retire",
+      "request": {
+        "reason": "人工下线"
+      },
+      "response": {
+        "id": "a1",
+        "review_status": "retired"
+      },
+      "validation": "human；draft/ready/registered→retired；retired不可逆",
+      "side_effects": "如需复活新建asset，挂同机会卡",
+      "grants": [
+        "strategist",
+        "owner"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "content_asset.transition",
+      "resource": "content_asset",
+      "operation": "transition",
+      "method": "POST",
+      "path": "/internal/content-assets/{id}/transition",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "content_asset.reconcile",
+      "request": {
+        "trigger_claim_id": "cl1",
+        "cause_event_id": "evt-retract-1"
+      },
+      "response": {
+        "id": "a1",
+        "review_status": "draft",
+        "audited_transitions": [
+          "registered→ready",
+          "ready→draft"
+        ],
+        "cause_event_id": "evt-retract-1"
+      },
+      "validation": "按§3裁定派生；绝不让人工直接指定目标状态；只允许本资源状态表命名事件，不接受任意status裸更新",
+      "side_effects": "同事务先事件降一级再派生重算、逐跳同cause审计；非必配retract且必配条件成立停ready；无registered→draft直达",
+      "grants": [],
+      "system_job": "content_reconcile",
+      "legacy_endpoint_id": "content_asset.reconcile",
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.create",
+      "resource": "claim_block",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "claim_block.create",
+      "request": {
+        "content_asset_id": "a1",
+        "text": "示例事实及边界",
+        "number": "10",
+        "unit": "天",
+        "scope": "示例适用边界",
+        "source_url": "https://example.com/facts",
+        "source_level": "L1"
+      },
+      "response": {
+        "id": "cl1",
+        "version": 1,
+        "status": "draft"
+      },
+      "validation": "L3不得入库；四问字段及来源非空；作者留痕",
+      "side_effects": "草稿不进waiting，submit才进队列",
+      "grants": [
+        "editor",
+        "content"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.revise",
+      "resource": "claim_block",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}/revisions",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "claim_block.revise",
+      "request": {
+        "content_asset_id": "a1",
+        "text": "示例事实及边界",
+        "number": "10",
+        "unit": "天",
+        "scope": "示例适用边界",
+        "source_url": "https://example.com/facts",
+        "source_level": "L1",
+        "reason": "修订事实"
+      },
+      "response": {
+        "id": "cl2",
+        "version": 2,
+        "status": "draft"
+      },
+      "validation": "作者本人；新版本号及新行；保留旧版；retracted→draft由新行承接",
+      "side_effects": "重算asset ready；不因修订降低registered",
+      "grants": [
+        "editor",
+        "content"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.submit",
+      "resource": "claim_block",
+      "operation": "submit",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}/submit",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "claim_block.submit",
+      "request": {},
+      "response": {
+        "id": "cl1",
+        "status": "pending_review",
+        "review_entry_id": "rv1"
+      },
+      "validation": "作者；draft；四问、L1/L2、整篇必配与自包含校验；judging-spec未冻结不实现正则",
+      "side_effects": "创建waiting队列条目，通知FactCheck",
+      "grants": [
+        "editor",
+        "content"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.approve",
+      "resource": "claim_block",
+      "operation": "approve",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}/approve",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "claim_block.approve",
+      "request": {},
+      "response": {
+        "id": "cl1",
+        "status": "approved"
+      },
+      "validation": "仅pending_review，waiting队列条目未结算；FactCheck≠作者；L3禁入、四问与必配校验通过",
+      "side_effects": "approve/reject原子结算队列；retract追同源块并重算asset",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.reject",
+      "resource": "claim_block",
+      "operation": "reject",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}/reject",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "claim_block.reject",
+      "request": {
+        "reason": "来源需补充"
+      },
+      "response": {
+        "id": "cl1",
+        "status": "draft"
+      },
+      "validation": "仅pending_review，waiting队列条目未结算；reason必填",
+      "side_effects": "approve/reject原子结算队列；retract追同源块并重算asset",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.retract",
+      "resource": "claim_block",
+      "operation": "retract",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}/retract",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "claim_block.retract",
+      "request": {
+        "reason": "事实错误",
+        "ticket_id": "tk1"
+      },
+      "response": {
+        "id": "cl1",
+        "status": "retracted"
+      },
+      "validation": "仅approved；reason与说错工单必填；FactCheck执行下线",
+      "side_effects": "approve/reject原子结算队列；retract追同源块并重算asset；registered→ready后按必配条件继续ready→draft，同事务同cause逐跳审计",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "claim_block.citations",
+      "resource": "claim_block",
+      "operation": "citations",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/claim-blocks/{id}/citations",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "probe_ids": [
+          "p1"
+        ],
+        "cited_claim_ids": [
+          "cl1"
+        ]
+      },
+      "validation": "关联任务，返回聚合不含全文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "probe_result.read_raw",
+      "resource": "probe_result",
+      "operation": "read_raw",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/probe-results/{id}/raw-answer",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": "probe_result.read_raw",
+      "request": {},
+      "response": {
+        "probe_id": "p1",
+        "raw_answer": "受限单条示例"
+      },
+      "validation": "内部租户级或任务关联对象级；每次审计，不提供列表/导出",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "probe_result.access",
+      "resource": "probe_result",
+      "operation": "access",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/probe-results/{id}/admin-access",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_result.access",
+      "request": {
+        "reason": "排查指定数据故障"
+      },
+      "response": {
+        "probe_id": "p1",
+        "raw_answer": "受限单条示例"
+      },
+      "validation": "Admin默认deny；本次显式调阅必填理由+审计；不授予永久read_raw",
+      "side_effects": "单条理由调阅留痕，不改变业务判定",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "probe_batch.execute",
+      "resource": "probe_batch",
+      "operation": "execute",
+      "method": "POST",
+      "path": "/internal/probe-batches/{id}/execute",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_result.append",
+      "request": {
+        "probe": {
+          "batch_id": "bt1",
+          "cluster_id": "c1",
+          "question_id": "q1",
+          "model": "T14待核实",
+          "temperature": 0,
+          "round": 1,
+          "attempt_no": 1
+        },
+        "result": {
+          "probe_id": "p1",
+          "refused": false,
+          "raw_answer": "官方API返回数据",
+          "cited_domains": [
+            "example.com"
+          ],
+          "cited_urls": [
+            "https://example.com/article"
+          ]
+        }
+      },
+      "response": {
+        "id": "r1"
+      },
+      "validation": "probe所属running batch；全文按不可信数据；禁止当作指令；完整citation元数据/正文URL归一化抽取，不丢路径；probe与result均属路径指定batch，running状态、完整尝试号及冻结锚定校验；原probe.append与probe_result.append合并为一个服务层原子写入口",
+      "side_effects": "先生成/关联probe再追加回答，按batch/attempt留痕，未改变原始结果存储或失败补偿规则",
+      "grants": [],
+      "system_job": "probe_execute",
+      "legacy_endpoint_id": "probe_result.append",
+      "risk_tags": [
+        "raw_answer",
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_result.judge",
+      "resource": "probe_result",
+      "operation": "judge",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/probe-results/{id}/judgments",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_result.judge",
+      "request": {
+        "blank_i": 0,
+        "error_i": 0,
+        "generic_i": 0.5,
+        "competitor_i": 0,
+        "spec_score": 3,
+        "note": "人工示例",
+        "batch_id": "bt1",
+        "lexicon_version": 1,
+        "official_fact_ids": [
+          "f1"
+        ]
+      },
+      "response": {
+        "id": "r1",
+        "judged": true,
+        "lexicon_version": 1,
+        "official_fact_ids": [
+          "f1"
+        ]
+      },
+      "validation": "judging-spec先人审冻结；refused排除所有分母；样例不定义判定算法；输入必须读取已审历史lexicon_version与L1 approved官方口径；被指定口径retract即拒绝，缺基准error_i=null；不得替换为latest或claim_block",
+      "side_effects": "保留判定审计；已出分需重新判定则换judge配置与基线；job及审计记录lexicon_version、official_fact_ids；不覆盖历史判定与聚合",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": "judge",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "metric_snapshot.read",
+      "resource": "metric_snapshot",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/metric-snapshots/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "m1",
+        "snapshot_id": "snp1",
+        "batch_id": "bt1",
+        "mention_rate": 0.5,
+        "citation_rate": 0.25,
+        "lexicon_version": 1
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "owner",
+        "viewer",
+        "editor"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "industry_score.read",
+      "resource": "industry_score",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/industry-scores",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "industry": "B2B",
+            "version": 1
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "audit_log.read",
+      "resource": "audit_log",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/audit-logs",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "action": "probe.raw_access",
+            "actor_type": "human"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "review_queue.read",
+      "resource": "review_queue",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/review-queue",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "rv1",
+            "object_type": "claim_block",
+            "object_id": "cl1",
+            "status": "waiting"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "evidence_package.read",
+      "resource": "evidence_package",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/evidence-packages/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "ev1",
+        "version": 1,
+        "status": "sealed",
+        "items": [
+          {
+            "id": "ei1",
+            "package_id": "ev1",
+            "probe_id": "p1",
+            "source_level": "L1",
+            "conclusion_text": "可复核结论"
+          }
+        ]
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文；items仅该package子资源，父包租户/任务校验及sealed客户投影继承，受限excerpt继续不返回",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "evidence",
+        "owner",
+        "editor"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "objection.read",
+      "resource": "objection",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/objections/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "ob1",
+        "probe_id": "p1",
+        "status": "submitted"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "owner",
+        "editor",
+        "viewer",
+        "cs",
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "backflow_ticket.read",
+      "resource": "backflow_ticket",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/backflow-tickets/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "tk1",
+        "status": "open",
+        "signal_type": "cited_wrong"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "api_token.read",
+      "resource": "api_token",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/api-tokens",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "tok1",
+            "scopes": [
+              "metric_snapshot.read"
+            ],
+            "created_at": "2026-11-09T00:00:00Z",
+            "last_used_at": null,
+            "revoked_at": null
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.read",
+      "resource": "probe_batch",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/probe-batches/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "include": "probes"
+      },
+      "response": {
+        "id": "bt1",
+        "type": "baseline",
+        "snapshot_id": "snp1",
+        "status": "pending",
+        "probes": [
+          {
+            "id": "p1",
+            "batch_id": "bt1",
+            "model": "T14待核实"
+          }
+        ]
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文；Content/Evidence仅能请求probes投影并按所分派机会卡/簇/来源过滤，不获得批次完整配置/其他任务探针；probe仅batch内查询",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "publish_registration.read",
+      "resource": "publish_registration",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/publish-registrations/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "pub1",
+        "content_asset_id": "a1",
+        "status": "registered"
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "editor",
+        "owner"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "diagnosis_report.read",
+      "resource": "diagnosis_report",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/diagnosis-reports/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "dr1",
+        "status": "sealed",
+        "probe_ids": [
+          "p1"
+        ]
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "evidence",
+        "owner",
+        "editor"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "offboarding.read",
+      "resource": "offboarding",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/offboarding/{id}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "off1",
+        "deleted_raw_answers": true
+      },
+      "validation": "按租户/品牌/任务范围查询；不返回raw_answer或C类原文",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "cluster_score.compare",
+      "resource": "cluster_score",
+      "operation": "compare",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/metric-snapshots/compare",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "baseline_batch_id": "bt1",
+        "retest_batch_id": "bt2",
+        "cluster_id": "c1"
+      },
+      "response": {
+        "baseline_batch_id": "bt1",
+        "retest_batch_id": "bt2",
+        "delta": {
+          "mention_rate": 0.1
+        }
+      },
+      "validation": "同snapshot_id+同簇同锚定版本+question_id集合一致；否则422 incomparable无delta",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "owner",
+        "viewer",
+        "editor"
+      ],
+      "system_job": null,
+      "legacy_endpoint_id": "metric_snapshot.compare",
+      "risk_tags": []
+    },
+    {
+      "id": "metric_snapshot.export",
+      "resource": "metric_snapshot",
+      "operation": "export",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/metric-snapshots/{id}/report",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "download_ref": "短时报告引用",
+        "produced_by_us": true,
+        "control_cluster_ids": [
+          "c4",
+          "c5",
+          "c6"
+        ]
+      },
+      "validation": "报告脱敏，不含raw_answer；披露我方生产+对照组；不可比不出差值报告",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "owner",
+        "viewer",
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "metric_snapshot.append",
+      "resource": "metric_snapshot",
+      "operation": "append",
+      "method": "POST",
+      "path": "/internal/metric-snapshots/append",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "metric_snapshot.append",
+      "request": {
+        "batch_id": "bt2",
+        "snapshot_id": "snp1",
+        "cluster_id": "c1",
+        "committed_attempt_no": 1,
+        "lexicon_version": 1
+      },
+      "response": {
+        "id": "m2",
+        "lexicon_version": 1
+      },
+      "validation": "按批次追加，历史不可变；拒答排除；显式/隐式引用计算层推导；citation_rate仅规范化URL全等explicit；指纹及仅域名命中只内部分析；仅completed批次选定完整尝试，禁止从failed批次或多次部分尝试拼样本；lexicon_version必须与该批次判定记录一致，不读当前最新版本",
+      "side_effects": "不写cluster_score；触发回流扫描",
+      "grants": [],
+      "system_job": "metric_aggregate",
+      "risk_tags": []
+    },
+    {
+      "id": "industry_score.revise",
+      "resource": "industry_score",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/industry-scores/revisions",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "industry_score.revise",
+      "request": {
+        "industry": "B2B",
+        "version": 2,
+        "reliability_note": "内部策略"
+      },
+      "response": {
+        "version": 2
+      },
+      "validation": "仅内部排产，版本化；不进对外报价报告",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "audit_log.append",
+      "resource": "audit_log",
+      "operation": "append",
+      "method": "POST",
+      "path": "/internal/audit-logs/append",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "audit_log.append",
+      "request": {
+        "actor_type": "system",
+        "action": "probe_execute",
+        "object_type": "probe_batch",
+        "object_id": "bt1",
+        "job_name": "probe_execute",
+        "batch_id": "bt1",
+        "agent_run_id": null,
+        "prompt_version": null,
+        "trigger_source": {
+          "event_id": "evt1"
+        }
+      },
+      "response": {
+        "recorded": true
+      },
+      "validation": "仅服务层审计中间件；不允许人类/Agent提交伪造审计；job_name必须注册表枚举；探针类batch必填，非探针可null且trigger_source与对象必填；audit_middleware继承调用者actor",
+      "side_effects": "只追加，禁止更新/删除；敏感访问也记录",
+      "grants": [],
+      "system_job": "audit_middleware",
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "review_queue.submit",
+      "resource": "review_queue",
+      "operation": "submit",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/review-queue/submit",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "review_queue.submit",
+      "request": {
+        "object_type": "evidence_package",
+        "object_id": "ev1"
+      },
+      "response": {
+        "id": "rv2",
+        "status": "waiting"
+      },
+      "validation": "作者本人；MVP五类object_type：claim_block/evidence_package/diagnosis_report/brand_lexicon/official_fact；plan_draft仅预留不接受；strategist仅本人词表/口径/诊断，evidence仅本人证据包",
+      "side_effects": "入waiting，通知FactCheck",
+      "grants": [
+        "evidence",
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "review_queue.approve",
+      "resource": "review_queue",
+      "operation": "approve",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/review-queue/{id}/approve",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "review_queue.approve",
+      "request": {},
+      "response": {
+        "id": "rv1",
+        "status": "approved"
+      },
+      "validation": "waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人；品牌词表版本或官方口径同样检查创建者，不能封自己版本",
+      "side_effects": "原子修改对象态及队列终态；无通用裸状态update；lexicon批准即新版本生效，official_fact批准即approved；保留旧批次引用版本",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "review_queue.reject",
+      "resource": "review_queue",
+      "operation": "reject",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/review-queue/{id}/reject",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "review_queue.reject",
+      "request": {
+        "reason": "证据不足"
+      },
+      "response": {
+        "id": "rv1",
+        "status": "rejected"
+      },
+      "validation": "waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人",
+      "side_effects": "原子修改对象态及队列终态；无通用裸状态update",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "review_queue.withdraw",
+      "resource": "review_queue",
+      "operation": "withdraw",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/review-queue/{id}/withdraw",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "review_queue.withdraw",
+      "request": {},
+      "response": {
+        "id": "rv1",
+        "status": "withdrawn"
+      },
+      "validation": "waiting唯一出发态；approve非作者；reject理由必填；withdraw作者本人；Editor/Content只能撤回本人claim_block，入口属于内容工作台",
+      "side_effects": "原子修改对象态及队列终态；无通用裸状态update",
+      "grants": [
+        "editor",
+        "content",
+        "evidence",
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "evidence_package.create",
+      "resource": "evidence_package",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/evidence-packages",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "evidence_package.create",
+      "request": {
+        "brand_id": "b1",
+        "items": [
+          {
+            "conclusion_text": "结论示例",
+            "probe_id": "p1",
+            "source_level": "L1",
+            "excerpt": "受限单条摘录"
+          }
+        ]
+      },
+      "response": {
+        "id": "ev1",
+        "version": 1,
+        "status": "draft"
+      },
+      "validation": "任务关联；作者created_by留痕；条目随父包草稿或新版提交，同原evidence_item.create作者与draft约束；不再提供独立条目接口族",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "evidence_package.revise",
+      "resource": "evidence_package",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/evidence-packages/{id}/revisions",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "evidence_package.revise",
+      "request": {
+        "reason": "补充证据",
+        "items": [
+          {
+            "conclusion_text": "结论示例",
+            "probe_id": "p1",
+            "source_level": "L1",
+            "excerpt": "受限单条摘录"
+          }
+        ]
+      },
+      "response": {
+        "id": "ev2",
+        "version": 2,
+        "status": "draft"
+      },
+      "validation": "新行，新version；sealed不可变；条目随父包草稿或新版提交，同原evidence_item.create作者与draft约束；不再提供独立条目接口族",
+      "side_effects": "旧版保留；新队列重新审核",
+      "grants": [
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "evidence_package.approve",
+      "resource": "evidence_package",
+      "operation": "approve",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/evidence-packages/{id}/approve",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "evidence_package.approve",
+      "request": {},
+      "response": {
+        "id": "ev1",
+        "status": "sealed"
+      },
+      "validation": "对应waiting；非created_by；仅一次approve，不另设seal",
+      "side_effects": "同时结算队列approved，写sealed_by/sealed_at",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "evidence_package.export",
+      "resource": "evidence_package",
+      "operation": "export",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/evidence-packages/{id}/download",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "package_id": "ev1",
+        "version": 1,
+        "template_refs": [
+          "tpl1"
+        ]
+      },
+      "validation": "仅sealed包的结论/来源元数据及模板；不含模型回答全文或受限摘录；模板属于包投影",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "editor",
+        "owner",
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "objection.create",
+      "resource": "objection",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/objections",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "objection.create",
+      "request": {
+        "probe_id": "p1",
+        "conclusion_ref": {
+          "object_type": "diagnosis_report",
+          "object_id": "dr1"
+        },
+        "reason": "请求复核该结论"
+      },
+      "response": {
+        "id": "ob1",
+        "status": "submitted"
+      },
+      "validation": "本品牌已可见结论，指名单probe且reason非空；owner按§9.3，editor/viewer仅diagnosis档唯一写入口候选，随矩阵审阅",
+      "side_effects": "3个工作日内响应；异议状态与查看会话分开",
+      "grants": [
+        "owner",
+        "editor",
+        "viewer"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "objection.grant",
+      "resource": "objection",
+      "operation": "grant",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/objections/{id}/grant",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "objection.approve",
+      "request": {
+        "reason": "复核处理说明"
+      },
+      "response": {
+        "id": "ob1",
+        "status": "granted"
+      },
+      "validation": "submitted；CS处理，敏感升级FactCheck；必须记录处理人/时间",
+      "side_effects": "granted不返回原文或开启客户直接读raw权限",
+      "grants": [
+        "cs",
+        "factcheck"
+      ],
+      "system_job": null,
+      "legacy_endpoint_id": "objection.approve",
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "objection.reject",
+      "resource": "objection",
+      "operation": "reject",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/objections/{id}/reject",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "objection.reject",
+      "request": {
+        "reason": "复核处理说明"
+      },
+      "response": {
+        "id": "ob1",
+        "status": "rejected"
+      },
+      "validation": "submitted；CS处理，敏感升级FactCheck；必须记录处理人/时间",
+      "side_effects": "granted不返回原文或开启客户直接读raw权限",
+      "grants": [
+        "cs",
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "objection.view",
+      "resource": "objection",
+      "operation": "view",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/objections/{id}/view",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "objection.view",
+      "request": {
+        "viewing_session_id": "vs1",
+        "viewer_user_id": "u1"
+      },
+      "response": {
+        "id": "ob1",
+        "status": "viewed",
+        "viewing_session_id": "vs1"
+      },
+      "validation": "CS账号发起；granted→viewed；session唯一且同异议probe只一次；客户仅只读查看器",
+      "side_effects": "审计CS/调阅人/时间/session；24h会话；查看器水印",
+      "grants": [
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "diagnosis_report.excerpt",
+      "resource": "diagnosis_report",
+      "operation": "excerpt",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/objections/{id}/excerpt",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": "objection.excerpt",
+      "request": {
+        "viewing_session_id": "vs1"
+      },
+      "response": {
+        "probe_id": "p1",
+        "excerpt": "水印单条摘录",
+        "watermark_meta": {
+          "viewer_user_id": "u1",
+          "at": "2026-11-09T00:00:00Z"
+        }
+      },
+      "validation": "仅POST已建会话，申请人本人或发起CS；24h内只读查看；每次GET留审计但不改状态；禁下载/批量；诊断/证据结论的通用异议链投影，仍沿conclusion_ref校验；沿用原objection.excerpt路径，不新增直读raw_answer能力",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "owner",
+        "editor",
+        "viewer",
+        "cs"
+      ],
+      "system_job": null,
+      "legacy_endpoint_id": "objection.excerpt",
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "backflow_ticket.create",
+      "resource": "backflow_ticket",
+      "operation": "create",
+      "method": "POST",
+      "path": "/internal/backflow-tickets",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "backflow_ticket.create",
+      "request": {
+        "signal_type": "cited_wrong",
+        "cluster_id": "c1",
+        "evidence_probe_ids": [
+          "p1"
+        ],
+        "trigger_metric_id": "m1"
+      },
+      "response": {
+        "id": "tk1",
+        "status": "open"
+      },
+      "validation": "§8五信号；cited_wrong urgent且deadline24h；证据链必填",
+      "side_effects": "出工单通知责任角色",
+      "grants": [],
+      "system_job": "backflow_scan",
+      "risk_tags": []
+    },
+    {
+      "id": "backflow_ticket.assign",
+      "resource": "backflow_ticket",
+      "operation": "assign",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/backflow-tickets/{id}/assign",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "backflow_ticket.assign",
+      "request": {
+        "assigned_user_id": "u2",
+        "owner_role": "content"
+      },
+      "response": {
+        "id": "tk1",
+        "status": "assigned"
+      },
+      "validation": "open→assigned；受理人任务授权内",
+      "side_effects": "通知责任人",
+      "grants": [
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "backflow_ticket.complete",
+      "resource": "backflow_ticket",
+      "operation": "complete",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/backflow-tickets/{id}/complete",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "backflow_ticket.complete",
+      "request": {
+        "resolution_note": "已修正并安排复测",
+        "followup_batch_id": "bt2"
+      },
+      "response": {
+        "id": "tk1",
+        "status": "done"
+      },
+      "validation": "assigned或expired；本人负责的工单；resolution_note必填",
+      "side_effects": "保留超时历史，写resolved_at；补办不覆盖expired审计",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "backflow_ticket.expire",
+      "resource": "backflow_ticket",
+      "operation": "expire",
+      "method": "POST",
+      "path": "/internal/backflow-tickets/{id}/expire",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "backflow_ticket.expire",
+      "request": {},
+      "response": {
+        "id": "tk1",
+        "status": "expired"
+      },
+      "validation": "open/assigned且超过deadline",
+      "side_effects": "超时告警，保留原责任人",
+      "grants": [],
+      "system_job": "ticket_deadline",
+      "risk_tags": []
+    },
+    {
+      "id": "api_token.create",
+      "resource": "api_token",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/api-tokens",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "api_token.create",
+      "request": {
+        "user_id": "u1",
+        "scopes": [
+          "metric_snapshot.read"
+        ]
+      },
+      "response": {
+        "token": "仅此一次展示的占位令牌",
+        "created_at": "2026-11-09T00:00:00Z"
+      },
+      "validation": "per-user；scopes与该用户权限相交；只存token_hash，日志不含明文",
+      "side_effects": "创建令牌；不引入MCP能力",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "api_token.revoke",
+      "resource": "api_token",
+      "operation": "revoke",
+      "method": "POST",
+      "path": "/tenants/{tid}/api-tokens/{id}/revoke",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "api_token.revoke",
+      "request": {
+        "reason": "撤销凭证"
+      },
+      "response": {
+        "revoked_at": "2026-11-09T00:00:00Z"
+      },
+      "validation": "显式撤销，重复幂等；撤销后不允许请求",
+      "side_effects": "写revoked_at，不删除审计",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.create",
+      "resource": "probe_batch",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/probe-batches",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_batch.create",
+      "request": {
+        "type": "event",
+        "snapshot_id": "snp1",
+        "scheduled_at": "2026-11-12T00:00:00Z",
+        "cluster_ids": [
+          "c1",
+          "c2",
+          "c3",
+          "c4",
+          "c5",
+          "c6"
+        ],
+        "cluster_question_sets": [
+          {
+            "cluster_id": "c1",
+            "question_pool_version": 1,
+            "question_ids": [
+              "q1",
+              "q2",
+              "q3"
+            ]
+          }
+        ]
+      },
+      "response": {
+        "id": "bt2",
+        "status": "pending",
+        "snapshot_id": "snp1",
+        "lexicon_version": 1
+      },
+      "validation": "冻结配置；事件3目标+3对照，锚定版本未变；baseline/event/monthly；保存各簇锚定清单，执行/比较不得读取最新池替代该清单；C1服务端独立闸门：实际目标簇所属每品牌必须有已封版brand_lexicon与≥1条approved且effective_from已生效official_fact，缺任一422 judgment_basis_missing；system调用同样校验，不依赖UI禁用",
+      "side_effects": "独立batch_id；复测共用snapshot，probe_result可追加；创建时记录该批次lexicon_version，后续新版词表不改旧批次解释；缺基准不创建/不启动批次，不扣探针配额；start再次核验，失败不迁移running；创建时绑定生效词表，v2封版后新批次用v2，已建基线仍用v1",
+      "grants": [
+        "cs"
+      ],
+      "system_job": "event_schedule",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.cancel",
+      "resource": "probe_batch",
+      "operation": "cancel",
+      "method": "POST",
+      "path": "/tenants/{tid}/probe-batches/{id}/cancel",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_batch.cancel",
+      "request": {
+        "reason": "排期撤销"
+      },
+      "response": {
+        "id": "bt2",
+        "status": "cancelled"
+      },
+      "validation": "仅pending；其他状态409",
+      "side_effects": "终态保留不覆盖",
+      "grants": [
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.compensate",
+      "resource": "probe_batch",
+      "operation": "compensate",
+      "method": "POST",
+      "path": "/tenants/{tid}/probe-batches/{id}/compensate",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_batch.compensate",
+      "request": {
+        "reason": "失败整批重跑"
+      },
+      "response": {
+        "original_batch_id": "bt2",
+        "new_batch_id": "bt3",
+        "status": "pending"
+      },
+      "validation": "仅failed；整批补偿；新batch同配置，禁止局部补跑",
+      "side_effects": "原批次保留dead-letter及告警；新批次全量执行；完整复制原批次范围/锚定清单，禁止混入旧批次部分成功结果",
+      "grants": [
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.start",
+      "resource": "probe_batch",
+      "operation": "start",
+      "method": "POST",
+      "path": "/internal/probe-batches/{id}/start",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_batch.start",
+      "request": {},
+      "response": {
+        "id": "bt2",
+        "status": "running",
+        "lexicon_version": 1
+      },
+      "validation": "start仅pending，其余仅running；completed/failed/cancelled终态；C1服务端独立闸门：实际目标簇所属每品牌必须有已封版brand_lexicon与≥1条approved且effective_from已生效official_fact，缺任一422 judgment_basis_missing；system调用同样校验，不依赖UI禁用；沿用该批次已固定lexicon_version，不能在start改成新版本",
+      "side_effects": "失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试；缺基准不创建/不启动批次，不扣探针配额；start再次核验，失败不迁移running",
+      "grants": [],
+      "system_job": "probe_execute",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.complete",
+      "resource": "probe_batch",
+      "operation": "complete",
+      "method": "POST",
+      "path": "/internal/probe-batches/{id}/complete",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_batch.complete",
+      "request": {},
+      "response": {
+        "id": "bt2",
+        "status": "completed"
+      },
+      "validation": "start仅pending，其余仅running；completed/failed/cancelled终态",
+      "side_effects": "失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试",
+      "grants": [],
+      "system_job": "probe_execute",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "probe_batch.fail",
+      "resource": "probe_batch",
+      "operation": "fail",
+      "method": "POST",
+      "path": "/internal/probe-batches/{id}/fail",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "probe_batch.fail",
+      "request": {},
+      "response": {
+        "id": "bt2",
+        "status": "failed"
+      },
+      "validation": "start仅pending，其余仅running；completed/failed/cancelled终态；整批尝试编号/结果提交草案：≤3次整批重试，成功只选完整一次尝试，不合并多次部分结果",
+      "side_effects": "失败指数退避≤3次后整批failed+dead-letter告警；不得部分重试",
+      "grants": [],
+      "system_job": "probe_execute",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "publish_registration.register",
+      "resource": "publish_registration",
+      "operation": "register",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/publish-registrations",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "publish_registration.register",
+      "request": {
+        "content_asset_id": "a1",
+        "url": "https://example.com/article",
+        "published_at": "2026-11-09T00:00:00Z",
+        "platform": "官网"
+      },
+      "response": {
+        "id": "pub1",
+        "status": "registered",
+        "content_asset_status": "registered"
+      },
+      "validation": "full本品牌；ready且全部当前必配块approved；仅记录不验证远端URL",
+      "side_effects": "排D+3/14/30；重新登记更新URL/时间，旧历史audit；不代发",
+      "grants": [
+        "editor"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "diagnosis_report.create",
+      "resource": "diagnosis_report",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/diagnosis-reports",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "diagnosis_report.create",
+      "request": {
+        "opportunity_ids": [
+          "o1",
+          "o2",
+          "o3"
+        ],
+        "probe_ids": [
+          "p1"
+        ]
+      },
+      "response": {
+        "id": "dr1",
+        "status": "draft"
+      },
+      "validation": "结论能回到probe与来源；覆盖样本及§14门槛",
+      "side_effects": "交付前须FactCheck放行",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "diagnosis_report.approve",
+      "resource": "diagnosis_report",
+      "operation": "approve",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/diagnosis-reports/{id}/approve",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "diagnosis_report.approve",
+      "request": {},
+      "response": {
+        "id": "dr1",
+        "status": "sealed"
+      },
+      "validation": "对应waiting且非作者；样本与证据门槛通过",
+      "side_effects": "同一步定稿+队列approved，不另设seal",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "diagnosis_report.export",
+      "resource": "diagnosis_report",
+      "operation": "export",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/diagnosis-reports/{id}/report",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "id": "dr1",
+        "status": "sealed",
+        "format": "pdf"
+      },
+      "validation": "本品牌sealed，无模型原文或批量摘录；结论附probe_id/来源等级",
+      "side_effects": "无业务副作用",
+      "grants": [
+        "owner",
+        "editor",
+        "cs"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "offboarding.execute",
+      "resource": "offboarding",
+      "operation": "execute",
+      "method": "POST",
+      "path": "/tenants/{tid}/offboarding",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "offboarding.execute",
+      "request": {
+        "contract_ref": "contract1",
+        "reason": "合同解除"
+      },
+      "response": {
+        "id": "off1",
+        "delete_within_days": 30,
+        "retention_years": 2,
+        "after_online_window": "readonly_cold_archive"
+      },
+      "validation": "显式解约；删除C类原文及raw_answer；合同可另定保留期",
+      "side_effects": "30天内删C原文/raw_answer，保留聚合及audit；2年在线后只读冷归档，不自动删；显式清理另走cleanup并独立ledger",
+      "grants": [
+        "admin"
+      ],
+      "system_job": "offboarding",
+      "risk_tags": [
+        "raw_answer",
+        "C_data"
+      ]
+    },
+    {
+      "id": "opportunity_card.transition",
+      "resource": "opportunity_card",
+      "operation": "transition",
+      "method": "POST",
+      "path": "/internal/opportunity-cards/{id}/transition",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "opportunity_card.advance",
+      "request": {
+        "trigger_batch_id": "bt1"
+      },
+      "response": {
+        "id": "o1",
+        "status": "评分"
+      },
+      "validation": "候选→评分：双筛通过且基线开始；确认→在测：监测开始；在测→归档：关联簇归档；禁止请求直接指定任意目标态；只允许本资源状态表命名事件，不接受任意status裸更新",
+      "side_effects": "仅模板已列出边；基线失败留工单处理，不擅自增状态",
+      "grants": [],
+      "system_job": "opportunity_lifecycle",
+      "legacy_endpoint_id": "opportunity_card.advance",
+      "risk_tags": []
+    },
+    {
+      "id": "publish_registration.transition",
+      "resource": "publish_registration",
+      "operation": "transition",
+      "method": "POST",
+      "path": "/internal/publish-registrations/{id}/transition",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "publish_registration.advance",
+      "request": {
+        "trigger_batch_id": "bt2"
+      },
+      "response": {
+        "id": "pub1",
+        "status": "retesting"
+      },
+      "validation": "registered→retesting：登记排期执行；retesting→reported：相关报告完成；reported终态不改；只允许本资源状态表命名事件，不接受任意status裸更新",
+      "side_effects": "重登记新增登记事件/审计历史，asset单独registered",
+      "grants": [],
+      "system_job": "publication_lifecycle",
+      "legacy_endpoint_id": "publish_registration.advance",
+      "risk_tags": []
+    },
+    {
+      "id": "diagnosis_report.revise",
+      "resource": "diagnosis_report",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/diagnosis-reports/{id}/revisions",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "diagnosis_report.revise",
+      "request": {
+        "reason": "补充结论证据",
+        "probe_ids": [
+          "p1"
+        ]
+      },
+      "response": {
+        "id": "dr2",
+        "version": 2,
+        "status": "draft"
+      },
+      "validation": "作者Strategist；新行新版本，旧sealed不改；重新入通用审核队列",
+      "side_effects": "新的waiting条目人工提交后再放行",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "offboarding.cleanup",
+      "resource": "offboarding",
+      "operation": "cleanup",
+      "method": "POST",
+      "path": "/tenants/{tid}/offboarding/{id}/cleanup",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "offboarding.cleanup",
+      "request": {
+        "basis": "合同/法务依据引用",
+        "object_type": "audit_log",
+        "time_range": {
+          "from": "2024-01-01T00:00:00Z",
+          "to": "2024-12-31T23:59:59Z"
+        },
+        "reason": "按法务要求清理"
+      },
+      "response": {
+        "cleanup_ref": "del1",
+        "tombstone_ref": "dl1"
+      },
+      "validation": "human人工执行；合同/法务明确授权；无自动到期清理；仅指定范围；不可删除ledger；Admin身份只代表配置履约职责，仍必须校验本次合同/法务授权依据，不能万能绕过",
+      "side_effects": "先可靠追加独立tombstone再清理，tombstone不随源消失；记录执行人/时间范围/依据",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "raw_answer",
+        "C_data"
+      ]
+    },
+    {
+      "id": "deletion_ledger.read",
+      "resource": "deletion_ledger",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/deletion-ledger",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "dl1",
+            "object_type": "audit_log",
+            "time_range": {
+              "from": "2024-01-01T00:00:00Z",
+              "to": "2024-12-31T23:59:59Z"
+            },
+            "executed_by": "u1",
+            "basis": "legal1"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "同租户配置/审计职责；ledger不含原文或令牌",
+      "side_effects": "只读，不提供ledger删除操作",
+      "grants": [
+        "admin"
+      ],
+      "system_job": null,
+      "risk_tags": []
+    },
+    {
+      "id": "deletion_ledger.append",
+      "resource": "deletion_ledger",
+      "operation": "append",
+      "method": "POST",
+      "path": "/internal/deletion-ledger/append",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "deletion_ledger.append",
+      "request": {
+        "object_type": "probe_result.raw_answer",
+        "time_range": {
+          "from": "2026-01-01T00:00:00Z",
+          "to": "2026-11-09T00:00:00Z"
+        },
+        "executed_by": "u1",
+        "basis": "contract1"
+      },
+      "response": {
+        "id": "dl1",
+        "recorded": true
+      },
+      "validation": "仅显式offboarding链路，独立追加；按合同/法务授权，不允许自由伪造actor",
+      "side_effects": "独立tombstone，生命周期不随源删除",
+      "grants": [],
+      "system_job": "offboarding",
+      "risk_tags": [
+        "raw_answer"
+      ]
+    },
+    {
+      "id": "api_token.record_use",
+      "resource": "api_token",
+      "operation": "record_use",
+      "method": "POST",
+      "path": "/internal/api-tokens/{id}/record-use",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "api_token.record_use",
+      "request": {
+        "used_at": "2026-11-09T00:00:00Z"
+      },
+      "response": {
+        "last_used_at": "2026-11-09T00:00:00Z"
+      },
+      "validation": "认证服务层在成功认证后显式记录使用；只更改该token时间，不改业务对象状态",
+      "side_effects": "记录凭证元数据，不在日志中放明文",
+      "grants": [],
+      "system_job": "audit_middleware",
+      "risk_tags": [
+        "quota"
+      ]
+    },
+    {
+      "id": "intent_cluster.transition",
+      "resource": "intent_cluster",
+      "operation": "transition",
+      "method": "POST",
+      "path": "/internal/clusters/transition",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "intent_cluster.refresh",
+      "request": {
+        "pool_version": 2,
+        "representative_word_ids": [
+          "k1"
+        ]
+      },
+      "response": {
+        "cluster_id": "c1",
+        "status": "active",
+        "pool_version": 2,
+        "question_pool_version": 1
+      },
+      "validation": "词池周批稳定ID匹配与规则归簇；只新增active或更新需求快照引用，不改已锚定question_pool_version，不恢复archived；只允许本资源状态表命名事件，不接受任意status裸更新",
+      "side_effects": "周快照与双筛候选联动；拆并只提案，人工upgrade后重开基线，不自动换题",
+      "grants": [],
+      "system_job": "weekly_pool",
+      "legacy_endpoint_id": "intent_cluster.refresh",
+      "risk_tags": []
+    },
+    {
+      "id": "brand_lexicon.read",
+      "resource": "brand_lexicon",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "brand_id": "b1",
+        "version": 1,
+        "entries": [
+          {
+            "kind": "brand_alias",
+            "term": "简造"
+          },
+          {
+            "kind": "exclusion",
+            "term": "erp"
+          }
+        ]
+      },
+      "validation": "明确tenant/brand/version；历史版本只读，禁止无版本默认latest；Content/Evidence仅关联任务；judge仅已批准的指定版本",
+      "side_effects": "读取不改状态；返回lexicon_version供判定记录",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": "judge",
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "brand_lexicon.create",
+      "resource": "brand_lexicon",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/brand-lexicons",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "brand_lexicon.create",
+      "request": {
+        "entries": [
+          {
+            "kind": "brand_alias",
+            "term": "简造"
+          },
+          {
+            "kind": "exclusion",
+            "term": "erp"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "version_object_id": "lx1",
+        "effective": false
+      },
+      "validation": "strategy映射既有strategist；创建完整版本，新version新行，旧版本只读；kind为五类；created_by/created_at服务端记录",
+      "side_effects": "不立即生效；version_object_id引用该版本首行id，审核整版本条目集合",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "brand_lexicon.submit",
+      "resource": "brand_lexicon",
+      "operation": "submit",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/brand-lexicons/versions/{version}/submit",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "brand_lexicon.submit",
+      "request": {},
+      "response": {
+        "review_entry_id": "rv-lx1",
+        "object_type": "brand_lexicon",
+        "object_id": "lx1",
+        "status": "waiting"
+      },
+      "validation": "版本作者本人；只能提交完整未生效版本，所有条目归属同品牌/版本；不另发明lexicon状态枚举",
+      "side_effects": "入review_queue，FactCheck≠版本作者；approve即该新版本生效，旧版本保留可还原",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.read",
+      "resource": "official_fact",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {
+        "fact_ids": [
+          "f1"
+        ],
+        "as_of": "2026-11-09T00:00:00Z",
+        "cursor": null,
+        "limit": 20
+      },
+      "response": {
+        "items": [
+          {
+            "id": "f1",
+            "tenant_id": "t1",
+            "brand_id": "b1",
+            "fact_category": "price",
+            "content": "示例官方价格口径，非产品承诺",
+            "source_level": "L1",
+            "status": "approved",
+            "effective_from": "2026-01-01T00:00:00Z"
+          }
+        ],
+        "next_cursor": null
+      },
+      "validation": "judge只读同品牌L1、approved且effective_from已到期的指定口径；请求含retracted/draft/缺失基准则422 validation_failed且error_i=null，不以其他资料替代",
+      "side_effects": "error唯一比对基准；人工内部读取可按权限查看审核元数据，judge不可引用retracted",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "system_job": "judge",
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.create",
+      "resource": "official_fact",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts",
+      "semantic": "draft",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "official_fact.create",
+      "request": {
+        "fact_category": "price",
+        "content": "示例官方价格口径，非产品承诺",
+        "source_level": "L1",
+        "effective_from": "2026-01-01T00:00:00Z"
+      },
+      "response": {
+        "id": "f1",
+        "status": "draft",
+        "review_entry_id": "rv-f1"
+      },
+      "validation": "四类fact_category；只准L1；effective_from为UTC；作者从创建审计及review_queue.submitted_by溯源",
+      "side_effects": "同事务创建draft与waiting条目，无额外submit端点；未批准不得供judge使用",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.approve",
+      "resource": "official_fact",
+      "operation": "approve",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts/{id}/approve",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "official_fact.approve",
+      "request": {},
+      "response": {
+        "id": "f1",
+        "status": "approved"
+      },
+      "validation": "human、draft且对应waiting；FactCheck≠创建者；与review_queue.approve同一原子服务动作",
+      "side_effects": "口径approved生效（仍受effective_from限制），结算队列approved",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    },
+    {
+      "id": "official_fact.retract",
+      "resource": "official_fact",
+      "operation": "retract",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/official-facts/{id}/retract",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "official_fact.retract",
+      "request": {
+        "reason": "官方口径已失效"
+      },
+      "response": {
+        "id": "f1",
+        "status": "retracted"
+      },
+      "validation": "human；approved→retracted；reason必填；不改历史metric_snapshot",
+      "side_effects": "后续judge拒绝引用，不出无基准error分；终态保留审计",
+      "grants": [
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ]
+    }
+  ],
+  "states": {
+    "claim_block": {
+      "states": [
+        "draft",
+        "pending_review",
+        "approved",
+        "retracted"
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "pending_review",
+          "trigger": "submit",
+          "actor": "作者",
+          "condition": "校验通过并入waiting",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "pending_review",
+          "to": "approved",
+          "trigger": "approve",
+          "actor": "factcheck",
+          "condition": "审核人≠作者",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "pending_review",
+          "to": "draft",
+          "trigger": "reject/withdraw",
+          "actor": "factcheck/作者",
+          "condition": "驳回理由必填；撤回仅作者",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "approved",
+          "to": "retracted",
+          "trigger": "retract",
+          "actor": "factcheck",
+          "condition": "理由与工单",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "retracted",
+          "to": "draft",
+          "trigger": "revise",
+          "actor": "作者",
+          "condition": "新版本新行，不覆盖旧retracted",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": []
+    },
+    "content_asset": {
+      "states": [
+        "draft",
+        "ready",
+        "registered",
+        "retired"
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "ready",
+          "trigger": "transition",
+          "actor": "system",
+          "condition": "全部必配块当前版approved",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "ready",
+          "to": "draft",
+          "trigger": "transition",
+          "actor": "system",
+          "condition": "必配块retract或新版本draft/pending_review",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "ready",
+          "to": "registered",
+          "trigger": "register",
+          "actor": "editor",
+          "condition": "已在客户渠道发布；登记URL/时间",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "registered",
+          "to": "ready",
+          "trigger": "retract联动",
+          "actor": "system",
+          "condition": "任一已发布块被retract；须重新发布",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "draft",
+          "to": "retired",
+          "trigger": "retire",
+          "actor": "strategist/owner",
+          "condition": "human人工下线；不可逆",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "ready",
+          "to": "retired",
+          "trigger": "retire",
+          "actor": "strategist/owner",
+          "condition": "human人工下线；不可逆",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "registered",
+          "to": "retired",
+          "trigger": "retire",
+          "actor": "strategist/owner",
+          "condition": "human人工下线；不可逆",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "retired"
+      ]
+    },
+    "probe_batch": {
+      "states": [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "transitions": [
+        {
+          "from": "pending",
+          "to": "running",
+          "trigger": "start",
+          "actor": "system",
+          "condition": "排期到达且冻结配置",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "running",
+          "to": "completed",
+          "trigger": "complete",
+          "actor": "system",
+          "condition": "整批完成",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "running",
+          "to": "failed",
+          "trigger": "fail",
+          "actor": "system",
+          "condition": "指数退避≤3次用尽，dead-letter告警",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "pending",
+          "to": "cancelled",
+          "trigger": "cancel",
+          "actor": "cs",
+          "condition": "仅pending可取消",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "review_queue": {
+      "states": [
+        "waiting",
+        "approved",
+        "rejected",
+        "withdrawn"
+      ],
+      "transitions": [
+        {
+          "from": "waiting",
+          "to": "approved",
+          "trigger": "approve",
+          "actor": "factcheck",
+          "condition": "非作者；对象approved或sealed",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "waiting",
+          "to": "rejected",
+          "trigger": "reject",
+          "actor": "factcheck",
+          "condition": "reason必填；对象回draft",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "waiting",
+          "to": "withdrawn",
+          "trigger": "withdraw",
+          "actor": "作者",
+          "condition": "对象回draft",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "approved",
+        "rejected",
+        "withdrawn"
+      ]
+    },
+    "objection": {
+      "states": [
+        "submitted",
+        "granted",
+        "viewed",
+        "rejected"
+      ],
+      "transitions": [
+        {
+          "from": "submitted",
+          "to": "granted",
+          "trigger": "grant",
+          "actor": "cs/敏感升级factcheck",
+          "condition": "3工作日内响应",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "submitted",
+          "to": "rejected",
+          "trigger": "reject",
+          "actor": "cs/敏感升级factcheck",
+          "condition": "说明理由",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "granted",
+          "to": "viewed",
+          "trigger": "POST view",
+          "actor": "cs",
+          "condition": "CS发起会话，单probe单次，24h内查看",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "viewed",
+        "rejected"
+      ]
+    },
+    "backflow_ticket": {
+      "states": [
+        "open",
+        "assigned",
+        "expired",
+        "done"
+      ],
+      "transitions": [
+        {
+          "from": "open",
+          "to": "assigned",
+          "trigger": "assign",
+          "actor": "cs",
+          "condition": "指定责任人",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "assigned",
+          "to": "done",
+          "trigger": "complete",
+          "actor": "责任人",
+          "condition": "resolution_note必填",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "open",
+          "to": "expired",
+          "trigger": "expire",
+          "actor": "system",
+          "condition": "超deadline；说错24h",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "assigned",
+          "to": "expired",
+          "trigger": "expire",
+          "actor": "system",
+          "condition": "超deadline",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "expired",
+          "to": "done",
+          "trigger": "complete",
+          "actor": "责任人",
+          "condition": "补办，保留超时记录，resolution_note必填",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "done"
+      ]
+    },
+    "evidence_package": {
+      "states": [
+        "draft",
+        "sealed"
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "sealed",
+          "trigger": "approve",
+          "actor": "factcheck",
+          "condition": "队列waiting、非作者；放行即封版",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "sealed"
+      ]
+    },
+    "diagnosis_report": {
+      "states": [
+        "draft",
+        "sealed"
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "sealed",
+          "trigger": "approve",
+          "actor": "factcheck",
+          "condition": "队列waiting、非作者；样本/证据过闸",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "sealed"
+      ]
+    },
+    "intent_cluster": {
+      "states": [
+        "active",
+        "archived"
+      ],
+      "transitions": [
+        {
+          "from": "active",
+          "to": "archived",
+          "trigger": "archive",
+          "actor": "strategist",
+          "condition": "原因/证据；软删除，90天分母过渡",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "archived"
+      ]
+    },
+    "question_pool": {
+      "states": [
+        "open",
+        "frozen",
+        "archived"
+      ],
+      "transitions": [
+        {
+          "from": "open",
+          "to": "frozen",
+          "trigger": "freeze",
+          "actor": "strategist",
+          "condition": "五字段完整",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "frozen",
+          "to": "archived",
+          "trigger": "archive",
+          "actor": "strategist",
+          "condition": "仍保留只读原文/历史锚定；停止新锚定",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "archived"
+      ]
+    },
+    "scoring_snapshot": {
+      "states": [
+        "open",
+        "frozen"
+      ],
+      "transitions": [
+        {
+          "from": "open",
+          "to": "frozen",
+          "trigger": "freeze",
+          "actor": "cs",
+          "condition": "首次执行前固定模型参数；簇锚定已记录",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "frozen"
+      ]
+    },
+    "opportunity_card": {
+      "states": [
+        "候选",
+        "评分",
+        "建议",
+        "确认",
+        "在测",
+        "归档"
+      ],
+      "transitions": [
+        {
+          "from": "候选",
+          "to": "评分",
+          "trigger": "基线评分",
+          "actor": "system",
+          "condition": "通过需求与真空度预筛",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "评分",
+          "to": "建议",
+          "trigger": "recommend",
+          "actor": "strategist",
+          "condition": "满足样本及交付门槛",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "建议",
+          "to": "确认",
+          "trigger": "confirm",
+          "actor": "owner",
+          "condition": "human确认3簇",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "确认",
+          "to": "在测",
+          "trigger": "批次启动",
+          "actor": "system",
+          "condition": "事件/监测批次",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "在测",
+          "to": "归档",
+          "trigger": "关联簇归档",
+          "actor": "system",
+          "condition": "关联簇已软归档",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "归档"
+      ]
+    },
+    "publish_registration": {
+      "states": [
+        "none",
+        "registered",
+        "retesting",
+        "reported"
+      ],
+      "transitions": [
+        {
+          "from": "none",
+          "to": "registered",
+          "trigger": "register",
+          "actor": "editor",
+          "condition": "none表示未建记录",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "registered",
+          "to": "retesting",
+          "trigger": "批次启动",
+          "actor": "system",
+          "condition": "登记排期开始",
+          "effect": "审计并执行关联副作用"
+        },
+        {
+          "from": "retesting",
+          "to": "reported",
+          "trigger": "月报产出",
+          "actor": "system",
+          "condition": "相关批次指标和报告完成",
+          "effect": "审计并执行关联副作用"
+        }
+      ],
+      "terminal": [
+        "reported"
+      ]
+    },
+    "official_fact": {
+      "states": [
+        "draft",
+        "approved",
+        "retracted"
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "approved",
+          "trigger": "approve（同通用队列放行）",
+          "actor": "factcheck",
+          "condition": "L1；waiting；非创建者",
+          "effect": "生效且结算队列approved，judge还须校验effective_from"
+        },
+        {
+          "from": "approved",
+          "to": "retracted",
+          "trigger": "retract",
+          "actor": "factcheck",
+          "condition": "理由必填",
+          "effect": "后续judge拒绝引用，历史指标保持不变"
+        }
+      ],
+      "terminal": [
+        "retracted"
+      ]
+    }
+  },
+  "jobs": {
+    "c_import": {
+      "endpoints": [
+        "keyword_raw.import"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "weekly_pool": {
+      "endpoints": [
+        "keyword_pool_snapshot.append",
+        "intent_cluster.transition"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "baseline_scoring": {
+      "endpoints": [
+        "cluster_score.append",
+        "cluster_platform_signal.append"
+      ],
+      "batch_required": true,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "content_reconcile": {
+      "endpoints": [
+        "content_asset.transition"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "probe_execute": {
+      "endpoints": [
+        "probe_batch.execute",
+        "probe_batch.start",
+        "probe_batch.complete",
+        "probe_batch.fail"
+      ],
+      "batch_required": true,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "metric_aggregate": {
+      "endpoints": [
+        "metric_snapshot.append"
+      ],
+      "batch_required": true,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "audit_middleware": {
+      "endpoints": [
+        "audit_log.append",
+        "api_token.record_use"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "backflow_scan": {
+      "endpoints": [
+        "backflow_ticket.create"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "ticket_deadline": {
+      "endpoints": [
+        "backflow_ticket.expire"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "event_schedule": {
+      "endpoints": [
+        "probe_batch.create",
+        "scoring_snapshot.create",
+        "scoring_snapshot.freeze"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "offboarding": {
+      "endpoints": [
+        "offboarding.execute",
+        "deletion_ledger.append"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "opportunity_lifecycle": {
+      "endpoints": [
+        "opportunity_card.transition"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "publication_lifecycle": {
+      "endpoints": [
+        "publish_registration.transition"
+      ],
+      "batch_required": true,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "cron",
+        "event_id"
+      ]
+    },
+    "judge": {
+      "endpoints": [
+        "brand_lexicon.read",
+        "official_fact.read",
+        "probe_result.judge"
+      ],
+      "batch_required": true,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "event_id"
+      ]
+    }
+  },
+  "citation_policy": {
+    "fields": [
+      "cited_urls",
+      "cited_domains",
+      "cited_claim_ids"
+    ],
+    "normalization": [
+      "remove_protocol",
+      "remove_www",
+      "remove_query",
+      "remove_fragment",
+      "remove_trailing_slash"
+    ],
+    "explicit": "normalized_url_equal",
+    "weak": "domain_only_internal",
+    "implicit": "fingerprint_internal",
+    "external_citation_rate": "explicit_only"
+  },
+  "content_retraction_policy": {
+    "same_transaction": true,
+    "shared_cause_event_id": true,
+    "first": [
+      "registered",
+      "ready"
+    ],
+    "derive_if_required_unapproved": [
+      "ready",
+      "draft"
+    ],
+    "non_required_retraction_stop": "ready",
+    "direct_registered_to_draft": false
+  },
+  "retention_policy": {
+    "online_years": 2,
+    "after_online": "readonly_cold_archive",
+    "automatic_delete": false,
+    "explicit_cleanup": "human_contract_or_legal",
+    "independent_tombstone": true
+  },
+  "embedded_models": {
+    "question_score": {
+      "parent_resource": "cluster_score",
+      "field": "question_scores",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "write_via": "cluster_score.append",
+      "source_endpoint_ids": [
+        "question_score.read",
+        "question_score.append"
+      ]
+    },
+    "evidence_item": {
+      "parent_resource": "evidence_package",
+      "field": "items",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "evidence",
+        "owner",
+        "editor"
+      ],
+      "write_grants": [
+        "evidence"
+      ],
+      "write_via": [
+        "evidence_package.create",
+        "evidence_package.revise"
+      ],
+      "source_endpoint_ids": [
+        "evidence_item.read",
+        "evidence_item.create"
+      ]
+    },
+    "probe": {
+      "parent_resource": "probe_batch",
+      "field": "probes",
+      "grants": [
+        "strategist",
+        "factcheck",
+        "cs",
+        "content",
+        "evidence"
+      ],
+      "write_via": "probe_batch.execute",
+      "source_endpoint_ids": [
+        "probe.read",
+        "probe.append"
+      ]
+    }
+  },
+  "review": {
+    "core_groups": [
+      {
+        "number": 1,
+        "title": "批次启动与执行",
+        "endpoint_ids": [
+          "probe_batch.start",
+          "probe_batch.execute"
+        ]
+      },
+      {
+        "number": 2,
+        "title": "失败整批补偿",
+        "endpoint_ids": [
+          "probe_batch.compensate"
+        ]
+      },
+      {
+        "number": 3,
+        "title": "采样配置冻结",
+        "endpoint_ids": [
+          "scoring_snapshot.freeze"
+        ]
+      },
+      {
+        "number": 4,
+        "title": "问句冻结与锚定升级",
+        "endpoint_ids": [
+          "question_pool.freeze",
+          "question_pool.upgrade_anchor"
+        ]
+      },
+      {
+        "number": 5,
+        "title": "簇级出数与不可比",
+        "endpoint_ids": [
+          "cluster_score.read",
+          "cluster_score.compare"
+        ]
+      },
+      {
+        "number": 6,
+        "title": "判定写入",
+        "endpoint_ids": [
+          "probe_result.judge"
+        ]
+      },
+      {
+        "number": 7,
+        "title": "块创建",
+        "endpoint_ids": [
+          "claim_block.create"
+        ]
+      },
+      {
+        "number": 8,
+        "title": "块新版本修订",
+        "endpoint_ids": [
+          "claim_block.revise"
+        ]
+      },
+      {
+        "number": 9,
+        "title": "块提交",
+        "endpoint_ids": [
+          "claim_block.submit"
+        ]
+      },
+      {
+        "number": 10,
+        "title": "块放行",
+        "endpoint_ids": [
+          "claim_block.approve"
+        ]
+      },
+      {
+        "number": 11,
+        "title": "块撤回下线",
+        "endpoint_ids": [
+          "claim_block.retract"
+        ]
+      },
+      {
+        "number": 12,
+        "title": "通用队列放行",
+        "endpoint_ids": [
+          "review_queue.approve"
+        ]
+      },
+      {
+        "number": 13,
+        "title": "通用队列驳回",
+        "endpoint_ids": [
+          "review_queue.reject"
+        ]
+      },
+      {
+        "number": 14,
+        "title": "资产三态迁移",
+        "endpoint_ids": [
+          "content_asset.transition",
+          "publish_registration.register",
+          "content_asset.retire"
+        ]
+      },
+      {
+        "number": 15,
+        "title": "发布登记",
+        "endpoint_ids": [
+          "publish_registration.register"
+        ]
+      },
+      {
+        "number": 16,
+        "title": "诊断原文摘录·异议链",
+        "endpoint_ids": [
+          "diagnosis_report.excerpt"
+        ]
+      },
+      {
+        "number": 17,
+        "title": "异议授权",
+        "endpoint_ids": [
+          "objection.grant"
+        ]
+      },
+      {
+        "number": 18,
+        "title": "异议发起调阅",
+        "endpoint_ids": [
+          "objection.view"
+        ]
+      },
+      {
+        "number": 19,
+        "title": "令牌撤销",
+        "endpoint_ids": [
+          "api_token.revoke"
+        ]
+      },
+      {
+        "number": 20,
+        "title": "回流派单",
+        "endpoint_ids": [
+          "backflow_ticket.assign"
+        ]
+      },
+      {
+        "number": 21,
+        "title": "官方口径读取·judge唯一比对基准",
+        "endpoint_ids": [
+          "official_fact.read"
+        ]
+      }
+    ],
+    "core_endpoint_ids": [
+      "probe_batch.start",
+      "probe_batch.execute",
+      "probe_batch.compensate",
+      "scoring_snapshot.freeze",
+      "question_pool.freeze",
+      "question_pool.upgrade_anchor",
+      "cluster_score.read",
+      "cluster_score.compare",
+      "probe_result.judge",
+      "claim_block.create",
+      "claim_block.revise",
+      "claim_block.submit",
+      "claim_block.approve",
+      "claim_block.retract",
+      "review_queue.approve",
+      "review_queue.reject",
+      "content_asset.transition",
+      "publish_registration.register",
+      "content_asset.retire",
+      "diagnosis_report.excerpt",
+      "objection.grant",
+      "objection.view",
+      "api_token.revoke",
+      "backflow_ticket.assign",
+      "official_fact.read",
+      "tenant.read",
+      "tenant.configure",
+      "keyword_raw.read",
+      "keyword_raw.import",
+      "keyword_raw.read_raw",
+      "question_pool.read",
+      "scoring_snapshot.read",
+      "question_pool.create",
+      "question_pool.revise",
+      "question_pool.archive",
+      "scoring_snapshot.create",
+      "probe_result.read_raw",
+      "probe_result.access",
+      "audit_log.read",
+      "api_token.read",
+      "probe_batch.read",
+      "audit_log.append",
+      "evidence_package.create",
+      "evidence_package.revise",
+      "api_token.create",
+      "probe_batch.create",
+      "probe_batch.cancel",
+      "probe_batch.complete",
+      "probe_batch.fail",
+      "offboarding.execute",
+      "offboarding.cleanup",
+      "deletion_ledger.append",
+      "api_token.record_use",
+      "brand_lexicon.read",
+      "brand_lexicon.create",
+      "brand_lexicon.submit",
+      "official_fact.create",
+      "official_fact.approve",
+      "official_fact.retract"
+    ],
+    "resource_layers": {
+      "需求层": [
+        "seed_list",
+        "keyword_raw",
+        "keyword_pool_snapshot",
+        "intent_cluster",
+        "question_pool",
+        "opportunity_card",
+        "scoring_snapshot",
+        "cluster_score",
+        "cluster_platform_signal",
+        "industry_score",
+        "diagnosis_report",
+        "brand_lexicon",
+        "official_fact"
+      ],
+      "生产层": [
+        "content_asset",
+        "claim_block",
+        "review_queue",
+        "evidence_package",
+        "publish_registration"
+      ],
+      "验证层": [
+        "probe_batch",
+        "probe_result",
+        "metric_snapshot",
+        "objection",
+        "backflow_ticket"
+      ],
+      "横切支撑": [
+        "tenant",
+        "brand",
+        "user_member",
+        "audit_log",
+        "api_token",
+        "offboarding",
+        "deletion_ledger"
+      ]
+    },
+    "v4_delta": {
+      "before_resources": 28,
+      "added_resources": 2,
+      "after_resources": 30,
+      "before_endpoints": 105,
+      "added_endpoints": 7,
+      "after_endpoints": 112,
+      "before_allow_rows": 230,
+      "added_allow_rows": 15,
+      "after_allow_rows": 245,
+      "note": "裁定29→31为估计，实际基数按R3归并后28计算"
+    }
+  },
+  "layout_migration": {
+    "before": {
+      "resources": 31,
+      "endpoints": 112,
+      "operations": 41,
+      "allow_rows": 246,
+      "deny_rows": 11193
+    },
+    "endpoint_map": {
+      "tenant.read": "tenant.read",
+      "tenant.configure": "tenant.configure",
+      "brand.read": "brand.read",
+      "brand.configure": "brand.configure",
+      "user_member.read": "user_member.read",
+      "user_member.configure": "user_member.configure",
+      "seed_list.read": "seed_list.read",
+      "seed_list.create": "seed_list.create",
+      "seed_list.revise": "seed_list.revise",
+      "keyword_raw.read": "keyword_raw.read",
+      "keyword_raw.import": "keyword_raw.import",
+      "keyword_raw.read_raw": "keyword_raw.read_raw",
+      "keyword_pool_snapshot.read": "keyword_pool_snapshot.read",
+      "intent_cluster.read": "intent_cluster.read",
+      "question_pool.read": "question_pool.read",
+      "opportunity_card.read": "opportunity_card.read",
+      "scoring_snapshot.read": "scoring_snapshot.read",
+      "cluster_score.read": "cluster_score.read",
+      "cluster_platform_signal.read": "cluster_platform_signal.read",
+      "intent_cluster.archive": "intent_cluster.archive",
+      "intent_cluster.upgrade": "question_pool.upgrade_anchor",
+      "question_pool.create": "question_pool.create",
+      "question_pool.freeze": "question_pool.freeze",
+      "question_pool.revise": "question_pool.revise",
+      "question_pool.archive": "question_pool.archive",
+      "opportunity_card.create": "opportunity_card.create",
+      "opportunity_card.recommend": "opportunity_card.recommend",
+      "opportunity_card.confirm": "opportunity_card.confirm",
+      "scoring_snapshot.create": "scoring_snapshot.create",
+      "scoring_snapshot.freeze": "scoring_snapshot.freeze",
+      "keyword_pool_snapshot.append": "keyword_pool_snapshot.append",
+      "cluster_score.append": "cluster_score.append",
+      "cluster_platform_signal.append": "cluster_platform_signal.append",
+      "content_asset.read": "content_asset.read",
+      "claim_block.read": "claim_block.read",
+      "probe_result.read": "probe_result.read",
+      "content_asset.create": "content_asset.create",
+      "content_asset.retire": "content_asset.retire",
+      "content_asset.reconcile": "content_asset.transition",
+      "claim_block.create": "claim_block.create",
+      "claim_block.revise": "claim_block.revise",
+      "claim_block.submit": "claim_block.submit",
+      "claim_block.approve": "claim_block.approve",
+      "claim_block.reject": "claim_block.reject",
+      "claim_block.retract": "claim_block.retract",
+      "claim_block.citations": "claim_block.citations",
+      "probe_result.read_raw": "probe_result.read_raw",
+      "probe_result.access": "probe_result.access",
+      "probe_result.append": "probe_batch.execute",
+      "probe_result.judge": "probe_result.judge",
+      "metric_snapshot.read": "metric_snapshot.read",
+      "industry_score.read": "industry_score.read",
+      "audit_log.read": "audit_log.read",
+      "review_queue.read": "review_queue.read",
+      "evidence_package.read": "evidence_package.read",
+      "objection.read": "objection.read",
+      "backflow_ticket.read": "backflow_ticket.read",
+      "api_token.read": "api_token.read",
+      "probe_batch.read": "probe_batch.read",
+      "publish_registration.read": "publish_registration.read",
+      "diagnosis_report.read": "diagnosis_report.read",
+      "offboarding.read": "offboarding.read",
+      "metric_snapshot.compare": "cluster_score.compare",
+      "metric_snapshot.export": "metric_snapshot.export",
+      "metric_snapshot.append": "metric_snapshot.append",
+      "industry_score.revise": "industry_score.revise",
+      "audit_log.append": "audit_log.append",
+      "review_queue.submit": "review_queue.submit",
+      "review_queue.approve": "review_queue.approve",
+      "review_queue.reject": "review_queue.reject",
+      "review_queue.withdraw": "review_queue.withdraw",
+      "evidence_package.create": "evidence_package.create",
+      "evidence_package.revise": "evidence_package.revise",
+      "evidence_package.approve": "evidence_package.approve",
+      "evidence_package.export": "evidence_package.export",
+      "objection.create": "objection.create",
+      "objection.approve": "objection.grant",
+      "objection.reject": "objection.reject",
+      "objection.view": "objection.view",
+      "objection.excerpt": "diagnosis_report.excerpt",
+      "backflow_ticket.create": "backflow_ticket.create",
+      "backflow_ticket.assign": "backflow_ticket.assign",
+      "backflow_ticket.complete": "backflow_ticket.complete",
+      "backflow_ticket.expire": "backflow_ticket.expire",
+      "api_token.create": "api_token.create",
+      "api_token.revoke": "api_token.revoke",
+      "probe_batch.create": "probe_batch.create",
+      "probe_batch.cancel": "probe_batch.cancel",
+      "probe_batch.compensate": "probe_batch.compensate",
+      "probe_batch.start": "probe_batch.start",
+      "probe_batch.complete": "probe_batch.complete",
+      "probe_batch.fail": "probe_batch.fail",
+      "publish_registration.register": "publish_registration.register",
+      "diagnosis_report.create": "diagnosis_report.create",
+      "diagnosis_report.approve": "diagnosis_report.approve",
+      "diagnosis_report.export": "diagnosis_report.export",
+      "offboarding.execute": "offboarding.execute",
+      "opportunity_card.advance": "opportunity_card.transition",
+      "publish_registration.advance": "publish_registration.transition",
+      "diagnosis_report.revise": "diagnosis_report.revise",
+      "offboarding.cleanup": "offboarding.cleanup",
+      "deletion_ledger.read": "deletion_ledger.read",
+      "deletion_ledger.append": "deletion_ledger.append",
+      "api_token.record_use": "api_token.record_use",
+      "intent_cluster.refresh": "intent_cluster.transition",
+      "question_score.read": "cluster_score.read#question_scores",
+      "question_score.append": "cluster_score.append#question_scores",
+      "evidence_item.read": "evidence_package.read#items",
+      "evidence_item.create": "evidence_package.create/revise#items",
+      "probe.read": "probe_batch.read#probes",
+      "probe.append": "probe_batch.execute#probe",
+      "intent_cluster.anchor": "question_pool.upgrade_anchor#initial_anchor"
+    },
+    "policy_change": false,
+    "physical_tables_change": false
+  },
+  "review_object_types": [
+    "claim_block",
+    "evidence_package",
+    "diagnosis_report",
+    "brand_lexicon",
+    "official_fact"
+  ],
+  "judge_inputs_policy": {
+    "lexicon_version_required": true,
+    "latest_fallback": false,
+    "lexicon_review_required": true,
+    "official_source_level": "L1",
+    "official_status": "approved",
+    "no_official_baseline_error_i": null,
+    "record_on": [
+      "judge_job",
+      "metric_snapshot"
+    ],
+    "exclusion_kind": "exclusion",
+    "historical_versions_immutable": true
+  },
+  "batch_basis_gate": {
+    "endpoints": [
+      "probe_batch.create",
+      "probe_batch.start"
+    ],
+    "http_status": 422,
+    "error_code": "judgment_basis_missing",
+    "brand_scope": "each_target_brand",
+    "require_approved_lexicon": true,
+    "require_approved_effective_official_fact": true,
+    "recheck_on_start": true,
+    "ui_only_is_insufficient": true,
+    "lexicon_version_pinned_on_create": true
+  },
+  "onboarding_gate_scope": "v3.5 C1; planning only, no production handler implemented"
+}

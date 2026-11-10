@@ -1,332 +1,238 @@
 # API 契约与状态机设计规格
 
-> 状态：草案，未冻结 · T02 已开始，待业务决策与人审。不得据此实现未批准的状态、权限或判定规则。
-> 输入：`GEO产品文档.md` v3.4 §3–4、§6、§8–9、§11–14、§16–19；`api-spec-template.md`。
-> 本稿区分“事实源已定”“用户已批准决策”与“待批准建议”。路径及事件名是接口设计草案，均需人审。AGENTS.md 标注事实源已冻结，但产品文件页首仍写评审稿，本稿不修改其状态。
+> 状态：草案，未冻结 · T02 人审候选稿。不得自行冻结。
+> 事实依据：[产品文档](GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定覆盖早期模板及本稿旧版本的冲突描述；产品文档仅按授权修改 §18 和决策记录，其余原文保留。
+> 人审从[一页地图](spec-map.md)进入，再读[核心集](api/core-set.md)和[allow权限规范](api/permissions.csv)；[支撑端点](api/generated/endpoints.md)默认抽检。[结构化源](api/contracts.json)用于生成与机器校验，不要求人逐行审。
 
 ## 0. 冻结流程与审阅 checklist
 
-- [ ] §9.3 角色 × 资源 × 操作矩阵完整，未覆盖项有人工决策
-- [ ] 各对象状态枚举、出边、终态全部批准
-- [ ] 所有写操作显式定义权限、审计、幂等、副作用
-- [ ] 差值接口口径一致性与簇级问句集例外明确
-- [ ] 语义分级及 destructive 标记完整
-- [ ] 客户原文访问仅异议单条调阅，原文无批量导出端点
-- [ ] §6 阻塞问题全部关闭；人审人、日期及冻结版本补齐
+以下为 agent 自查结果，不替代负责人冻结签字：
 
-审阅人：待填；冻结日期：待填；当前不满足冻结条件。
+- [x] allow即规范，未出现三键即deny；每个allow保留 §9.3 或裁定依据，测试穷举全集验证默认拒绝
+- [x] 三轮定稿状态落表；出边或明确终态，修订通过新版本承接
+- [x] 写操作均为显式服务层动作，禁止PATCH状态与页面/脚本直写库
+- [x] 每端点有权限三键、语义、幂等、审计、副作用、请求响应示例
+- [x] 差值端点校验配置身份和簇锚定口径，不一致422 incomparable且无差值
+- [x] read-only/draft/proposal/write 及 destructive 全量标注
+- [x] 原文仅内部按职责单条访问或异议通道查看；没有批量导出端点
+- [ ] 人审allow规范、核心集、字段草案，抽检支撑件，确认可以冻结
+
+冻结人：待人审填写；冻结日期：未填写；冻结版本：未分配。自动化检查只验证规格内部约束与授权改动范围，不表示业务功能通过验收。
 
 ## 1. 全局约定
 
-### 1.1 鉴权与隔离（已定）
+### 1.1 鉴权与权限求值
 
-Web 会话与 per-user API Token（PAT）并存，解析 `(user, role, tenant, actor_type)`，权限矩阵同源。所有资源查询验证 tenant_id 与品牌归属；路径中的 tid/bid 不是授权凭证。所有写操作经 `src/server/api`，jobs 也只能调用服务层；路由只转发。没有权限定义的组合不开放，待人审，禁止默认允许。
+Web 会话 + per-user PAT，解析 `(user, role, tenant, actor_type)`；PAT scopes 与用户实时权限取交集，不能提升角色权限。服务端先校验租户，再校验品牌或关联任务，再查权限矩阵三键，最后执行端点前置条件。顺序中的任何deny或条件不满足均403 permission_denied；未知三键默认deny。URL中的tid/bid/对象ID不是授权凭证。所有写操作经 `src/server/api`，路由和jobs只调用该层，不直接修改数据库。
 
-角色为 owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin；actor_type 为 human/agent/external_agent，与角色正交。MVP 不实现 Agent Runtime/MCP。决策动作须人确认；外部内容仅作数据、不进入指令位。
+九角色：owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin。actor_type 独立于角色：human/agent/system/external_agent；MVP不实现Agent Runtime或MCP。人类决策动作（放行、确认、升级问句、人工下线等）必须human，agent/external_agent无绿色通道。作者不等于状态属性。
 
-### 1.2 请求与响应（模板约定）
+权限矩阵中allow是“该角色可在条件满足时执行”，不是无条件开放。每行conditions与以下规则共同强制，deny优先：
 
-基础路径草案：`/tenants/{tid}/brands/{bid}`；租户资源位于 `/tenants/{tid}`。下表路径以品牌前缀为相对基准，例外注明。
+- strategist/factcheck/cs：本租户全品牌范围，但只执行各自角色职责操作；“租户级”不等于拥有其他角色操作权。
+- content/evidence：仅分派机会卡、簇、来源及可沿ID链验证关联的对象；不得凭猜测ID或读取父对象获得其他任务权限。
+- admin：配置及审计全量；Admin 不默认读取原文。`probe_result.read_raw`明确deny；单条`admin-access`为显式POST，必须reason且写审计，不授予永久原文权限。
+- owner/editor/viewer：本品牌（Owner读取本租户成员为产品§13.2⑫明确的租户级例外，仅成员信息，不扩张业务读写）；竞品原文无直接读取权。Editor可读本品牌诊断、证据包、模板和复测判定摘要；仅在full模式内容工作台写块草稿/提交与发布登记。
+- diagnosis档：客户全只读，唯一写入口是异议申请；不确认优先簇、不编辑、不登记、不人工下线。内部履约操作仍按内部角色职责，不因合同模式被误禁。
+- 客户原文通路唯一为异议查看器；先鉴权单条会话，再返回摘录；证据包普通read/download不得夹带受限excerpt或raw_answer。
+- full客户机会视图仅本品牌簇的筛选只读投影；diagnosis档不提供机会视图。聚合竞品信号不泄露全文。
 
-列表使用 cursor，响应不超过 20KB；大对象摘要加下钻，不以截断原文绕过访问校验。所有响应包含 `meta: { snapshot_id, data_as_of, pool_version? }`，无快照时 snapshot_id 为 null；来源结论携带 probe_id 与来源等级。时间格式、cursor 编码与错误体 schema 待人审定稿。
+矩阵条件采用分号连接的逻辑AND；`applicant_or_initiating_cs`等or词表示其名称内的条件分支。完整条件的人类语义在本节及端点validation中定义。CSV中的allow集合为授权规范的唯一三键清单；JSON grants为生成输入，--check保证二者一致。测试解析器仅验证规范，T05仍须实现真实服务端鉴权，不能把条件allow当成无条件200。未经配置的scope/角色/资源/操作拒绝；系统身份不占用九角色任一行。
 
-写请求携带 `Idempotency-Key`。建议作用域为租户、操作者、操作和目标对象；同 key 同载荷复用结果，异载荷拒绝；保存时长待批准。审计和副作用必须随业务成功可靠落地，重放不重复排期、计费或发通知。具体事务/事件投递实现属后续任务。
+### 1.2 路径、时间、分页与响应
 
-错误：403 权限；409 非法状态迁移；422 字段校验；429 配额。模板 `409002 incomparable` 是业务码，不是 HTTP 状态码，其 HTTP 映射待批准。
+除明确以`/tenants/{tid}`起始的路径外，普通路径均以`/tenants/{tid}/brands/{bid}`为前缀；租户级members/api-tokens/audit-logs/industry-scores/offboarding/deletion-ledger/keyword-pool-snapshots/seed-lists/keyword-imports以及scoring-snapshots/probe-batches在`/tenants/{tid}`下。`/internal`路径为服务层内部调用契约，不挂载为Web/PAT可访问路由。所有对象仍检查归属，不能借租户前缀绕过任务或品牌限制。
 
-### 1.3 审计、审核与配额（已定）
+时间一律UTC ISO-8601，例如`2026-11-09T00:00:00Z`。列表请求`cursor`可选、`limit`默认20上限100；超上限422 validation_failed；按稳定ID游标分页，响应含顶层next_cursor，末页null。cursor为不透明值，必须绑定租户、资源、筛选及数据口径，不能跨查询重用。
 
-所有写操作、所有原始回答和 C 类数据访问记录 audit_log，含 user_id、tenant_id、action、object_type、object_id、at，以及 actor_type、agent_run_id、prompt_version；后两字段 human 的空值语义待定，字段不可省。审核队列使用 object_type + object_id，不写死两类；作者与状态分别表达。FactCheck 唯一放行，作者不得放行自己产物。
+成功响应：`{ "data": {...}, "meta": { "snapshot_id": "snp1 或 null", "data_as_of": "UTC时间", "pool_version": 1 }, "next_cursor": null }`。next_cursor仅列表必填，pool_version仅适用时携带；所有响应含snapshot_id与data_as_of。结论返回probe_id与source_level回溯链。单响应≤20KB；服务端减少列表数量（即使不足limit也给next_cursor），大对象摘要下钻。不可用拆页方式形成原始回答批量导出。单条摘录亦受20KB限制，查看器按授权单条分段下钻，不截断后冒充完整证据。
 
-按 `(tenant, operation_type)` 分 probe/judge/drafting 计数，并保留按 token 限流；超额 429 + 告警。实际配额由配置明确，禁止编造默认额度。成本降级必须披露，不静默改采样参数。
+所有POST要求Idempotency-Key，保存24h。作用域为租户+身份+端点+目标；同键同载荷返回原结果，不重复排期/计费/业务审计；同键异载荷409 state_conflict。24h后重新校验对象状态及业务唯一约束，不能据此覆盖不可变记录。同一异议会话内的读取每次另写访问审计。业务数据、审计与副作用须可靠原子提交/投递，不能存在成功写入却漏审计的路径。
 
-### 1.4 口径及不可变性（已定）
+### 1.3 错误体
 
-- 问句溯源五字段任一为空不入库。§18 列有 source_word_id、source_channel、collected_at、maintainer、question_pool_version 等字段，但未明确“五字段”的准确映射，见 §6 待确认；不据此编写入库逻辑。冻结修改开新版本。
-- 检索轨 MVP：3 问句 × 4 国内厂商模型 × 温度 0/0.7 × 3 轮 = 72 条/簇。具体模型 ID/版本待 T14 当日核实，当前不调用。
-- scoring_snapshot 必含 judge_version=`rule_manual_v1`、grounding_mode、模型与采样参数、问句原文和版本引用；换模型/判定/轨道开新快照并重建基线。同快照不覆盖，冻结参数不得改。
-- refused 不进任何分母；n_valid < 10 或 model_coverage < 3 时 *_score=null、insufficient_sample=true；模型覆盖如实记，不补齐。
-- 同一 `(cluster_id, snapshot_id)` 只写一次。机会卡引用 cluster_score，不复制四分与留白分。
-- 对比读取基线/复测的测量口径；不一致返回 incomparable，省略差值，不进入差值报告。整池新版本若老簇问句集未变，不自动废弃该簇基线（§3、§19.17）。具体一致性字段与标识关系见阻塞问题。
-- 归档簇软删除，SOV 分母保留 90 天过渡；我方生产内容报告必须披露且有对照组。
-- 无 search_volume 业务字段，不输出绝对搜索次数或承诺。C 类数据需书面授权及入库自动脱敏，解约后 30 天内删除；无全量原文导出接口。
+错误固定`{"error":{"code":"<string>","message":"...","details":{}},"meta":{"snapshot_id":null,"data_as_of":"2026-11-09T00:00:00Z"}}`；details为对象，校验错误列字段路径与原因，但不泄露未授权对象是否存在或原文。
+
+| code | HTTP | 条件 |
+|---|---|---|
+| permission_denied | 403 | 身份、租户、scope、角色或操作权限不满足 |
+| state_conflict | 409 | 非法迁移、不可变冲突、幂等键载荷冲突 |
+| judgment_basis_missing | 422 | C1：批次create/start缺品牌已封版词表或已生效approved官方口径 |
+| validation_failed | 422 | 必填/枚举/格式/来源/样本交付闸门失败 |
+| incomparable | 422 | 比较端点两端口径不一致；details列口径原因，不含delta |
+| quota_exceeded | 429 | token或操作类别配额超限并告警 |
+
+废弃模板的数字业务码；不使用HTTP409002。C1新增judgment_basis_missing沿用同一error结构，不将缺判定基准静默当作合法空判定。
+
+### 1.4 快照配置、批次与问句锚定
+
+scoring_snapshot是采样配置身份，不是一次执行。冻结模型集合及版本、温度/轮次、judge_version、grounding_mode；MVP judge_version=`rule_manual_v1`。问句口径按二轮④由各簇锚定question_pool_version承载，scoring_snapshot原question_pool_version字段保留配置创建记录，不用整池当前版本替换簇锚。
+
+probe_batch是执行身份，type=baseline/event/monthly；probe.batch_id关联批次；metric_snapshot保存snapshot_id、batch_id。baseline与其event/monthly复测共用冻结snapshot_id；只为执行重跑开新batch，不新建采样配置。cluster_score同`(cluster_id,snapshot_id)`只写一次；复测不重写它，probe_result按批次追加，metric_snapshot按批次追加。失败整批新batch补偿，旧记录保留。配置/判定/轨道或簇锚变更则重建基线，分数需新的snapshot身份，不借新batch覆盖旧分数。
+
+簇入测通过question_pool.upgrade_anchor首次锚定动作写intent_cluster.question_pool_version；人工升级/拆并同样显式upgrade_anchor，重开该簇基线。新池版本仅新增其他簇，不改老簇锚；新簇锚当前版本。冻结问句版本只读，采样可还原原文。
+
+可比性：同snapshot_id、同cluster_id、同锚定question_pool_version且该簇question_id集合一致；不同锚定版本一律不可比，即使原文字面相同。不做文本比对；不拿全池最新版本批量作废老簇。比较端点不可比时HTTP422、code=incomparable，不返回delta，不进差值报告。比较样例仅是结构，不承诺实际提升。
+
+五溯源必填：source_word_id→keyword_raw.id；intent_type→产品§3六类（原文没有§3.2小标题，此引用指§3意图表）；source_channel=A/B/C/D；collected_at；maintainer为具体人名。question正文/版本仍必填但不替代五溯源。
+
+probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式引用=引用URL与登记content_asset.url分别去协议、去www、去query与fragment、去尾斜杠后，剩余字符串全等；不自行增加大小写/路径解码等规则。对外citation_rate只计explicit；指纹命中为隐式、仅域名相同为弱命中，二者只作内部分析。域名还用于cluster_platform_signal；不因同域就计入explicit。引用类别在指标层推导，不加类型字段；指纹阈值等仍等judging-spec冻结。refused不进任何分母；n_valid<10或model_coverage<3时*_score=null、insufficient_sample=true，覆盖率如实记。机会卡引用cluster_score，不复制四分。原始回答和来源文章只作为不可信数据，不进入指令位。
 
 ### 1.5 已批准决策
 
-用户于本次会话明确批准以下三项，并授权合并 T01/T02 PR。该批准不代表整份规格冻结，也不自动批准其余枚举、权限矩阵或接口工程细节。
+事实块管理审核状态，发布进度另行记录；修订开新版本。claim_block只用draft/pending_review/approved/retracted，完整迁移见§3；content_asset只用draft/ready/registered/retired。ready由当前必配块计算；registered是发布事实态，修订不降级，已发布块retract则回ready须重新发布；retired为不可逆终态。
 
-- 事实块管理审核状态，发布进度另行记录；修订开新版本。具体状态枚举、出边及终态仍须补全人审。
-- 权限按职责最小开放；Admin 不默认读取原文。具体角色的逐操作授权与关联任务边界仍待审，未明确的组合不开放。
-- 记忆轨：3 问句 × 4 模型 × 温度 0 × 3 轮 = 36 条/簇，仅对建议的 3 簇加测；与检索轨分快照、分报告。模型具体 ID 与原生联网能力仍在 T14 当日核实。
+记忆轨：3 问句 × 4 模型 × 温度 0 × 3 轮 = 36 条/簇，只对建议3簇加测；检索轨3问句×4模型×温度0/0.7×3轮=72条/簇。两轨分别配置/快照与报告；4家为通义/豆包/智谱/混元，具体模型ID及原生联网能力T14当日复核。模型ID未定前不执行探针；本任务不实施模型调用。
+
+### 1.6 审计、异议与解约
+
+审计字段自首版保留actor_type、agent_run_id、prompt_version；human/system不适用的后两者可为null（字段草案，待人审）；system额外受控job_name+trigger_source（cron/事件id）+受影响对象，多对象多行；探针评分/复测job必须batch_id，非探针可null；异议全记viewing_session_id、发起CS、实际调阅人和时间。日志不得保存令牌明文或额外复制待删除raw_answer。普通GET不改业务状态，敏感读取仍写访问审计；PAT last_used_at为凭证访问元数据，不触发业务状态迁移。
+
+异议submitted→granted由CS通过grant批准，敏感升级FactCheck；3个工作日响应（不是3日自然日）。CS账号通过显式POST view发起会话并原子写viewed，客户仅作为申请人出现在只读查看器；24h会话，watermark_meta=调阅人+时间戳，叠加水印不可导出。viewing_session_id唯一，同异议同probe只建一次；POST幂等重放返回同会话，不算再次调阅；会话内GET不迁移状态。重复调阅须新异议+reason。过期只拒绝访问，不发明expired异议状态。
+
+解约显式offboarding：30天内删除C类原文与raw_answer（含副本/缓存及受限摘录副本的删除清单草案）；聚合与audit不可变保留默认2年，合同可另定。默认2年为在线可查窗口，到期转只读冷归档，不自动删除；合同/法务可调取归档层。合同/法务要求删除时，只能由人显式执行offboarding清理，在独立deletion ledger留对象类型、时间范围、执行人、依据的tombstone，tombstone不随源数据删除消失。保留原始回答表的非原文判定与回溯ID，删全文不伪造回答或指标。
 
 ## 2. 资源清单
 
-以下列全模板资源与已明确动作。每行都是待审接口设计，不表示已存在实现。所有写操作幂等、服务端鉴权并审计；“待定”处阻塞对应实现。读取均继承全局口径元数据；除敏感数据访问外普通读取无需业务审计。
-
-### tenant
-
-基础路径：`/tenants/{tid}（不使用品牌前缀）`。
-
-合同、mode(full/diagnosis/self)、plan；MVP 单租户单品牌单行业。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取/配置租户 | GET /；POST /configure | read-only / write | admin | tenant.configure | 配置变更；生命周期和删除流程待定 |
-
-### brand
-
-基础路径：`/tenants/{tid}/brands`。
-
-品牌、行业、市场；所有权绑定租户。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取/配置品牌 | GET /{bid}；POST /{bid}/configure | read-only / write | 配置权限待定 | brand.configure | 品牌词表/官方口径维护边界待定 |
-
-### user_member
-
-基础路径：`/tenants/{tid}/members`。
-
-九种角色与品牌归属，PAT 与会话使用同一成员身份。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 成员配置 | POST /configure | write | 待定（建议 admin） | member.configure | 角色变更、撤权及自撤权边界待定 |
-
-### seed_list
-
-基础路径：`/seed-lists`。
-
-word_type 为品类/场景/问题/竞品/品线；行级 maintainer 与 last_reviewed_at 必填，无维护人不开管道。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取版本 | GET /{id}/versions | read-only | strategist；其他待定 | — | 返回版本历史 |
-| 建立/修订种子版本 | POST /；POST /{id}/revisions | draft | strategist | seed.create / seed.revise | 旧版保留；生成语法先预览再确认 |
-
-### keyword_raw
-
-基础路径：`/keyword-imports`。
-
-A/B/C/D 渠道；B 类 CSV 人工/半自动；C 类先授权和脱敏，raw_payload 访问须审计。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 导入 CSV | POST / | write | 导入权限待定 | keyword.import | 归一化去重；新增/重复/拒绝计数；不写自动爬虫 |
-| 导入结果摘要 | GET /{id} | read-only | 导入人读取边界待定 | — | 不夹带原始 C 类数据 |
-
-### intent_cluster
-
-基础路径：`/clusters`。
-
-六意图；稳定 cluster_id，拆并开新版本；只软删除。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取簇 | GET /{id} | read-only | 内部；full 客户本品牌只读，具体角色待定 | — | diagnosis 客户无机会页 |
-| 归档 | POST /{id}/archive | write | 待定（建议 strategist） | cluster.archive | 归档原因/时间，SOV 分母保留 90 天；destructive=true |
-| 拆并提案 | POST /{id}/migration-proposals | proposal | 待定 | cluster.propose_migration | 人工确认后迁移，禁止自动换题 |
-
-### question_pool
-
-基础路径：`/question-pools`。
-
-溯源五字段非空，簇级真实问句集；冻结不可原地修订。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取版本 | GET /{id} | read-only | 待定 | — | 返回问句及溯源 |
-| 建立版本/冻结 | POST /；POST /{id}/freeze | draft / write | 待定（建议 strategist） | question.create / question.freeze | 锁定簇问句集 |
-| 升级提案 | POST /{id}/upgrade-proposals | proposal | strategist 决定，人工确认 | question.propose_upgrade | 新版本+受影响簇重建基线，不自动废弃其他簇基线 |
-
-### opportunity_card
-
-基础路径：`/opportunity-cards`。
-
-pool_version/snapshot_id/来源 ID；进生产 demand_tier 与 demand_source 必填；只读 cluster_score 与渠道信号。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取 | GET /{id} | read-only | strategist；full 客户本品牌只读边界待定 | — | 返回分数引用及渠道建议 |
-| 建卡/建议 | POST /；POST /recommendations | draft / proposal | strategist | opportunity.create / opportunity.recommend | 建议 3 簇及证据，不自动决策 |
-| 确认优先簇 | POST /confirm-priorities | write | owner，human | opportunity.confirm | 确认 3 簇；状态迁移待定 |
-
-### scoring_snapshot
-
-基础路径：`/scoring-snapshots`。
-
-版本链及 judge_version 必填；聚合 question_score→cluster_score，非机会卡复制出数。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取 | GET /{id} | read-only | 待定 | — | 参数、覆盖率、数据截至 |
-| 启动评分/冻结 | POST /；POST /{id}/freeze | write | 触发评分权限待定 | scoring.start / scoring.freeze | 调用服务层排探针/聚合，失败重试与冻结时点待定 |
-
-### claim_block
-
-基础路径：`/claim-blocks`。
-
-四问校验 number/unit/scope/source_url；L3 不入库；版本化、自包含检查、跨平台数字口径一致；判定细节等 judging-spec 冻结。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取 | GET /{id} | read-only | 按 §9.3，细分待定 | — | 版本及来源等级 |
-| 创建/修订草稿 | POST /；POST /{id}/revisions | draft | editor/content（本人编辑） | claim.create / claim.revise | 修订开新版本，旧版只读 |
-| 提交审核 | POST /{id}/submit | write | 作者本人 editor/content | claim.submit | 四问/来源/整篇必配块闸门通过，入通用队列 |
-| 放行 | POST /{id}/approve | write | factcheck 且非作者 | claim.approve | 通过后可登记发布 |
-| 驳回 | POST /{id}/reject | write | factcheck | claim.reject | reason 必填，回作者 |
-| 下线修正 | POST /{id}/retract | write | 模板为 factcheck，边界待批准 | claim.retract | 关联说错工单及同源追溯；destructive=true |
-| 引用查询 | GET /{id}/citations | read-only | 内部具体范围待定 | — | cited_claim_ids 聚合 |
-
-### content_asset
-
-基础路径：`/content-assets`。
-
-关联 opportunity_card、事实块版本、作者；平台适配建议，不代发。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 撰写/修订 | POST /；POST /{id}/revisions | draft | editor/content | content.create / content.revise | 仅内容工作台写入口 |
-| 提交整篇 | POST /{id}/submit | write | 作者本人 | content.submit | 按意图必配块校验，来源及自包含校验；状态枚举待定 |
-| 审核放行 | POST /{id}/approve | write | factcheck 且非作者 | content.approve | 涉及事实块的整体审核关系待定 |
-| 读取 | GET /{id} | read-only | 待定 | — | 摘要下钻，不暴露受限原文 |
-
-### probe_result
-
-基础路径：`/probe-results`。
-
-回答级判定 {0,0.5,1}；拒答不计分母。链接元数据与正文链接归一化，显式/隐式引用分开记；语义疑似入人工抽检，不直接计数。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 判定摘要 | GET /{id} | read-only | 内部/本品牌客户；具体边界待定 | — | 不含 raw_answer |
-| 单条原文 | GET /{id}/raw-answer | read-only | 内部细分待定；客户只能走 objection | probe.raw_access | 水印和审计，无批量导出 |
-| 写入/修订判定 | POST /{id}/judgments | write | 判定角色待定 | probe.judge | judging-spec 冻结前不得实现判定；不覆盖冻结快照 |
-
-### publish_registration
-
-基础路径：`/publish-registrations`。
-
-客户渠道发布后登记时间/URL/平台，系统只记不代发、不验证发布。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 登记 | POST / | write | editor（内容工作台） | publication.register | 已放行内容；D+3/D+14/D+30 目标3簇+对照3簇排期 |
-| 读取登记/复测 | GET /{id} | read-only | 待定 | — | 偏离建议渠道记录供回流分析；撤销/更正待定 |
-
-### evidence_package
-
-基础路径：`/evidence-packages`。
-
-证据包与模板，封版只读。可下载包与受限原始回答必须隔离。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 建立包/模板 | POST / | draft | evidence | evidence.create | 构建人留痕，审核入列时点待定 |
-| 放行封版 | POST /{id}/seal | write | factcheck 且非建包人 | evidence.seal | 封版只读；诊断结论独立放行关系待定 |
-| 下载 | GET /{id}/download | read-only | editor；其他角色待定 | — | 不得包含原始回答全文批量导出 |
-
-### objection
-
-基础路径：`/objections`。
-
-客户对指定 probe_id 的单条异议申请；CS 陪同、水印、不可导出，全量审计。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 申请 | POST / | write | owner | objection.submit | 单 probe_id，通知 CS |
-| 批准调阅 | POST /{id}/grant | write | 处理人为 cs，批准权边界待定 | objection.grant | 限定单条访问，时效待定 |
-| 单条查看 | GET /{id}/excerpt | read-only | 申请人+CS 陪同条件待定 | objection.view | 单条水印摘录，无导出；viewed 状态写入方式待定 |
-
-### metric_snapshot
-
-基础路径：`/metric-snapshots`。
-
-mention_rate/citation_rate/avg_position/accuracy/sov；leads 表字段预留，不做线索归因看板。显式引用为客户硬指标，隐式引用内部分析。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 报表/趋势 | GET /；GET /{id} | read-only | owner/viewer；其他角色待定 | — | 本品牌；我方生产披露+对照组 |
-| 比较 | GET /compare | read-only | 有两端读取权限的报表角色 | — | 口径不同 incomparable，省略差值 |
-| 报告导出 | GET /{id}/report | read-only | viewer；其他角色待定 | — | 无原文批量导出；不可比不进差值报告 |
-
-### backflow_ticket
-
-基础路径：`/backflow-tickets`。
-
-五类回流信号，证据 probe_id、责任角色、时限；说错红色 24h；周一评审，月度批次报告后 3 工作日完成。
-
-| 操作 | 方法+路径（草案） | 语义级 | 允许角色/待定边界 | 审计事件 | 副作用/校验 |
-|---|---|---|---|---|---|
-| 读取 | GET /{id} | read-only | 责任角色/CS，细分待定 | — | 信号与来源可回溯 |
-| 派单/完成 | POST /{id}/assign；POST /{id}/complete | write | CS 处理，责任角色权限待定 | ticket.assign / ticket.complete | 需求/生产两路回流；超时升级接收人待定 |
-
-## 2.18 补充数据资源映射
-
-产品 §18 实际列出 19 张表（backlog/模板文字仍称 18）。除上列外：keyword_pool_snapshot 为周批只读输出；question_score/cluster_score/cluster_platform_signal 为聚合只读输出，禁止前端单独写分数；probe 为调度服务输出；industry_score 只供内部排产留档，不进对外报告；audit_log 仅追加，Admin 可查看日志，不以日志接口泄露原始回答/C 类全文。上述写入必须经服务层。模板中的 publish_registration/evidence_package/objection/backflow_ticket 不在 §18 表定义内，表结构待 T04 前人审补齐，不擅自造表。
+R3阶段将API由31资源归并为28资源；v4补齐brand_lexicon与official_fact后，现有29张物理表、30个API资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`api/contracts.json.layout_migration`。31→28资源，112→105端点，41→39操作；权限230 = 246 − 问句分数5 − 证据条目7 − 探针读5 − 锚定合并1 + 批次任务投影2。这是R3阶段历史基数。v4增加7端点与15个allow，现为112端点、245个allow（CSV连规则与列头247行），操作名仍39种；裁定中的29→31为估计，本稿按实际28→30计算，不额外造第三个资源。
+
+| API资源 | 契约位置 |
+|---|---|
+| `tenant` | [核心集](api/core-set.md) |
+| `brand` | [支撑件](api/generated/endpoints.md) |
+| `brand_lexicon` | [核心集](api/core-set.md) |
+| `official_fact` | [核心集](api/core-set.md) |
+| `user_member` | [支撑件](api/generated/endpoints.md) |
+| `seed_list` | [支撑件](api/generated/endpoints.md) |
+| `keyword_raw` | [核心集](api/core-set.md) |
+| `keyword_pool_snapshot` | [支撑件](api/generated/endpoints.md) |
+| `intent_cluster` | [支撑件](api/generated/endpoints.md) |
+| `question_pool` | [核心集](api/core-set.md) |
+| `opportunity_card` | [支撑件](api/generated/endpoints.md) |
+| `scoring_snapshot` | [核心集](api/core-set.md) |
+| `cluster_score` | [核心集](api/core-set.md) |
+| `cluster_platform_signal` | [支撑件](api/generated/endpoints.md) |
+| `content_asset` | [核心集](api/core-set.md) |
+| `claim_block` | [核心集](api/core-set.md) |
+| `probe_result` | [核心集](api/core-set.md) |
+| `metric_snapshot` | [支撑件](api/generated/endpoints.md) |
+| `industry_score` | [支撑件](api/generated/endpoints.md) |
+| `audit_log` | [核心集](api/core-set.md) |
+| `review_queue` | [核心集](api/core-set.md) |
+| `objection` | [核心集](api/core-set.md) |
+| `backflow_ticket` | [核心集](api/core-set.md) |
+| `evidence_package` | [核心集](api/core-set.md) |
+| `api_token` | [核心集](api/core-set.md) |
+| `probe_batch` | [核心集](api/core-set.md) |
+| `publish_registration` | [核心集](api/core-set.md) |
+| `diagnosis_report` | [核心集](api/core-set.md) |
+| `offboarding` | [核心集](api/core-set.md) |
+| `deletion_ledger` | [核心集](api/core-set.md) |
+
+嵌入并不扩权：question_scores节只给原内部五角色，客户簇级read仍不返回该节；evidence items继承原父包封版/任务/摘录限制；Content/Evidence仅可经batch读取原分派probe投影，不能查看完整批次或其他任务。子资源写入通过父对象的显式服务动作原子完成。
+
+模板下载作为evidence_package投影，不新增模板表；完整客户包下载与受限原文/摘录分离。review_queue使用 object_type + object_id，动态按object_type处理，MVP接受claim_block/evidence_package/diagnosis_report/brand_lexicon/official_fact；plan_draft仅P1预留，MVP拒绝，不实现Agent产出。
+
+### v4 接入判定输入
+
+`strategy`沿用既有角色名`strategist`，不新增第十角色。新增权限按既有职责矩阵生成后随本PR审阅：两类资源各给内部五角色read（Content/Evidence仍限任务关联对象）；词表create/submit与口径create给Strategist；口径approve/retract给FactCheck，共15行allow。客户和Admin没有因此获得新写入口。
+
+brand_lexicon以`(tenant_id, brand_id, version)`表示完整词表版本，每条term带kind，exclusion是纯品类词不算点名的白名单。变更通过create新完整版本，旧行只读；submit入通用review_queue，FactCheck非版本作者放行即新版本生效。不向词表表追加status枚举。版本的review_queue.object_id引用create返回的version_object_id（该版本首行id）；该行解析至完整版本集合，不能只批准其中一条term。版本集合和作者从创建记录固定，不能通过重排条目或追加term绕过复核；所有条目归属同品牌、版本与创建人。该对象标识/完整集合约束作为实现草案随PR审。
+
+official_fact仅L1准入，四类为price/spec/boundary/service_promise。create同事务创建draft及waiting审核条目（无需新增submit接口）；作者从创建审计与submitted_by验证。approve与通用review_queue.approve是同一原子动作：FactCheck≠创建者，approved后且effective_from到达才可用于judge；reject/withdraw不新增事实状态，仍保持draft。approved→retracted后不得再次用于judge输入；修订基准另建新事实记录并重新审核，历史指标不覆盖。
+
+error唯一比对基准是同品牌、L1、approved、已生效的official_fact。judge请求必须显式带official_fact_ids与lexicon_version，不能把claim_block或外部文本当基准；引用retracted/draft/不存在/未生效口径时422 validation_failed，缺有效基准时error_i=null，不填0或猜分。错误判定正则、spec_score等仍留judging-spec，不在本任务实现。
+
+批次create时绑定已封版生效的lexicon_version，判定job沿batch_id使用该记录并将同版本写入metric_snapshot；后续词表生效不重写旧批次。旧批次按明确历史版本还原，不默认latest，也不把旧版本删除或替换；不存在或未审版本必须拒绝。job记录的lexicon_version、official_fact_ids与版本集合引用属于行为必要字段草案，依既有常设授权随PR审，metric_snapshot.lexicon_version已按本裁定补入§18。
+
+这次补充记录判定输入，不额外修改既定快照可比性判据或判定算法。`scripts/t02-judge-inputs.mjs`仅为两项输入契约测试提供可执行示例，不是生产judge实现，不访问数据库或模型。
+
+### v3.5 开通清单与批次闸门（C1）
+
+⑫ 的“基线可开跑”状态灯仅为UI引导，不构成服务端授权。probe_batch.create和start都必须按实际目标簇解析品牌归属，每品牌有已封版词表版本，且≥1条approved、effective_from已生效的official_fact；缺任一返回422、error.code=judgment_basis_missing，沿用统一error/message/details及响应meta结构。未通过时不创建/不启动批次、不扣探针配额；system调用同样校验。create时通过不保证稍后start通过，口径中途retract须再次拦截，pending不能转running。
+
+修订在⑫形成v2草稿，人工逐条确认后提交通用⑥审核队列；不在设置页封版。新版本生效只供后续新批次采用，已建基线继续按v1还原，start和judge不得悄悄切换到v2。create保存lexicon_version作为必要字段草案（T04落迁移），本次不越授权改产品§18。输入可采集不到，须明示“需客户提供”，不以LLM草稿越过人工确认/独立放行。
+
+接入预填、情报墙、digest、日频副信号按§13.4.7归P1内部工具，任务T34–T36定义范围；本次只落正文/规格/可执行输入契约测试，未实现预填抓取、发送客户清单、跨租户接口或Agent Runtime。权限套餐与客户角色互斥仅按产品走读稿呈现，实际权限仍由既定服务端矩阵强制，不能把套餐当作越过“写≠放”的复合超级角色。
+
+### 字段草案（依二轮②常设授权，随PR审）
+
+以下只写规格，未自动扩改产品§18的明确列清单，T04定稿后才落迁移：
+
+| 位置 | 草案字段/映射 | 行为依据 |
+|---|---|---|
+| api_token | id、tenant_id、user_id；只存token_hash/scopes/时间；hash唯一，创建响应明文只展示一次 | per-user PAT、租户隔离；一轮5/§16.3 |
+| audit_log | job_name（受控枚举）、trigger_source、cause_event_id、batch_id、viewing_session_id、reason、viewer_user_id；null语义明确区分human/system | 一轮6/7、二轮异议会话 |
+| probe_batch | lexicon_version（创建时固定）、cluster_question_sets（簇ID、锚定版本、question_id集合只读映射）、baseline_batch_id、retry_count、attempt_no、committed_attempt_no、compensates_batch_id、dead_letter_ref | 配置与执行双身份、问句锚定、整批补偿 |
+| probe | question_id、attempt_no，与question原文一起还原冻结问句 | 二轮④集合可比性 |
+| question_pool | archived_at作为模板archived投影，frozen不改回false | 冻结后只读与模板版本归档 |
+| content_asset | review_status存四个裁定值；已发布块版本引用清单 | 一轮1、二轮③发布事实态 |
+| diagnosis_report | object_id/版本/作者/封版/结论引用作为业务对象契约，持久化表方案另审 | 一轮6独立审核 |
+| publish_registration | asset引用、URL/平台/发布时间/状态；重登记历史保留audit | 产品§11、三轮发布裁定 |
+| offboarding | 合同引用、删除对象清单、执行时间、保留政策引用 | 一轮7显式解约 |
+| deletion_ledger | 独立追加账本的object_type/time_range/executed_by/basis/deleted_at，独立存储生命周期 | 三轮保留策略，tombstone不随源数据删除 |
+| official_fact | 可选product_line_ref，MVP单品牌可空；不阻塞，T04顺带定稿 | C4负责人走读裁定 |
+| 所有缺tenant_id业务表及evidence_item | 通过父对象验证租户；T04补tenant_id列与外键草案 | 产品§17.4，既有表列缺省不得当成共享数据 |
 
 ## 3. 状态机规格
 
-以下“模板”均为设计输入，尚非冻结规则；产品文档明确事实优先。全部迁移继承 §1 审计、权限、幂等约束。
+[逐对象完整迁移表](api/states.md)覆盖模板10对象、probe_batch/review_queue/diagnosis_report及新增official_fact；brand_lexicon版本生效沿通用队列描述，不另造状态枚举。终态无出边是明确终态，非遗漏；claim_block的回draft由新版本行承接，旧版不改。只有声明的出边合法，其他状态组合一律409。
 
-| 对象 | 输入中已有状态/迁移 | 触发、条件、副作用 | 尚未闭合的边界 |
-|---|---|---|---|
-| claim_block | 模板 draft→pending_review→approved；reject 回 draft；approved→retracted；重新修订开新版 draft | 作者 submit，四问/来源/必配过闸；FactCheck 非作者 approve，reject 理由必填；retract 关联工单 | 发布进度另行记录已批准；具体审核枚举及迁移见 §6，仍待审 |
-| content_asset | 产品仅给 review_status，未给枚举 | 作者提交、FactCheck 唯一放行，先审后发 | 全部状态枚举与块级审核关系待批准 |
-| opportunity_card | 模板候选→评分→建议→确认→在测→归档 | Strategist 建卡/建议，Owner 人工确认3簇，生产前需求来源必填 | 英文枚举、失败/返工/撤销及终态待定 |
-| intent_cluster | 产品 active→archived | 归档原因+时间；软删除，SOV 分母90天过渡 | 操作权限、拆并归档次序、恢复是否允许待定 |
-| question_pool | 产品 frozen 布尔；模板 open→frozen→archived | 冻结后不可改；升级人工拍板开新版本，受影响簇重开基线 | archived 映射与拆并操作待定 |
-| scoring_snapshot | 模板 open→frozen | 只追加、模型/温度/轮次/问句/判定/轨道冻结 | 冻结时点与失败/部分完成处理待定 |
-| evidence_package | 模板 draft→sealed | FactCheck 非建包人放行；sealed 只读 | 提交/驳回/修订状态与诊断结论放行待定 |
-| objection | 模板 submitted→granted→viewed | Owner 指名 probe_id，CS处理；查看水印/审计/禁止导出 | 拒绝/过期/撤销/重复查看权限与状态待定 |
-| backflow_ticket | 模板 open→assigned→done | 信号扫描建单，责任人处理，超时升级；说错24h | 重开/误报/升级对象及指派权限待定 |
-| publish_registration | 模板 none→registered→retesting→reported | Editor回填已放行发布；自动排D+3/14/30复测 | none 是否只表示对象不存在；更正、失败、迟到及 reported 条件待定 |
+队列waiting不是给evidence_package增加pending_review状态：对象仍draft，但队列有waiting条目时不能修改被审版本；reject/withdraw后仍draft可修改，approve直接sealed。claim_block approve/reject与通用review_queue approve/reject为同一服务动作的两个入口，必须原子结算同一队列条目、同一对象，不能重复审核。队列三个终态条目不可重用；再提交新waiting条目。FactCheck≠作者在两入口都校验。
+
+content_asset的registered块retract时，同事务先registered→ready，逐跳审计cause_event_id=该retract事件；再重算必配当前版本，条件不成立则ready→draft，记同一cause。非必配块retract且必配条件仍成立时停ready，由人决定重发；修复并approved后draft→ready自动恢复。禁止registered→draft直达路径；提交事务时所有不变量成立。普通修订不降低registered。人工retire只限策略或Owner且human（Owner受模式约束）。
+
+同一版本sealed、batch三终态、queue三终态、asset retired不可改；证据包修订产生新行draft；asset“复活”创建新asset挂同机会卡。opportunity_card的中文状态沿用模板，不擅自翻译出新英文枚举；模板未明示的失败/撤销迁移不增加，执行失败留在batch或工单。
 
 ## 4. 批处理与事件
 
-Job 不是直写库豁免；每个 job 调用 `src/server/api`，显式服务身份与租户授权待批准；禁止伪造普通用户跳过权限。
+所有job以actor_type=system运行，携受控job_name、trigger_source（cron/事件id）与object_type/object_id；评分/复测携batch_id，非探针作业batch_id可空，多对象多行审计，只调用服务层。以下白名单不继承Admin权限。重试指数退避≤3次；这里的重试为整批执行尝试，失败结果不能进入成功指标分母；禁止只补失败问句/模型的部分重试。耗尽后batch failed、dead-letter告警，补偿另开batch，原batch终态保留。取消仅pending。
 
-| Job | 触发 | 幂等边界（模板/产品） | 服务层副作用/校验 |
+| job_name | 触发 | 允许服务动作 | 幂等/副作用 |
 |---|---|---|---|
-| 词池周批 | 周一 | pool_version 唯一 | 稳定簇ID、分位分档、周快照、首见<14天且连续两周上升告警、候选队列刷新 |
-| C类导入 | 授权数据批次 | 批次去重细节待审 | 自动脱敏先于入库，访问留痕；回灌词池 |
-| 评分批次 | 手动加急/月度 | (cluster_id,snapshot_id) 唯一 | 72回答同时产留白分与T0指标，不重复采样计费；不足样本不出分 |
-| 事件复测排期 | 发布登记 | 登记与时点排期唯一 | D+3/D+14/D+30，目标3簇+对照3簇；D+3当日，D+14/30±2天 |
-| 月度全量 | 每月 | 月度批次标识待审 | 30监测簇，冻结采样口径；不得混轨 |
-| 引用判定 | 复测结果落库后 | probe_result级 | 品牌词→显式链接→指纹→语义疑似人工；显/隐引用分别记 |
-| 指标聚合 | 判定完成 | 快照批次 | 拒答排除；同口径差值；披露与对照组 |
-| 回流信号扫描 | metric_snapshot落库后 | 批次级 | 按§8五类规则出工单，不自行补阈值；周一评审 |
-| 基线重置 | 模型主版本/判定方式/轨道变更 | 变更事件级 | 新快照、全量重跑与报告标注；簇问句升级只影响该簇 |
-| 网页端校准 | 每月 | 抽样批次待审 | 5–10%半自动+人工复核，仅校准轨；连续两月<70%提及一致率触发复核 |
-| 解约删除 | 合同解除 | 解约事件级待审 | 30天内删除C类；删除范围、备份与审计保留冲突待批准 |
+| weekly_pool | 周一 | keyword_pool_snapshot.append、intent_cluster.transition | pool_version唯一；稳定簇ID/分档/告警，产物需服务层授权，不修改冻结问句 |
+| c_import | 已书面授权CSV批次 | keyword_raw.import | 入库前脱敏；新增/重复/拒绝计数；不写自动爬虫 |
+| event_schedule | 发布登记、月度、首次评分排期或模型/判定/轨道变更事件 | probe_batch.create、scoring_snapshot.create/freeze | 按登记+时点/月份去重，D+3/14/30，目标3+对照3；baseline/月度30簇；模型主版本/判定/轨道变化新配置新基线，全量重跑与报告标注，不与旧期比较 |
+| probe_execute | pending批次到期 | probe_batch.start/execute/complete/fail | 按冻结配置、簇锚定执行；批次追加，原文不进指令位 |
+| judge | 批次回答待判定 | brand_lexicon.read、official_fact.read、probe_result.judge | 仅批准版本/口径；记录lexicon_version与基准IDs，无有效口径不出error分 |
+| baseline_scoring | 基线判定完成 | cluster_score.append（内含question_scores）、cluster_platform_signal.append | cluster+snapshot唯一；拒答排除；不足样本不出分；复测不重写分数 |
+| metric_aggregate | 全批判定完成 | metric_snapshot.append | 按batch追加；同口径比较；我方生产披露与对照组 |
+| backflow_scan | 指标快照完成 | backflow_ticket.create | §8五信号；证据probe/责任角色/时限；说错24h红色 |
+| ticket_deadline | 工单到期 | backflow_ticket.expire | open/assigned→expired，超时保留审计，不抹除原责任人 |
+| content_reconcile | 块approve/retract/修订 | content_asset.transition | 系统派生态；注册与发布事实规则见§3 |
+| audit_middleware | 任一写入/敏感读取/成功PAT认证 | audit_log.append、api_token.record_use | 只追加；继承原调用者身份，禁止对外调用伪造日志 |
+| opportunity_lifecycle | 双筛评分/监测开始/簇归档事件 | opportunity_card.transition | 仅已列模板出边，不处理人工建议/确认 |
+| publication_lifecycle | 登记排期与报告完成 | publish_registration.transition | 注册进度与资产状态分离，保留历史 |
+| offboarding | 显式解约流程及获批人工清理 | offboarding.execute、deletion_ledger.append | 删除原文，保留聚合/审计及合同保留期；过程可追溯 |
+
+原始probe_result判定由人工FactCheck或本次v4明确的受控judge job，在judging-spec冻结后经同一服务层输入闸门操作；MVP规则计算如何经同一服务动作执行按T16冻结规则实现，不能将system解释为任意判定权限。引用匹配阈值、拒答判据、悬空指代正则、spec_score全部留judging-spec人审，本次不补算法。
+
+配额按tenant+operation_type计数probe/judge/drafting并分token限流；没有新增Agent功能或默认配额。原始回答访问与C类访问全审计；没有raw批量读取/批量导出内部调试端点。
+
+### 4.1 job_name受控注册表
+
+受控枚举固定为上表job_name列：judge / weekly_pool / c_import / event_schedule / probe_execute / baseline_scoring / metric_aggregate / backflow_scan / ticket_deadline / content_reconcile / audit_middleware / opportunity_lifecycle / publication_lifecycle / offboarding。拒绝任意自由字符串；同一job只能执行其端点白名单。audit_middleware写原调用者actor_type，不以system掩盖human/agent/external_agent；仅后台job本身为system。
+
+非探针job以trigger_source加对象追踪；探针类batch_id必须与端点目标及tenant一致。普通列表/GET可追加访问审计与凭证last_used_at，但绝不迁移被读取业务对象状态。
+
+job白名单结构化定义同时保存于 `api/contracts.json.jobs`；执行参数必须携触发来源。publication_lifecycle与metric_aggregate需要batch_id，opportunity_lifecycle的归档事件可无batch_id，但评分/监测出边必须携batch_id。失败尝试与完整尝试选择字段为实现草案；禁止跨尝试拼凑有效样本。
 
 ## 5. 语义分级汇总表
 
-§2 的每个操作已逐行标记语义。此处汇总同类规则，未来映射 MCP 注解，目前不实现工具。
+承重及敏感端点见[核心集](api/core-set.md)，其他操作见[支撑件索引](api/generated/endpoints.md)，其每行同时列semantic与destructive；对应JSON为机器可审阅输入，未来MCP只映射注解，不在MVP实现。
 
-| 操作集合 | 语义级 | destructive |
+| 语义 | 操作类型 | destructive |
 |---|---|---|
-| 资源摘要/列表/历史/引用聚合/报表/比较/模板及证据包下载 | read-only | false |
-| 原文/异议摘录读取（审计必需） | read-only | false；若推进viewed需另定显式写动作 |
-| seed/claim/content/evidence 草稿创建与版本修订、问句版本创建 | draft | false |
-| 机会建议、拆并提案、问句升级提案 | proposal | false，决策另需人确认 |
-| submit/approve/reject/seal/freeze/confirm、CSV导入、评分触发、判定、发布登记、异议申请批准、工单派发完成 | write | false；具体不可逆后果人审确认 |
-| claim.retract / cluster.archive | write | true |
-| 租户/品牌/成员配置 | write | 撤权/删除等子操作未定义前不开放，标记待定 |
-| C类解约删除 | write | true，流程未定，不实现 |
+| read-only | GET摘要、列表、受控单条读取、下载及compare | false；只访问审计，业务状态不变 |
+| draft | 种子/问句/块/资产/证据/诊断草稿与新版本 | false |
+| proposal | opportunity_card.recommend | false；Owner确认独立write |
+| write | submit/approve/reject/withdraw/freeze/confirm/配置/导入/判定/排期/登记/调阅POST | false，受具体前置条件限制 |
+| write | retract/archive/retire/cancel/revoke/offboarding | true；不可借通用update绕过 |
 
-## 6. 阻塞问题与待批准建议
+## 6. 阻塞问题关闭与人审说明
 
-§1.5 的三项方向已获用户批准；以下明确区分已批准方向与剩余问题。依据 AGENTS.md §3“歧义即停”，未批准的细节仍不得直接实现。
+既有裁定与v4接入输入补充原文已全部存档，已知规则歧义已关闭。当前停止点为“人审冻结”，不是agent宣告冻结。
 
-1. **状态闭合**：是否允许以模板作为状态机设计起点？claim_block 示例列 published/revision_needed 无完整迁移；content_asset 无枚举。已批准事实块管理审核状态、发布进度另行记录、修订开新版本。具体枚举仍建议 draft/pending_review/approved/retracted，驳回回draft，待批准；content_asset 建议 draft/pending_review/approved/revision_needed/retracted，需另审全部出边及终态。
-2. **权限边界**：最小职责权限及 Admin 不默认读取原文已批准。细分建议原文 Strategist/FactCheck/CS 按职责读取，Content/Evidence 限关联任务；成员和品牌基础配置归Admin，品牌词表/官方口径归Strategist。这些为建议，仍需补全逐操作 allow/deny 矩阵、内部跨品牌边界、客户Editor可读范围及diagnosis模式写权限。
-3. **记忆轨采样（已关闭）**：用户已批准 §1.5 的 3问句×4模型×温度0×3轮=36条/簇。模型ID仍需T14当天复核；本次不实施探针调用。
-4. **快照身份**：同snapshot只写一次、重跑开新snapshot，与“前后同快照”需区分采样配置身份和执行批次身份；不得擅自增加状态/字段解决。建议人审明确比较字段及簇级问句原文等价判定。
-5. **数据定义差异**：§18实际19张表，模板17资源，业务工单等缺表；溯源五字段的最终语义、通用审核队列表、PAT存储、批次/引用类型及指标口径字段需T04前定稿。
-6. **审核与异议**：诊断结论的对象类型、证据包提交驳回路径、放行与封版是否同一步；异议批准权/时效/CS陪同技术判据/水印字段及重复调阅；viewed写入不能借GET裸改状态。
-7. **权限与生命周期缺口**：导入、判定、评分冻结、归档、工单完成及后台job的服务身份；租户解约删除与不可变审计保留；不得把Admin解释为万能权限。
-8. **判定**：悬空指代正则、词表匹配、spec_score与指纹阈值等留给judging-spec人审冻结，不在此发明。
-9. **接口工程约定**：响应/错误体/时间与分页schema、409002的HTTP映射、幂等保存期、后台失败重试/取消/补偿契约仍待审；待定项不能作为可编码API承诺。
+人审仍需确认核心集、allow规范及支撑件抽检中的候选细节：diagnosis下editor/viewer异议申请行、Admin的PAT配置管理、游标编码/排序、审计可空字段、批次锚定与失败尝试存储、diagnosis_report/publish_registration/offboarding/deletion_ledger持久化草案。它们属于本次提交人审的设计材料，不自动作为已实现权限或新增产品功能。
 
-本稿已覆盖模板的资源及章节目录，不等于T02完成。待上述决策后补全逐端点请求/响应示例、权限矩阵与闭合迁移表，再提交人审冻结。
+已定状态、采样参数、引用口径与审计生命周期不得在后续实现中优化或猜测。新增未覆盖的权限边界、状态枚举或判定规则继续停下询问；行为已裁定的字段缺列按二轮②常设授权提草案随PR审。
