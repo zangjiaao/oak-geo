@@ -74,8 +74,10 @@ npm run doctor
 
 配置参考：[OpenNext 官方接入说明](https://opennext.js.org/cloudflare/get-started)、[Cloudflare Next.js 指南](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/)。未启用 ISR/R2 缓存或数据库绑定，后续按任务接入。
 
-测试采用 Node 内置测试运行器；隔离关闭以适应本地受限环境。当前覆盖脚手架约束，完整产品硬规则及权限测试属 T03，不能据此声称业务规则已验证。
+测试采用 Node 内置测试运行器；隔离关闭以适应本地受限环境。当前可验证的规格与架构检查，以及T03产品验收红灯基线，分开报告；不能据此声称业务规则已验证。
 
 ## License
 
 Private — 内部产品仓库。
+
+T03 已建立真实服务层验收的红灯基线：`npm run test:checks`验证当前规格和静态架构守卫，`npm run test:product`运行产品硬规则及运行时鉴权检查，`npm test`包含两者。服务尚未接入时后者应失败；这表示业务能力未验收，不能用跳过或假实现转绿。后续任务在 `tests/support/runtime-driver.mjs` 连接真实服务操作并用服务API准备fixture；用例与负责任务的映射见 `tests/rules/product-rule-cases.mjs`。

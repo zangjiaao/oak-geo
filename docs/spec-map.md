@@ -1,6 +1,6 @@
 # API 规格审阅地图
 
-> 状态：草案，未冻结。先审本页→[核心集](api/core-set.md)→[allow权限](api/permissions.csv)；[支撑件](api/generated/endpoints.md)默认抽检。
+> 状态：已冻结（t02_api_v1，产品负责人批准）。先审本页→[核心集](api/core-set.md)→[allow权限](api/permissions.csv)；[支撑件](api/generated/endpoints.md)默认抽检。
 
 ## 三层架构与资源归属
 
@@ -99,4 +99,4 @@ flowchart LR
 | publish_registration | [状态/出边/终态](api/states.md#publish_registration) |
 | official_fact | [状态/出边/终态](api/states.md#official_fact) |
 
-[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；本次不实现API、不合并、不自行冻结。
+[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前不实现API。

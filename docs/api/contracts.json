@@ -1,5 +1,5 @@
 {
-  "status": "draft",
+  "status": "frozen",
   "resources": [
     "tenant",
     "brand",
@@ -4780,5 +4780,14 @@
     "ui_only_is_insufficient": true,
     "lexicon_version_pinned_on_create": true
   },
-  "onboarding_gate_scope": "v3.5 C1; planning only, no production handler implemented"
+  "onboarding_gate_scope": "v3.5 C1; planning only, no production handler implemented",
+  "freeze": {
+    "version": "t02_api_v1",
+    "approved_by": "产品负责人",
+    "approval_quote": "同时批准冻结当前 API 规格",
+    "source_pr": 4,
+    "source_commit": "a9464b5d93e514edd1b10a2988fc7dee995d0158",
+    "recorded_at": "2026-11-10T08:07:03.154Z",
+    "content_sha256": "a79a9ad183ea78a7a15655830681826afa7005cd2c72165cb622883a595303d1"
+  }
 }

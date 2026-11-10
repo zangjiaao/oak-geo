@@ -13,8 +13,10 @@
     "preview": "npm run build:worker && npm run dev:worker",
     "deploy": "opennextjs-cloudflare deploy",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-isolation=none tests/rules/*.test.mjs tests/arch/*.test.mjs",
-    "doctor": "astryx doctor --built .next && astryx doctor --built ."
+    "test": "npm run test:checks && npm run test:product",
+    "doctor": "astryx doctor --built .next && astryx doctor --built .",
+    "test:checks": "node --test --test-isolation=none tests/rules/*.test.mjs tests/arch/*.test.mjs",
+    "test:product": "node --test --test-isolation=none tests/rules/product-hard-rules.red.mjs tests/arch/server-permissions.red.mjs"
   },
   "dependencies": {
     "@astryxdesign/core": "0.7.11",
