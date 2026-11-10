@@ -10,7 +10,7 @@
 | T01 | 定稿 AGENTS.md（拍板技术栈、目录约定） | — | §2 各【待拍板】全部填实；人签字 |
 | T02 | 产出 `api-spec.md`：API 契约 + 状态机 | T01 | 按 `api-spec-template.md` 结构产出全量条目；人审后冻结 |
 | T03 | 硬规则测试清单落地 | T02 | 产品文档 §19 当前实际 19 条规则（原18为历史计数）每条至少 1 个测试用例进 `tests/rules`，可全部跑红；架构测试 2 条（无直写库路径、服务端权限全覆盖） |
-| T04 | 数据库迁移：18 张表 | T01 | §18 全部表 + 字段 + 注释建成；迁移可重复执行；fixture 能载入"简造 ERP"种子数据；C4记账：official_fact可选product_line_ref，MVP单品牌可空，随T04定稿迁移（不阻塞） |
+| T04 | 数据库迁移：29 张表（§18当前数） | T01 | §18 全部表 + 字段 + 注释建成；迁移可重复执行；fixture 能载入"简造 ERP"种子数据；C4记账：official_fact可选product_line_ref，MVP单品牌可空，随T04定稿迁移（不阻塞） |
 | T05 | 多租户与服务端权限 | T04 | `tenant_id` 行级隔离中间件；§9.3 权限矩阵做成服务端策略表；越权请求测试全红→绿 |
 | T06 | 审计中间件 | T04 | 所有写操作 + 原始回答/C 类数据访问写 `audit_log`，含 `actor_type/agent_run_id/prompt_version`；漏记测试能抓出 |
 
@@ -100,10 +100,20 @@
 
 - v3.5走读裁定：落盘开通清单/接入预填、行业管道经营属性、dogfood六周剧本与分发实操；C1配套create/start服务端输入闸门（422 judgment_basis_missing）。P1任务顺延T34–T36，T31强化双剧本及判定基准fixture，C4品线可选字段留T04。当前只改规格、任务与可执行契约示例，不提前实现页面/job或扩大外部验收。
 
-## 当前执行状态（PR #4 合并后）
+## T03 执行记录（PR #4 合并后）
 
 - T02：`done`。PR #4 已按用户授权合并；随后负责人另行明确批准“同时批准冻结当前 API 规格”，据此记录 t02_api_v1（2026-11-10），内容SHA-256防止无意漂移，后续改动须人审。
 - T03：`review`。独立分支 task/t03-rule-tests；19条硬规则对应22个行为验收场景，两项架构检查为A01无直写库、A02实际服务端权限全覆盖。测试映射内嵌 tests/rules/product-rule-cases.mjs 的rule/source/tasks，未另建文档。
 - 执行命令：`npm run test:checks`运行已可验证的规格/扫描器/覆盖元检查；`npm run test:product`运行22个业务场景+A02；`npm test`依次运行二者，不能以checks绿色冒充全部验收通过。
 - 当前服务层未实现，tests/support/runtime-driver.mjs未接入，23个服务验收检查应明确跑红，不能skip/todo或拿T02示例/假业务实现补齐。该红灯基线符合T03“可全部跑红”的任务定义；T04及后续任务经真实服务层装配数据、逐条转绿。A01为保守源码扫描，不能代替A02真实鉴权验证。
 - 不实现T04数据库迁移/seed、不编造judging-spec判定细节、不引入模型调用或Agent Runtime；所有fixture写入未来必须经src/server/api，不准直写库。当前冻结仅据负责人明确授权记录，未改AGENTS.md或产品口径。
+
+
+## 当前执行状态（T04）
+
+- T03：`done`。用户批准后PR #5已合并，随后新建`task/t04-migrations`，没有在main直接开发。
+- T04：`review`。按产品§18实际29表建三份迁移，另有schema_migration管理账本；原18表是旧计数，四个API投影未另造表。全部字段/列注释由真实PG目录对照§18验证；迁移重复/校验和/失败事务回滚均有集成测试。
+- 已落实本轮裁定：seed_list.status允许NULL且无默认、不写枚举值（T07另定）；seed_list/keyword_pool_snapshot/industry_score无tenant_id；keyword_raw非空tenant_id。共享服务限定许可公共词根与数值聚合，拒绝客户标识/竞品私有输入与C类原句，不输出自由文本，不开放未验证样本数的公开基准。
+- fixture通过src/server/api显式操作事务装配：虚构简造ERP、独立Strategist/FactCheck/Owner、词表v1含exclusion、L1 approved测试口径及公共种子；每步留审计。C4可选product_line_ref同品牌品线外键已落地。
+- T04验证：test:checks 34项通过（含真实PostgreSQL18.6集成）、typecheck、Workers构建、生成器--check；test:product仍为T03既定23项红灯（完整服务驱动尚未接入），不伪造后续业务实现转绿。
+- 范围边界：私有表RLS已启用但未放行普通角色，完整租户/角色鉴权留T05、通用审计留T06、种子状态枚举留T07、判定留T16。管理fixture不是公开业务API；未配置线上数据库或运行生产迁移。产品文档仅加四条授权§18注释，AGENTS.md与冻结API附件未改；docs仍12文件。等待人审合并。

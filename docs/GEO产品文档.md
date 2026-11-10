@@ -854,16 +854,16 @@ user_member         成员与角色
   id, tenant_id, user_id,
   role(owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin)
 
-seed_list           行业种子词根（管道起点）
+seed_list           行业种子词根（管道起点） -- industry-shared, no tenant_id
   id, industry, word, word_type(品类/场景/问题/竞品/品线),
   maintainer, last_reviewed_at, seed_version, status
 
-keyword_raw         采集原始词（四类源共用，channel 区分）
+keyword_raw         采集原始词（四类源共用，channel 区分） -- C-class rows always tenant-private
   id, industry, keyword, channel(A/B/C/D), demand_index,
   trend_dir(up/flat/down), first_seen_at, collected_at, raw_payload
   -- 只存指数与档位，不设 search_volume
 
-keyword_pool_snapshot   词池快照（每周全量）
+keyword_pool_snapshot   词池快照（每周全量） -- industry-shared, no tenant_id
   pool_version, industry, created_at, seed_version,
   counts_by_channel, cluster_count, changelog_note
 
@@ -937,7 +937,7 @@ metric_snapshot     指标快照（差值计算必须校验 snapshot 口径）
   id, tenant_id, brand_id, intent_cluster_id, snapshot_id, batch_id, lexicon_version, date, mention_rate,
   citation_rate, avg_position, accuracy, sov, leads
 
-industry_score      14 行业外部策略表（排产用，不进对外报告）
+industry_score      14 行业外部策略表（排产用，不进对外报告） -- industry-shared, no tenant_id
   industry, version, demand, gap, willingness, competition,
   score, reliability_note, updated_by, updated_at
 

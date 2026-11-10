@@ -6,18 +6,16 @@ import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 const read = p => readFileSync(p, 'utf8');
 const data = () => JSON.parse(read('docs/api/contracts.json'));
-const protectedProduct = text => text
- .replace(/> 版本 v\d+\.\d+/, '> 版本 [[VERSION]]')
- .replace(/^\| v3\.5 \| 开通清单详设与接入预填.*\n/m,'')
- .replace(/\*\*行业管道的经营属性\*\*[\s\S]*?(?=### 9\.2)/,'')
- .replace(/### 10\.5 跨行业情报墙[\s\S]*?(?=## 11\.)/,'')
- .replace(/\*\*⑫ 设置 \/ 审计\*\*[\s\S]*?(?=### 13\.3)/,'[[SETTINGS]]\n\n')
- .replace(/### 13\.4 工作室自运营剧本（dogfood）[\s\S]*?(?=## 14\.)/,'')
- .replace(/^\| 接入预填 agent[^\n]*\n/m,'');
-
+// Only these four §18 table-header comments are newly authorized by T04.
+const protectedProduct = text => {
+ const [before, rest] = text.split('## 18. 表结构');
+ const [section, after] = rest.split('## 19. 硬规则汇总');
+ const restored = section.replace(/^(seed_list|keyword_pool_snapshot|industry_score)([^\n]*) -- industry-shared, no tenant_id$/gm, '$1$2').replace(/^(keyword_raw)([^\n]*) -- C-class rows always tenant-private$/gm, '$1$2');
+ return before+'## 18. 表结构'+restored+'## 19. 硬规则汇总'+after;
+};
 test('授权范围外的产品文档逐字保留', () => {
  const text=protectedProduct(read('docs/GEO产品文档.md'));
- assert.equal(createHash('sha256').update(text).digest('hex'),'311838d42fd415801725736d0360f6a1bd7fbc55cab274ed14821d907cb1f9aa');
+ assert.equal(createHash('sha256').update(text).digest('hex'),'3afa43fee348250af44ceb6158c7bf229fa12e7ca22258a4d231ce9d1b1df955');
 });
 test('六表及快照双身份只在授权处补充', () => {
  const section=read('docs/GEO产品文档.md').split('## 18. 表结构')[1].split('## 19.')[0];

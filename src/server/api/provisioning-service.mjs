@@ -1,0 +1,282 @@
+import { assertPublicRoot, privateMarkers } from "./shared-industry.mjs";
+import { randomUUID } from "node:crypto";
+import {
+  permission,
+  validation,
+  ServiceError,
+  normalizeDatabaseError,
+} from "./errors.mjs";
+const policies = {
+  "tenant.configure": ["admin"],
+  "brand.configure": ["admin"],
+  "user_member.configure": ["admin"],
+  "brand_lexicon.create": ["strategist"],
+  "brand_lexicon.submit": ["strategist"],
+  "official_fact.create": ["strategist"],
+  "official_fact.approve": ["factcheck"],
+  "review_queue.approve": ["factcheck"],
+  "seed_list.create": ["strategist"],
+};
+
+// Trusted in-process service boundary for migration/fixture provisioning only.
+// actor must come from a server authentication adapter, never an HTTP request body.
+// T05 will provide Web/PAT authentication and full policy coverage; this is not a
+// public route and does not replace that task. SQL is intentionally kept in API.
+export function provisioningOperations(
+  client,
+  { publicRootCatalog = new Set() } = {},
+) {
+  async function audit(actor, tenantId, operation, objectId) {
+    await client.query(
+      `INSERT INTO audit_log(id,tenant_id,user_id,action,object_type,object_id,actor_type,agent_run_id,prompt_version)
+   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        randomUUID(),
+        tenantId,
+        actor.user_id,
+        operation,
+        operation.split(".")[0],
+        objectId,
+        actor.actor_type,
+        actor.agent_run_id ?? null,
+        actor.prompt_version ?? null,
+      ],
+    );
+  }
+  async function queue(actor, tenantId, objectType, objectId) {
+    const id = randomUUID();
+    await client.query(
+      `INSERT INTO review_queue(id,tenant_id,object_type,object_id,submitted_by,status)
+   VALUES($1,$2,$3,$4,$5,'waiting')`,
+      [id, tenantId, objectType, objectId, actor.user_id],
+    );
+    await audit(actor, tenantId, "review_queue.submit", id);
+    return id;
+  }
+  return async function execute(
+    operation,
+    { actor, tenant_id, body = {}, params = {} },
+  ) {
+    if (
+      !actor?.user_id ||
+      actor.actor_type !== "human" ||
+      !policies[operation]?.includes(actor.role)
+    )
+      throw permission(
+        "trusted principal cannot perform provisioning operation",
+      );
+    if (!tenant_id) throw validation("tenant_id required");
+    const id = body.id ?? randomUUID();
+    let result,
+      objectId = id;
+    try {
+      if (operation === "tenant.configure") {
+        await client.query(
+          "INSERT INTO tenant(id,name,mode,plan) VALUES($1,$2,$3,$4)",
+          [tenant_id, body.name, body.mode, body.plan],
+        );
+        objectId = tenant_id;
+        result = { id: tenant_id };
+      } else if (operation === "brand.configure") {
+        await client.query(
+          "INSERT INTO brand(id,tenant_id,name,industry,market) VALUES($1,$2,$3,$4,$5)",
+          [id, tenant_id, body.name, body.industry, body.market],
+        );
+        result = { id };
+      } else if (operation === "user_member.configure") {
+        await client.query(
+          "INSERT INTO user_member(id,tenant_id,user_id,brand_id,role) VALUES($1,$2,$3,$4,$5)",
+          [id, tenant_id, body.user_id, body.brand_id ?? null, body.role],
+        );
+        result = { id };
+      } else if (operation === "brand_lexicon.create") {
+        if (!body.entries?.length)
+          throw validation("complete lexicon entries required");
+        // Lock the brand so concurrent version allocation cannot reuse a version.
+        const brand = await client.query(
+          "SELECT id FROM brand WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
+          [tenant_id, body.brand_id],
+        );
+        if (!brand.rowCount) throw permission();
+        const version = Number(
+          (
+            await client.query(
+              "SELECT coalesce(max(version),0)+1 AS version FROM brand_lexicon WHERE tenant_id=$1 AND brand_id=$2",
+              [tenant_id, body.brand_id],
+            )
+          ).rows[0].version,
+        );
+        let head;
+        for (const entry of body.entries) {
+          const rowId = randomUUID();
+          head ??= rowId;
+          await client.query(
+            "INSERT INTO brand_lexicon(id,tenant_id,brand_id,version,kind,term,created_by) VALUES($1,$2,$3,$4,$5,$6,$7)",
+            [
+              rowId,
+              tenant_id,
+              body.brand_id,
+              version,
+              entry.kind,
+              entry.term,
+              actor.user_id,
+            ],
+          );
+        }
+        objectId = head;
+        result = { version, version_object_id: head, effective: false };
+      } else if (operation === "brand_lexicon.submit") {
+        const row = (
+          await client.query(
+            "SELECT id,created_by,brand_id,version FROM brand_lexicon WHERE tenant_id=$1 AND id=$2",
+            [tenant_id, params.id],
+          )
+        ).rows[0];
+        if (!row || row.created_by !== actor.user_id)
+          throw permission("only version author submits");
+        await client.query(
+          "SELECT id FROM brand WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
+          [tenant_id, row.brand_id],
+        );
+        const existingReview = await client.query(
+          `SELECT q.id FROM review_queue q JOIN brand_lexicon l
+           ON l.tenant_id=q.tenant_id AND l.id=q.object_id
+           WHERE q.tenant_id=$1 AND q.object_type='brand_lexicon'
+           AND l.brand_id=$2 AND l.version=$3 AND q.status IN ('waiting','approved')`,
+          [tenant_id, row.brand_id, row.version],
+        );
+        if (existingReview.rowCount)
+          throw new ServiceError(
+            409,
+            "state_conflict",
+            "version already submitted or sealed",
+          );
+        objectId = row.id;
+        result = {
+          review_entry_id: await queue(
+            actor,
+            tenant_id,
+            "brand_lexicon",
+            row.id,
+          ),
+          object_id: row.id,
+          status: "waiting",
+        };
+      } else if (operation === "official_fact.create") {
+        await client.query(
+          `INSERT INTO official_fact(id,tenant_id,brand_id,fact_category,content,source_level,status,effective_from,product_line_ref)
+     VALUES($1,$2,$3,$4,$5,$6,'draft',$7,$8)`,
+          [
+            id,
+            tenant_id,
+            body.brand_id,
+            body.fact_category,
+            body.content,
+            body.source_level,
+            body.effective_from,
+            body.product_line_ref ?? null,
+          ],
+        );
+        result = {
+          id,
+          status: "draft",
+          review_entry_id: await queue(actor, tenant_id, "official_fact", id),
+        };
+      } else if (
+        operation === "review_queue.approve" ||
+        operation === "official_fact.approve"
+      ) {
+        const rows =
+          operation === "review_queue.approve"
+            ? await client.query(
+                "SELECT * FROM review_queue WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
+                [tenant_id, params.id],
+              )
+            : await client.query(
+                "SELECT * FROM review_queue WHERE tenant_id=$1 AND object_type='official_fact' AND object_id=$2 ORDER BY submitted_at DESC LIMIT 1 FOR UPDATE",
+                [tenant_id, params.id],
+              );
+        const review = rows.rows[0];
+        if (!review) throw permission();
+        if (review.submitted_by === actor.user_id)
+          throw permission("author cannot approve own version");
+        if (review.status !== "waiting")
+          throw new ServiceError(
+            409,
+            "state_conflict",
+            "review already decided",
+          );
+        if (!["brand_lexicon", "official_fact"].includes(review.object_type))
+          throw permission(
+            "provisioning only handles onboarding basis objects",
+          );
+        await client.query(
+          "UPDATE review_queue SET status='approved',decided_by=$1,decided_at=CURRENT_TIMESTAMP WHERE tenant_id=$2 AND id=$3",
+          [actor.user_id, tenant_id, review.id],
+        );
+        if (review.object_type === "official_fact") {
+          await client.query(
+            "UPDATE official_fact SET status='approved' WHERE tenant_id=$1 AND id=$2",
+            [tenant_id, review.object_id],
+          );
+          await audit(
+            actor,
+            tenant_id,
+            operation === "official_fact.approve"
+              ? "review_queue.approve"
+              : "official_fact.approve",
+            operation === "official_fact.approve"
+              ? review.id
+              : review.object_id,
+          );
+        }
+        objectId =
+          operation === "official_fact.approve" ? review.object_id : review.id;
+        result = { id: objectId, status: "approved" };
+      } else if (operation === "seed_list.create") {
+        if (body.status != null)
+          throw validation(
+            "seed status enum not approved; T04 accepts NULL only",
+          );
+        assertPublicRoot(body, publicRootCatalog, await privateMarkers(client));
+        await client.query(
+          "INSERT INTO seed_list(id,industry,word,word_type,maintainer,last_reviewed_at,seed_version) VALUES($1,$2,$3,$4,$5,$6,$7)",
+          [
+            id,
+            body.industry,
+            body.word,
+            body.word_type,
+            body.maintainer,
+            body.last_reviewed_at,
+            body.seed_version,
+          ],
+        );
+        result = { id, seed_version: body.seed_version, status: null };
+      }
+      await audit(actor, tenant_id, operation, objectId);
+      return result;
+    } catch (error) {
+      throw normalizeDatabaseError(error);
+    }
+  };
+}
+
+export async function executeProvisioningOperation({
+  client,
+  operation,
+  context,
+  publicRootCatalog = new Set(),
+}) {
+  await client.query("BEGIN");
+  try {
+    const result = await provisioningOperations(client, { publicRootCatalog })(
+      operation,
+      context,
+    );
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+}

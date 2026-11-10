@@ -24,8 +24,8 @@ AI 时代用户不再搜索，而是提问。oak-geo 让品牌在模型回答里
 | 文件 | 内容 | 状态 |
 |---|---|---|
 | [`AGENTS.md`](./AGENTS.md) | 开发宪法：技术栈（已拍板）、行为铁律、架构硬约束、astryx UI 工作流 | v1.1 |
-| [`docs/GEO产品文档.md`](./docs/GEO产品文档.md) | 产品唯一事实源：方法论 / 产品设计（含界面与用户旅程）/ 数据建模 / 决策记录 | v3.4 |
-| [`docs/backlog.md`](./docs/backlog.md) | 33 个开发任务切片，带完成定义 | v1.0 |
+| [`docs/GEO产品文档.md`](./docs/GEO产品文档.md) | 产品唯一事实源：方法论 / 产品设计（含界面与用户旅程）/ 数据建模 / 决策记录 | v3.5 |
+| [`docs/backlog.md`](./docs/backlog.md) | 36 个开发任务切片，带完成定义 | v1.0 |
 | [`docs/api-spec-template.md`](./docs/api-spec-template.md) | API 契约与状态机设计模板（任务 T02 的输入） | 模板就绪 |
 
 API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集、权限、状态机和抽检附录集中在 `docs/api/`。历史验证记录放在 `docs/archive/`。
@@ -36,10 +36,10 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 
 ## 状态
 
-- ✅ 产品设计定稿（v3.4，评审稿）
+- ✅ 产品设计定稿（v3.5）
 - ✅ 技术栈拍板：Next.js（App Router）+ astryx + Cloudflare Workers + Neon Postgres
-- 待人审：脚手架初始化（本次 T01）
-- ⬜ API 契约与状态机（T02，agent 产出 → 人审冻结）
+- ✅ T01 脚手架、T02 API 规格（t02_api_v1，人审冻结）、T03 测试红灯基线已合并
+- T04 数据库迁移与服务层开发 fixture 待人审
 
 ## Setup
 
@@ -70,14 +70,35 @@ npm run build:worker
 npm run doctor
 ```
 
-`build` 是 Next.js 构建，`build:worker` 再生成 `.open-next/worker.js` 与静态资源。发布前必须先构建；`npm run deploy` 会发布到 Cloudflare，仅在人审授权后执行。当前无需 Cloudflare 账号即可本地构建/预览，尚未配置 Neon/Hyperdrive 或业务鉴权，不提供任何业务数据写入口。
+`build` 是 Next.js 构建，`build:worker` 再生成 `.open-next/worker.js` 与静态资源。发布前必须先构建；`npm run deploy` 会发布到 Cloudflare，仅在人审授权后执行。当前无需 Cloudflare 账号即可本地构建/预览，尚未配置线上 Neon/Hyperdrive 绑定或 Web/PAT 业务鉴权；T04 仅提供受信开发环境中的迁移和 fixture 服务，没有公开业务路由。
 
 配置参考：[OpenNext 官方接入说明](https://opennext.js.org/cloudflare/get-started)、[Cloudflare Next.js 指南](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/)。未启用 ISR/R2 缓存或数据库绑定，后续按任务接入。
 
 测试采用 Node 内置测试运行器；隔离关闭以适应本地受限环境。当前可验证的规格与架构检查，以及T03产品验收红灯基线，分开报告；不能据此声称业务规则已验证。
 
+T03 已建立真实服务层验收的红灯基线：`npm run test:checks`验证当前规格和静态架构守卫，`npm run test:product`运行产品硬规则及运行时鉴权检查，`npm test`包含两者。服务尚未接入时后者应失败；这表示业务能力未验收，不能用跳过或假实现转绿。后续任务在 `tests/support/runtime-driver.mjs` 连接真实服务操作并用服务API准备fixture；用例与负责任务的映射见 `tests/rules/product-rule-cases.mjs`。
+
+## 数据库（T04）
+
+`migrations/0001_core.sql`、`0002_industry.sql`、`0003_guards.sql`覆盖产品§18当前29张业务表（原18为历史计数），另有迁移账本`schema_migration`。使用原生`pg`驱动，不引入ORM。所有列有注释；版本/分数唯一约束、租户复合外键、冻结与终态守卫在数据库兜底。四个API投影不被擅自扩成四张业务表。
+
+对明确指定的开发数据库执行（连接串由环境注入，不写进仓库）：
+
+```sh
+# DATABASE_URL = 目标开发库的直连 Postgres URL；GEO_MIGRATION_ACTOR = 执行人标识
+npm run db:migrate
+npm run db:fixture
+npm run test:db
+```
+
+迁移由服务层加锁、按文件事务执行，账本校验SHA-256；重复运行跳过已应用文件，已应用内容变更会拒绝，失败回滚DDL与账本。`db:fixture`同样只调用服务层，事务内创建虚构“简造 ERP”租户、独立写/审成员、已封版词表v1（含exclusion）、已批准L1测试口径和公共词根；重复载入不复制数据。fixture不含真实客户原文，也不代表T31全链路已完成。
+
+三张行业共享表没有`tenant_id`；原始词及品牌级表保持租户归属。共享服务仅接受受信公共词根目录，拒绝已知客户标识与私有词句，输出限定为公共词根及数值聚合；自由文本备注不进入投影，对外基准出口暂不开放。T07/T10接入真实词池时仍须遵守这一边界。
+
+私有表已启用RLS且未放行策略：普通非owner角色默认拒绝；T05负责运行身份、完整权限矩阵及行级策略，T06负责通用审计。迁移/fixture需要库管理连接，不是Web/PAT鉴权替代品。线上Workers后续通过Hyperdrive绑定传入`connectionString`，直连URL仅用于管理命令；驱动依据[Cloudflare官方pg接入方式](https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/node-postgres/)。
+
+`test:db`使用开发依赖携带的真实PostgreSQL18.6，在Linux/macOS临时目录启动Unix socket，结束后销毁，不读取`DATABASE_URL`。`test:checks`包含该集成测试；T03的23个产品/运行时鉴权验收仍独立跑红，待负责任务接入真实服务后逐条转绿，不能把本次数据库检查通过写成全产品测试通过。
+
 ## License
 
 Private — 内部产品仓库。
-
-T03 已建立真实服务层验收的红灯基线：`npm run test:checks`验证当前规格和静态架构守卫，`npm run test:product`运行产品硬规则及运行时鉴权检查，`npm test`包含两者。服务尚未接入时后者应失败；这表示业务能力未验收，不能用跳过或假实现转绿。后续任务在 `tests/support/runtime-driver.mjs` 连接真实服务操作并用服务API准备fixture；用例与负责任务的映射见 `tests/rules/product-rule-cases.mjs`。
