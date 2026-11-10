@@ -867,6 +867,11 @@ keyword_pool_snapshot   词池快照（每周全量） -- industry-shared, no te
   pool_version, industry, created_at, seed_version,
   counts_by_channel, cluster_count, changelog_note
 
+w_pool_percentile   行业需求分位证据（R11 v2裁定） -- industry-shared, no tenant_id
+  industry, public_cluster_key, pool_version, demand_index, percentile,
+  producer(weekly_batch), basis_note, computed_at
+  -- 唯一生产者=T10周批机器；basis_note必填T10批次id；Strategist只读，无人工录入
+
 intent_cluster      意图簇（词池基本单位）
   id, tenant_id, brand_id, name, intent_type(六类),
   status(active/archived), pool_version,
@@ -939,7 +944,8 @@ metric_snapshot     指标快照（差值计算必须校验 snapshot 口径）
 
 industry_score      14 行业外部策略表（排产用，不进对外报告） -- industry-shared, no tenant_id
   industry, version, demand, gap, willingness, competition,
-  score, reliability_note, updated_by, updated_at
+  score, reliability_note, updated_by, updated_at,
+  c_delete_threshold                    -- 可NULL，默认NULL；尚未校准的行业= NULL =人工判定；不进对外报告
 
 audit_log           审计日志（原始回答 / C 类数据访问全量记录；agent 动作同等记录）
   id, tenant_id, user_id, action, object_type, object_id, at,
@@ -1049,6 +1055,9 @@ official_fact       官方口径（T02 v4裁定）
 | T02 阻塞项 10 条裁定：状态机闭合 / 权限细化 / 快照双身份 / 六表补充 / 接口约定 | v3.5 |
 | 品牌词表与官方口径补齐（T02 v4 裁定） | v3.5 |
 | v3.5 | 开通清单详设与接入预填、管道经营属性、dogfood 自运营剧本、情报墙(P1)、分发实操附录 | 产品负责人逐幕走读裁定 |
+
+| 删簇第三条件=人工拍板+阈值演进机制 | v3.5 |
+| R11条件1行业分位仅T10周批机器生产；缺行或stale暂缓判定，撤回人工录入 | v3.5 |
 
 ## 待定
 

@@ -16,7 +16,18 @@ export function normalizeDatabaseError(error) {
   if (error instanceof ServiceError) return error;
   if (error.code === "23505")
     return new ServiceError(409, "state_conflict", "record already exists");
-  if (["23502", "23503", "23514", "22P02"].includes(error.code))
+  if (
+    [
+      "23502",
+      "23503",
+      "23514",
+      "22P02",
+      "22007",
+      "22008",
+      "22003",
+      "22001",
+    ].includes(error.code)
+  )
     return validation("database constraint rejected operation", {
       constraint: error.constraint ?? null,
     });

@@ -24,9 +24,15 @@ const policies = {
 // public route and does not replace that task. SQL is intentionally kept in API.
 export function provisioningOperations(
   client,
-  { publicRootCatalog = new Set() } = {},
+  { publicRootCatalog = new Set(), auditSink } = {},
 ) {
   async function audit(actor, tenantId, operation, objectId) {
+    if (auditSink)
+      return auditSink({
+        action: operation,
+        object_type: operation.split(".")[0],
+        object_id: objectId,
+      });
     await client.query(
       `INSERT INTO audit_log(id,tenant_id,user_id,action,object_type,object_id,actor_type,agent_run_id,prompt_version)
    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
@@ -193,11 +199,19 @@ export function provisioningOperations(
                 [tenant_id, params.id],
               )
             : await client.query(
-                "SELECT * FROM review_queue WHERE tenant_id=$1 AND object_type='official_fact' AND object_id=$2 ORDER BY submitted_at DESC LIMIT 1 FOR UPDATE",
+                "SELECT * FROM review_queue WHERE tenant_id=$1 AND object_type='official_fact' AND object_id=$2 AND status='waiting' FOR UPDATE",
                 [tenant_id, params.id],
               );
         const review = rows.rows[0];
-        if (!review) throw permission();
+        if (!review) {
+          if (operation === "official_fact.approve")
+            throw new ServiceError(
+              409,
+              "state_conflict",
+              "waiting review required",
+            );
+          throw permission();
+        }
         if (review.submitted_by === actor.user_id)
           throw permission("author cannot approve own version");
         if (review.status !== "waiting")
@@ -262,21 +276,31 @@ export function provisioningOperations(
 }
 
 export async function executeProvisioningOperation({
-  client,
+  application,
   operation,
   context,
-  publicRootCatalog = new Set(),
 }) {
-  await client.query("BEGIN");
-  try {
-    const result = await provisioningOperations(client, { publicRootCatalog })(
-      operation,
-      context,
+  if (!application)
+    throw permission(
+      "legacy provisioning requires authenticated runtime application",
     );
-    await client.query("COMMIT");
-    return result;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  }
+  if (
+    Object.keys(context).some(
+      (key) => !["actor", "tenant_id", "body", "params", "query"].includes(key),
+    )
+  )
+    throw permission("untrusted provisioning authority declaration");
+  const response = await application.call(operation, {
+    actor: context.actor,
+    body: context.body ?? {},
+    params: { ...context.params, tid: context.tenant_id },
+    query: context.query ?? {},
+  });
+  if (response.status >= 200 && response.status < 300) return response.data;
+  throw new ServiceError(
+    response.status,
+    response.error.code,
+    response.error.message,
+    response.error.details,
+  );
 }

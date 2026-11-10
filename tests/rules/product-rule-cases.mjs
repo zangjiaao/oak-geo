@@ -68,13 +68,24 @@ export const ruleCases=[
   const report=ok(await call(app,'metric_snapshot.export',f.actors.owner,{}, {id:f.metricId}));
   assert.equal(report.produced_by_us,true);assert.ok(report.control_cluster_ids.length>0);
  }),
- rule(11,'R11','软归档保留历史且90天过渡内SOV分母不丢失',['T10','T28'],async app=>{
-  const f=await app.fixture('archive-transition',{daysSinceArchive:89});
-  const archived=ok(await call(app,'intent_cluster.read',f.actors.strategist,{}, {id:f.clusterId}));
+ rule(11,'R11','机器举证后由Strategist显式软归档，90天分母过渡及审计完整',['T05','T10','T28'],async app=>{
+  const f=await app.fixture('archive-transition');
+  const prepared=ok(await call(app,'intent_cluster.archive',f.actors.strategist,f.archiveRequest,{id:f.clusterId}));
+  assert.equal(prepared.status,'active');
+  const evidence=prepared.archive_evidence;
+  assert.equal(evidence.status,'manual_review_required');
+  assert.equal(evidence.condition1_met,true);assert.equal(evidence.condition2_met,true);
+  assert.ok(evidence.b_source_excerpts.length>0);assert.ok(evidence.statistics_window.from);assert.ok(evidence.statistics_window.to);assert.ok(evidence.channel_scope);assert.equal(evidence.requested_by,f.actors.strategist.user_id);
+  const archived=ok(await call(app,'intent_cluster.archive',f.actors.strategist,{reason:'策略人工核验第三条件后确认归档',archive_evidence_id:evidence.id,manual_confirmation:true},{id:f.clusterId}));
   assert.equal(archived.status,'archived');assert.ok(archived.archived_at);
+  const during=await app.fixture('archive-transition',{stage:'during-transition',scenarioId:f.scenarioId,daysSinceArchive:89});
   const before=ok(await call(app,'metric_snapshot.read',f.actors.owner,{}, {id:f.metricBefore}));
-  const during=ok(await call(app,'metric_snapshot.read',f.actors.owner,{}, {id:f.metricDuringTransition}));
-  assert.equal(during.sov,before.sov); // Identical probe answers; only cluster archival differs.
+  const transition=ok(await call(app,'metric_snapshot.read',during.actors.owner,{}, {id:during.metricDuringTransition}));
+  assert.equal(transition.sov,before.sov);
+  assert.ok(transition.denominator_changes.some(row=>row.cluster_id===f.clusterId));
+  const audits=ok(await call(app,'audit_log.read',during.actors.admin,{}, {},{object_type:'intent_cluster',object_id:f.clusterId,limit:100}));
+  const proofAudit=audits.items.find(row=>row.action==='intent_cluster.archive_evidence');assert.ok(proofAudit);
+  assert.ok(audits.items.some(row=>row.action==='intent_cluster.archive'&&row.cause_event_id===proofAudit.id&&row.actor_type==='human'));
  }),
  rule(12,'R12','对外机会卡不含绝对搜索次数或包上承诺',['T18','T32'],async app=>{
   const f=await app.fixture('public-opportunity');
