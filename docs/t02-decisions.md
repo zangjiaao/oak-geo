@@ -215,3 +215,23 @@ T04 补充裁定（对应 ①② 两处规格空白；执行边界同前：追�
 - 行业样本基准的公开披露规则沿用既有条款（<5 租户不出基准；脱敏），共享表结构是该规则的结构化承载，不改承诺本身。
 
 §18 授权补充：三张行业共享表的字段注释加"industry-shared, no tenant_id"；keyword_raw 注释加"C-class rows always tenant-private"。
+
+
+T04 复核裁定落实（2026-11-10，负责人授权依赖修正与枚举映射）
+
+负责人指令：pg/@embedded-postgres 进 dependencies 并回归验证；opportunity_card 中文枚举用 contracts.json 的英文枚举，或建立数据库↔API 枚举映射表（写入本文件追加）。
+
+核对冻结 t02_api_v1：contracts.json 的 states.opportunity_card 与端点示例实际均为中文，未提供英文 API 枚举。本次采用授权的显式映射路径，不改冻结契约、不新增业务状态：
+
+| 数据库存储码 | 冻结 API 值 |
+|---|---|
+| candidate | 候选 |
+| scored | 评分 |
+| recommended | 建议 |
+| confirmed | 确认 |
+| monitoring | 在测 |
+| archived | 归档 |
+
+映射实现归 src/server/api/opportunity-status.mjs，服务输入/输出边界统一使用，未知值 422 validation_failed；转换不授予裸改 status 的权限。0004 兼容迁移仅重编码存储值，保留 0001/0003 校验和，默认值、CHECK 与迁移图同步映射；已有行逐条记 schema.reencode_storage 审计，语义不发生状态迁移。T05 注册机会卡服务时必须接入映射，不得将英文存储值直接回传给 API。
+
+pg 已为 dependencies；embedded-postgres 从 devDependencies 移到 dependencies，其 @embedded-postgres/* 包保留按平台选装语义，生产锁树不再带 dev 标记。已通过隔离 npm ci --omit=dev 后的 13 项真实 PostgreSQL 检查、完整 37 项 checks 与 Workers 构建回归。

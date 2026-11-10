@@ -112,8 +112,10 @@
 ## 当前执行状态（T04）
 
 - T03：`done`。用户批准后PR #5已合并，随后新建`task/t04-migrations`，没有在main直接开发。
-- T04：`review`。按产品§18实际29表建三份迁移，另有schema_migration管理账本；原18表是旧计数，四个API投影未另造表。全部字段/列注释由真实PG目录对照§18验证；迁移重复/校验和/失败事务回滚均有集成测试。
+- T04：`review`。按产品§18实际29表建迁移（初版0001–0003，复核追加0004），另有schema_migration管理账本；原18表是旧计数，四个API投影未另造表。全部字段/列注释由真实PG目录对照§18验证；迁移重复/校验和/失败事务回滚均有集成测试。
 - 已落实本轮裁定：seed_list.status允许NULL且无默认、不写枚举值（T07另定）；seed_list/keyword_pool_snapshot/industry_score无tenant_id；keyword_raw非空tenant_id。共享服务限定许可公共词根与数值聚合，拒绝客户标识/竞品私有输入与C类原句，不输出自由文本，不开放未验证样本数的公开基准。
 - fixture通过src/server/api显式操作事务装配：虚构简造ERP、独立Strategist/FactCheck/Owner、词表v1含exclusion、L1 approved测试口径及公共种子；每步留审计。C4可选product_line_ref同品牌品线外键已落地。
-- T04验证：test:checks 34项通过（含真实PostgreSQL18.6集成）、typecheck、Workers构建、生成器--check；test:product仍为T03既定23项红灯（完整服务驱动尚未接入），不伪造后续业务实现转绿。
+- T04验证：test:checks 37项通过（含真实PostgreSQL18.6集成）、typecheck、Workers构建、生成器--check；test:product仍为T03既定23项红灯（完整服务驱动尚未接入），不伪造后续业务实现转绿。
 - 范围边界：私有表RLS已启用但未放行普通角色，完整租户/角色鉴权留T05、通用审计留T06、种子状态枚举留T07、判定留T16。管理fixture不是公开业务API；未配置线上数据库或运行生产迁移。产品文档仅加四条授权§18注释，AGENTS.md与冻结API附件未改；docs仍12文件。等待人审合并。
+
+- T04复核：pg保留生产依赖，embedded-postgres及@embedded-postgres/*移入生产依赖树；隔离目录npm ci --omit=dev后的13项真实PG检查通过，完整test:checks 37项通过，typecheck/Workers构建/生成器--check通过。机会卡采用英文DB↔冻结中文API显式映射；追加0004兼容迁移，原迁移与冻结规格未改；映射表追加至t02-decisions.md。PR #6待人审，未获新合并授权。

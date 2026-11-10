@@ -30,6 +30,10 @@ export async function applyMigrations({ client, files, actor }) {
       }
       await client.query("BEGIN");
       try {
+        // Transaction-local identity for audited storage re-encoding migrations.
+        await client.query("SELECT set_config('geo.migration_actor',$1,true)", [
+          actor.user_id,
+        ]);
         await client.query(file.sql);
         await client.query(
           "INSERT INTO schema_migration(name,checksum,applied_by) VALUES($1,$2,$3)",

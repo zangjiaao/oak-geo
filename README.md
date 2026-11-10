@@ -80,7 +80,7 @@ T03 已建立真实服务层验收的红灯基线：`npm run test:checks`验证�
 
 ## 数据库（T04）
 
-`migrations/0001_core.sql`、`0002_industry.sql`、`0003_guards.sql`覆盖产品§18当前29张业务表（原18为历史计数），另有迁移账本`schema_migration`。使用原生`pg`驱动，不引入ORM。所有列有注释；版本/分数唯一约束、租户复合外键、冻结与终态守卫在数据库兜底。四个API投影不被擅自扩成四张业务表。
+`migrations/0001_core.sql` 至 `0004_opportunity_status.sql`覆盖产品§18当前29张业务表（原18为历史计数），另有迁移账本`schema_migration`。使用原生`pg`驱动，不引入ORM。所有列有注释；版本/分数唯一约束、租户复合外键、冻结与终态守卫在数据库兜底。四个API投影不被擅自扩成四张业务表。机会卡英文存储码与冻结API中文值经服务层映射，表见`t02-decisions.md`；0004仅重编码，原迁移校验和保留。
 
 对明确指定的开发数据库执行（连接串由环境注入，不写进仓库）：
 
@@ -97,7 +97,7 @@ npm run test:db
 
 私有表已启用RLS且未放行策略：普通非owner角色默认拒绝；T05负责运行身份、完整权限矩阵及行级策略，T06负责通用审计。迁移/fixture需要库管理连接，不是Web/PAT鉴权替代品。线上Workers后续通过Hyperdrive绑定传入`connectionString`，直连URL仅用于管理命令；驱动依据[Cloudflare官方pg接入方式](https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/node-postgres/)。
 
-`test:db`使用开发依赖携带的真实PostgreSQL18.6，在Linux/macOS临时目录启动Unix socket，结束后销毁，不读取`DATABASE_URL`。`test:checks`包含该集成测试；T03的23个产品/运行时鉴权验收仍独立跑红，待负责任务接入真实服务后逐条转绿，不能把本次数据库检查通过写成全产品测试通过。
+`test:db`使用生产依赖树中按平台安装的真实PostgreSQL18.6，在Linux/macOS临时目录启动Unix socket，结束后销毁，不读取`DATABASE_URL`。`test:checks`包含该集成测试；T03的23个产品/运行时鉴权验收仍独立跑红，待负责任务接入真实服务后逐条转绿，不能把本次数据库检查通过写成全产品测试通过。
 
 ## License
 
