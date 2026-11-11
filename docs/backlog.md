@@ -119,3 +119,8 @@
 - 范围边界：私有表RLS已启用但未放行普通角色，完整租户/角色鉴权留T05、通用审计留T06、种子状态枚举留T07、判定留T16。管理fixture不是公开业务API；未配置线上数据库或运行生产迁移。产品文档仅加四条授权§18注释，AGENTS.md与冻结API附件未改；docs仍12文件。等待人审合并。
 
 - T04复核：pg保留生产依赖，embedded-postgres及@embedded-postgres/*移入生产依赖树；隔离目录npm ci --omit=dev后的13项真实PG检查通过，完整test:checks 37项通过，typecheck/Workers构建/生成器--check通过。机会卡采用英文DB↔冻结中文API显式映射；追加0004兼容迁移，原迁移与冻结规格未改；映射表追加至t02-decisions.md。PR #6待人审，未获新合并授权。
+
+- T05：`review`。负责人已批准接线方案及权限/审计/RLS开工；接线附件见 [t05-wiring.md](t05-wiring.md)，埋点与验证见 [t05-review.md](t05-review.md)。本分支仍堆叠于未合并PR #6之上，PR #7不合并。
+- 已接入真实runtime-driver与17名fixture注册表，77个服务操作统一鉴权、普通geo_app连接、敏感读取审计先提交；同时纳入原T06审计核心。后续页面、外部集成及T07–T29完整任务不据此标done。
+- R11按负责人授权改为机器举证+Strategist显式归档，产品仅修改§18行业阈值与指定决策行；其余T03场景/协议和contracts.json锁定。条件1按负责人v2裁定读取机器周批分位；缺行/stale=data_pending，不开放人工写入；T10上线前实际暂缓归档。
+- T05验证：checks 51/51、product 23/23（22场景+A02，77注册操作）、typecheck、生成器--check、Workers构建、doctor均通过；无skip/todo。审计映射与35个未实现端点边界见review附件，等待负责人抽验，不合并。

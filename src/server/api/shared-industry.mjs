@@ -1,4 +1,4 @@
-import { permission, validation } from "./errors.mjs";
+import { permission, validation, ServiceError } from "./errors.mjs";
 
 // This is a fail-closed, internal projection boundary. The trusted public-root
 // catalog is supplied by the provisioning operator, never by a client payload.
@@ -51,48 +51,52 @@ export function channelCounts(value) {
   return structuredClone(value);
 }
 export async function readSharedIndustry({
-  client,
+  application,
   actor,
   industry,
-  publicRootCatalog,
   audience = "internal",
 }) {
-  if (actor?.role !== "strategist" || audience !== "internal")
-    throw permission(
-      "public benchmarks require a separately verified >=5-tenant sample; no public export in T04",
-    );
-  const markers = await privateMarkers(client);
-  if (includesPrivate(industry, markers))
-    throw validation("private industry label");
-  const seeds = (
-    await client.query(
-      "SELECT id,industry,word,word_type,seed_version FROM seed_list WHERE industry=$1",
-      [industry],
-    )
-  ).rows.filter((row) => {
-    try {
-      assertPublicRoot(row, publicRootCatalog, markers);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  // Explicit column selection: no raw keyword text, free-form notes, tenant,
-  // brand/customer lists, or C payload is selected into the shared response.
-  const snapshots = (
-    await client.query(
-      "SELECT pool_version,industry,created_at,seed_version,counts_by_channel,cluster_count FROM keyword_pool_snapshot WHERE industry=$1 ORDER BY pool_version",
-      [industry],
-    )
-  ).rows.map((row) => ({
-    ...row,
-    counts_by_channel: channelCounts(row.counts_by_channel),
-  }));
-  const scores = (
-    await client.query(
-      "SELECT industry,version,demand,gap,willingness,competition,score,updated_at FROM industry_score WHERE industry=$1 ORDER BY version",
-      [industry],
-    )
-  ).rows;
+  if (!application || actor?.role !== "strategist" || audience !== "internal")
+    throw permission("no public benchmark or unmanaged shared projection");
+  const call = async (id) => {
+    const result = await application.call(id, {
+      actor,
+      body: {},
+      params: {},
+      query: { industry },
+    });
+    if (result.status !== 200)
+      throw new ServiceError(
+        result.status,
+        result.error.code,
+        result.error.message,
+        result.error.details,
+      );
+    return result.data.items;
+  };
+  const seeds = await call("seed_list.read");
+  const snapshots = await call("keyword_pool_snapshot.read");
+  const values = await call("industry_score.read");
+  const scores = values.map(
+    ({
+      industry,
+      version,
+      demand,
+      gap,
+      willingness,
+      competition,
+      score,
+      updated_at,
+    }) => ({
+      industry,
+      version,
+      demand,
+      gap,
+      willingness,
+      competition,
+      score,
+      updated_at,
+    }),
+  );
   return { industry, seeds, snapshots, scores };
 }

@@ -8,3 +8,10 @@ export async function connectDatabase(binding) {
   await client.connect();
   return client;
 }
+
+// Used by an isolated test environment; production passes Hyperdrive connectionString.
+export async function connectDatabaseParameters(parameters) {
+  const client = new pg.Client(parameters);
+  await client.connect();
+  return client;
+}
