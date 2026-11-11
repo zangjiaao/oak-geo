@@ -129,5 +129,6 @@
 
 - T04/T05：`done`。负责人2026-11-11明确批准合并PR #6/#7，已依次合并到main；新建task/t07-seed-management分支，不在main直接开发。
 - T06：`done`。已由 T05 吸收完成（审计事务层 + 敏感读审计 + actor 三字段 CHECK），证据：src/server/api/audit-transaction.mjs 及 t05-middleware 审计测试；负责人批准合并 PR #7 时确认。
-- T07：`doing`。本轮仅服务层CRUD＋行业共享读写路径＋对应④页面字段/交互契约，负责人确认网页界面后续单独排期。状态草案active/deprecated、NULL回填active、修订/软停用追加版本，随本PR人审，不自行冻结。
+- T07：`review`。本轮仅服务层CRUD＋行业共享读写路径＋对应④页面字段/交互契约，负责人确认网页界面后续单独排期。状态草案active/deprecated、NULL回填active、修订/软停用追加版本，随本PR人审，不自行冻结。
 - 基线为原51 checks＋23 product=74绿；冻结T03断言/协议、contracts.json及既有权限集合保持。仅调整被T07状态迁移明确替代的T04“NULL无默认”schema预期，并新增真实旧数据迁移回放；不删除旧验收。
+- T07验证：55 checks＋23 product=78项全绿（保留74项基线＋新增4项）；最终稳定代码product再次23/23通过，A02遍历78注册操作。typecheck、生成器--check、Workers构建、doctor通过；状态草案与页面契约见[t07-review.md](t07-review.md)，PR #8待人审，未合并。
