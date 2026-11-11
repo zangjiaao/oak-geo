@@ -152,7 +152,10 @@ export function createFixtureRegistry(
       last_reviewed_at: new Date(clock.now()).toISOString(),
       seed_version: f.serial,
     };
-    await invoke("seed_list.create", f.actors.strategist, f.seed);
+    f.seed = {
+      ...f.seed,
+      ...(await invoke("seed_list.create", f.actors.strategist, f.seed)),
+    };
     const source = await invoke("keyword_raw.import", f.actors.strategist, {
       industry: "B2B",
       keyword: "ai 自动排产",
@@ -811,6 +814,7 @@ export function createFixtureRegistry(
       "official_fact.approve",
       "official_fact.retract",
       "seed_list.create",
+      "seed_list.revise",
       "seed_list.read",
       "keyword_raw.import",
       "keyword_raw.read",
@@ -910,6 +914,15 @@ export function createFixtureRegistry(
           ...f.seed,
           seed_version: f.seed.seed_version + 10000,
         });
+      if (id === "seed_list.revise")
+        return request(
+          a.strategist,
+          {
+            maintainer: "张三（虚构）",
+            last_reviewed_at: new Date(clock.now()).toISOString(),
+          },
+          { id: f.seed.id },
+        );
       if (id === "seed_list.read")
         return request(a.strategist, {}, {}, { industry: "B2B" });
       if (id === "keyword_raw.import")
