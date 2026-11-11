@@ -317,3 +317,27 @@ T05 接线实施记录：fixture 与开发 fixture 统一使用普通 geo_app �
    系统（producer='weekly_batch'），basis_note 必填 T10 批次 id。
 
 T05落实：新增0008机器分位投影；仅weekly_pool受控job在keyword_pool_snapshot.append服务内对许可公共观测的demand_index计算percent_rank，basis_note绑定触发的周批事件id，不接受percentile输入。fixture替换公开机器观测回执，分位计算和入库均走实际服务。Strategist只经词池只读投影查看；无人工写通道。分位需同时匹配簇pool_version与行业最新pool_version，否则data_pending；不另发明按天TTL。当前只承接能无歧义映射到一个许可公共词根的簇，未映射/多源歧义也按data_pending保守关闭，T10负责完整公共簇映射与实际采集。前一条待裁定记录由本条替代。
+
+## T07 开工与T06簿记（2026-11-11）
+
+负责人授权原文：
+
+> PR #6、#7 合并批准。簿记两件事 + 开工 T07：
+> 1. backlog.md：T06 标 done，注明"已由 T05 吸收完成（审计事务层 + 敏感读审计 + actor 三字段 CHECK），证据：src/server/api/audit-transaction.mjs 及 t05-middleware 审计测试；负责人批准合并 PR #7 时确认"。决策记录追加一行："T06 并入 T05 完成交付 | v3.5"。
+> 2. 开工 T07（种子表管理 CRUD + 行业共享平面读写路径）：新功能必须维持 74 绿不倒；seed_list.status 枚举按裁定①冻结（active/deprecated 之类，你提草案、走决策记录），迁移时对 NULL 行补默认值；T07 完成 = 新增功能单测 + 74 绿不破坏 + t07-review.md 简报（改动文件、测试增量、与 §13.2 ④ 页面设计的对应关系）。
+
+负责人范围确认：“本轮先交付服务层与契约，网页界面后续单独排期”。
+
+T07状态/版本草案（负责人授权agent提出，随PR人审；尚未自行冻结）：
+
+| 项 | 本PR拟定语义 |
+|---|---|
+| 枚举/默认 | active / deprecated；新建默认active；旧NULL通过0009迁移回填active并逐行审计 |
+| 修改 | seed_list.revise追加新行；active→active修正维护人/词根，active→deprecated软停用，deprecated→active重新采用，deprecated→deprecated校正停用条目的资料；每跳均是新版本，历史行不可update/delete |
+| 并发 | revise必须引用当前版本，陈旧ID返回409；同一行业锁内分配seed_version+1，忽略客户端seed_version占号；重复请求用现有24h幂等机制 |
+| 逻辑身份 | logical_id稳定，previous_id连接直接前版；迁移按行业/类型/公共词根串起旧数据；同词根create也追加该逻辑链的新版本，避免当前列表重复行 |
+| 读取 | read默认返回各逻辑链当前行（含deprecated便于识别）；status可筛active/deprecated；view=history及logical_id回看历史；seed_version可还原指定行业版本时的行集合；cursor默认20/上限100 |
+| 字段/共享 | 维护人具体人名与UTC复核时间每次写必填；word_type仍为产品五值，行业共享路径只接受许可公共品类/场景/问题词；客户厂牌、竞品名单、品线及C原句仍不进入共享层 |
+| 权限 | 沿用冻结allow：Strategist读写；FactCheck/CS只读；其余角色deny。共享行无tenant_id，审计行携带发起租户及具体操作者 |
+
+实现不新增API端点/操作/权限，不改contracts.json或T03断言/协议；delete以现有revise追加deprecated版本，不物理删。T04的NULL无默认约束仅为T07前过渡条件，本轮由上述迁移明确接管。网页界面、生成语法（T08）及C类回灌（T09）按各任务实施。

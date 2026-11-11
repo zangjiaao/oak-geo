@@ -12,7 +12,7 @@
 | T03 | 硬规则测试清单落地 | T02 | 产品文档 §19 当前实际 19 条规则（原18为历史计数）每条至少 1 个测试用例进 `tests/rules`，可全部跑红；架构测试 2 条（无直写库路径、服务端权限全覆盖） |
 | T04 | 数据库迁移：29 张表（§18当前数） | T01 | §18 全部表 + 字段 + 注释建成；迁移可重复执行；fixture 能载入"简造 ERP"种子数据；C4记账：official_fact可选product_line_ref，MVP单品牌可空，随T04定稿迁移（不阻塞） |
 | T05 | 多租户与服务端权限 | T04 | `tenant_id` 行级隔离中间件；§9.3 权限矩阵做成服务端策略表；越权请求测试全红→绿 |
-| T06 | 审计中间件 | T04 | 所有写操作 + 原始回答/C 类数据访问写 `audit_log`，含 `actor_type/agent_run_id/prompt_version`；漏记测试能抓出 |
+| T06 | 审计中间件（done） | T04 | 所有写操作 + 原始回答/C 类数据访问写 `audit_log`，含 `actor_type/agent_run_id/prompt_version`；漏记测试能抓出；已由 T05 吸收完成（审计事务层 + 敏感读审计 + actor 三字段 CHECK），证据：src/server/api/audit-transaction.mjs 及 t05-middleware 审计测试；负责人批准合并 PR #7 时确认 |
 
 ## 切片 1 · 词库与探针（对应里程碑第 1–2 周）
 
@@ -124,3 +124,10 @@
 - 已接入真实runtime-driver与17名fixture注册表，77个服务操作统一鉴权、普通geo_app连接、敏感读取审计先提交；同时纳入原T06审计核心。后续页面、外部集成及T07–T29完整任务不据此标done。
 - R11按负责人授权改为机器举证+Strategist显式归档，产品仅修改§18行业阈值与指定决策行；其余T03场景/协议和contracts.json锁定。条件1按负责人v2裁定读取机器周批分位；缺行/stale=data_pending，不开放人工写入；T10上线前实际暂缓归档。
 - T05验证：checks 51/51、product 23/23（22场景+A02，77注册操作）、typecheck、生成器--check、Workers构建、doctor均通过；无skip/todo。审计映射与35个未实现端点边界见review附件，等待负责人抽验，不合并。
+
+## 当前执行状态（T07）
+
+- T04/T05：`done`。负责人2026-11-11明确批准合并PR #6/#7，已依次合并到main；新建task/t07-seed-management分支，不在main直接开发。
+- T06：`done`。已由 T05 吸收完成（审计事务层 + 敏感读审计 + actor 三字段 CHECK），证据：src/server/api/audit-transaction.mjs 及 t05-middleware 审计测试；负责人批准合并 PR #7 时确认。
+- T07：`doing`。本轮仅服务层CRUD＋行业共享读写路径＋对应④页面字段/交互契约，负责人确认网页界面后续单独排期。状态草案active/deprecated、NULL回填active、修订/软停用追加版本，随本PR人审，不自行冻结。
+- 基线为原51 checks＋23 product=74绿；冻结T03断言/协议、contracts.json及既有权限集合保持。仅调整被T07状态迁移明确替代的T04“NULL无默认”schema预期，并新增真实旧数据迁移回放；不删除旧验收。
