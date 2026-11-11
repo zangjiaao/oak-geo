@@ -199,3 +199,39 @@ API 规格冻结批准（2026-11-10）
 - 负责人先授权：“可以合并了。然后创建新的功能分支，按照backlog的安排继续做下一步动作”。PR #4 已按授权合并。
 - 随后对冻结状态单独明确回复：“同时批准冻结当前 API 规格”。
 - 据此记录冻结版本 t02_api_v1，内容来源为 PR #4 的 a9464b5；不是agent自行批准。之后规则变更须新任务/PR人审，T03仅落测试清单与架构守卫，不以测试示例代替业务实现。
+
+T04 补充裁定（对应 ①② 两处规格空白；执行边界同前：追加进 docs/t02-decisions.md， §18 授权改动见文末，GLONASS 不适用——照常）
+
+① seed_list.status 按建议执行：字段允许 NULL、不设默认、不写入枚举值；T07 任务的 schema 设计 冻结时再定枚举与迁移。本裁定只解除 T04 的建表阻塞，不是对枚举的预批准。
+
+② 行业共享与租户隔离的并存（采纳你的方案，附一条必须补充的硬约束）
+- 采纳：seed_list、keyword_pool_snapshot、industry_score 三表按行业键共享，无 tenant_id（或允许为 NULL 表示行业级行）；keyword_raw 保留非空 tenant_id，C 类数据行级始终私有；词池只消费脱敏聚合投影。
+- 补充约束（缺了它会留洞）：**行业资源表的任何投影与报告输出中，禁止出现可回定向到单一租户的内容**——即 C 类词句、竞品名单、客户厂牌这类"只有一个客户会有"的字段值，不得出现在任何行业共享层的读路径上。
+  具体为：
+  a. 建表时三张共享表上不加 tenant_id 列（结构上无法挂租户，比运行时检查更可靠）；
+  b. shared 投影的产出层（词池快照 counts_by_channel / 档位分位 / 簇名）只允许聚合数值与词牌照面本身；含客户标识的行禁止进入索引与导出；
+  c. audit_log 的 object_id 若指向行业共享表，无需租户归属仍可审计（actor 带 tenant）。
+- 携带 tenant_id 的表：keyword_raw（含 C 类行）、以及所有品牌级表（intent_cluster 等带 brand_id 的都不在共享层）。
+- 行业样本基准的公开披露规则沿用既有条款（<5 租户不出基准；脱敏），共享表结构是该规则的结构化承载，不改承诺本身。
+
+§18 授权补充：三张行业共享表的字段注释加"industry-shared, no tenant_id"；keyword_raw 注释加"C-class rows always tenant-private"。
+
+
+T04 复核裁定落实（2026-11-10，负责人授权依赖修正与枚举映射）
+
+负责人指令：pg/@embedded-postgres 进 dependencies 并回归验证；opportunity_card 中文枚举用 contracts.json 的英文枚举，或建立数据库↔API 枚举映射表（写入本文件追加）。
+
+核对冻结 t02_api_v1：contracts.json 的 states.opportunity_card 与端点示例实际均为中文，未提供英文 API 枚举。本次采用授权的显式映射路径，不改冻结契约、不新增业务状态：
+
+| 数据库存储码 | 冻结 API 值 |
+|---|---|
+| candidate | 候选 |
+| scored | 评分 |
+| recommended | 建议 |
+| confirmed | 确认 |
+| monitoring | 在测 |
+| archived | 归档 |
+
+映射实现归 src/server/api/opportunity-status.mjs，服务输入/输出边界统一使用，未知值 422 validation_failed；转换不授予裸改 status 的权限。0004 兼容迁移仅重编码存储值，保留 0001/0003 校验和，默认值、CHECK 与迁移图同步映射；已有行逐条记 schema.reencode_storage 审计，语义不发生状态迁移。T05 注册机会卡服务时必须接入映射，不得将英文存储值直接回传给 API。
+
+pg 已为 dependencies；embedded-postgres 从 devDependencies 移到 dependencies，其 @embedded-postgres/* 包保留按平台选装语义，生产锁树不再带 dev 标记。已通过隔离 npm ci --omit=dev 后的 13 项真实 PostgreSQL 检查、完整 37 项 checks 与 Workers 构建回归。
