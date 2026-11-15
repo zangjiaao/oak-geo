@@ -132,3 +132,11 @@
 - T07：`review`。本轮仅服务层CRUD＋行业共享读写路径＋对应④页面字段/交互契约，负责人确认网页界面后续单独排期。状态草案active/deprecated、NULL回填active、修订/软停用追加版本，随本PR人审，不自行冻结。
 - 基线为原51 checks＋23 product=74绿；冻结T03断言/协议、contracts.json及既有权限集合保持。仅调整被T07状态迁移明确替代的T04“NULL无默认”schema预期，并新增真实旧数据迁移回放；不删除旧验收。
 - T07验证：55 checks＋23 product=78项全绿（保留74项基线＋新增4项）；最终稳定代码product再次23/23通过，A02遍历78注册操作。typecheck、生成器--check、Workers构建、doctor通过；状态草案与页面契约见[t07-review.md](t07-review.md)，PR #8待人审，未合并。
+
+## T08 执行记录
+
+- T07：`done`。负责人2026-11-15批准PR #8合并，已合并到main；active/deprecated及NULL回填提案随PR获得人审。网页排期不因服务层合并改变。
+- T08：`doing`，task/t08-generation-panel从合并后的main建立。五类模板预览＋勾选人工确认；只写许可公共词根到既有seed_list.revise路径，source_channel另存租户私有计划元数据，不伪造观测/热度/测量问句。
+- 面板遵循astryx AppShellContentOnly框架；薄HTTP路由只调用API层，Web/PAT验签、当前角色/租户重校验、同源写入、24h幂等；不开放凭证签发或管理连接。生产运行要求Hyperdrive，开发直连仅普通geo_app。
+- 测试：五模板/缺参/去重、预览零业务写入、非许可词整批拒绝、人工确认/来源绑定、元数据租户隔离、幂等及真实Web/PAT范围/CSRF；既有T03协议/断言、contracts.json与产品正文不改。无需新增权限或操作；0010仅补生成元数据辅助表。
+- T09负责人已批准C类授权验真/脱敏草案，另分支实施；本PR不提前接采集或真实探针。

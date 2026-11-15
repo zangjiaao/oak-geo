@@ -7,6 +7,7 @@ import {
   assertSharedMaintainer,
 } from "./shared-industry.mjs";
 import { pageQuery } from "./pagination.mjs";
+import { previewGeneration, confirmGeneration } from "./generation-service.mjs";
 
 const columns =
   "id,logical_id,previous_id,industry,word,word_type,maintainer,last_reviewed_at,seed_version,status,created_at";
@@ -112,9 +113,14 @@ export function seedHandlers() {
         ])
       ).rows[0];
       if (!old) throw permission("seed outside accessible shared plane");
+      if (ctx.body.generation) return confirmGeneration(ctx, old, write);
       return write(ctx, old);
     },
     "seed_list.read": async (ctx) => {
+      if (ctx.query.generation)
+        return {
+          data: { items: await previewGeneration(ctx, ctx.query.generation) },
+        };
       const industry = ctx.query.industry ?? "B2B";
       const words = [...ctx.publicRootCatalog]
         .filter((key) => key.startsWith(industry + "\0"))
@@ -148,26 +154,33 @@ export function seedHandlers() {
           values.push(ctx.query[key]);
           where += ` AND s.${key}=$${values.length}`;
         }
-      return {
-        data: await pageQuery(ctx, {
-          table: "seed_list s",
-          columns: columns
-            .split(",")
-            .map((c) => "s." + c)
-            .join(","),
-          where,
-          values,
-          order: [
-            ["s.seed_version", "ASC"],
-            ["s.id", "ASC"],
-          ],
-          map: (row) => {
-            assertPublicRoot(row, ctx.publicRootCatalog, markers);
-            assertSharedMaintainer(row.maintainer, markers);
-            return row;
-          },
-        }),
-      };
+      const data = await pageQuery(ctx, {
+        table: "seed_list s",
+        columns: columns
+          .split(",")
+          .map((c) => "s." + c)
+          .join(","),
+        where,
+        values,
+        order: [
+          ["s.seed_version", "ASC"],
+          ["s.id", "ASC"],
+        ],
+        map: (row) => {
+          assertPublicRoot(row, ctx.publicRootCatalog, markers);
+          assertSharedMaintainer(row.maintainer, markers);
+          return row;
+        },
+      });
+      if (ctx.query.include_generation_meta) {
+        data.generation_metadata = (
+          await ctx.client.query(
+            "SELECT seed_id,template_id,source_channel,planned FROM seed_generation_metadata WHERE tenant_id=$1 AND seed_id=ANY($2::text[])",
+            [ctx.principal.tenant_id, data.items.map((row) => row.id)],
+          )
+        ).rows;
+      }
+      return { data };
     },
   };
 }
