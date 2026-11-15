@@ -20,6 +20,9 @@
     "test:db": "node --test --test-isolation=none tests/db/*.test.mjs",
     "db:migrate": "node --env-file-if-exists=.dev.vars scripts/migrate.mjs",
     "db:fixture": "node --env-file-if-exists=.dev.vars scripts/load-fixture.mjs",
+    "db:up": "docker compose --env-file .dev.vars up -d --wait postgres",
+    "db:down": "docker compose --env-file .dev.vars down",
+    "db:password": "docker compose --env-file .dev.vars exec postgres psql -U postgres -d postgres -c \"\\password geo_app\"",
     "dev:login": "node --env-file-if-exists=.dev.vars scripts/local-login.mjs"
   },
   "dependencies": {
