@@ -140,3 +140,12 @@ flowchart TD
 - 对齐品牌/版本整集合：create/revise/freeze/archive共用事务锁、0014插入兜底；任何验证或审计失败整批回滚。锚定审计记录old/new版本和ID集合，归档不删除历史或停用已有锚。原T03协议/断言不改，fixture只把连续新增测试簇安排到新版本以符合冻结集合不可增长。
 
 - 浏览器实测修复：Next可能将request.url规范化为监听主机，Web同源检查现绑定实际Host与URL协议，忽略调用方转发头；question与既有seed/import适配器共用http-origin助手。无Origin、跨站、协议不符仍拒绝，PAT仍按原bearer/scopes校验。页面在客户端就绪后开放自定义表单交互，不改变服务权威。
+
+
+## T12 本地验收身份接线补充（2026-11-15）
+
+- `npm run dev:login` → 普通geo_app的application → 原fixture服务与已注册操作准备独立虚构租户/来源/簇 → 已有identity authority签发固定fixture-strategist的Web凭证。无管理连接回退、无默认客户身份；重复执行不改问句/版本/锚定、不恢复角色。受控weekly_pool job仅准备演示簇所需词池快照与簇，不启用T10规则或探针；共享快照仅数值，无客户词句。
+- 登录链接凭证置于URL fragment，账户页立即移除后同源POST `/api/local-session`。该身份交接桥仅development+回环Host开放，不信任转发头；生产直接404。只验证CLI已签发的Web凭证，调用原workspace-context核验当前成员与品牌，限定虚构租户/策略账号，才写HttpOnly/SameSite cookie；拒绝PAT/job、客户端指定角色和真实客户身份。HTTP不签发身份、不增加业务allow/端点，不用测试driver捷径。
+- Cookie进入原SSR和HTTP的六层鉴权，业务/C类读审计位置不变。正式身份提供方接入另行交付。此处是T05身份安装能力在本地验收的接线补充，不修改冻结API或产品权限。
+
+决策记录：T12补本地演示凭证交接与服务层起始数据，使问句池可从浏览器验收；正式环境关闭，授权与审计仍走原入口。

@@ -19,7 +19,8 @@
     "test:product": "node --test --test-isolation=none tests/rules/product-hard-rules.red.mjs tests/arch/server-permissions.red.mjs",
     "test:db": "node --test --test-isolation=none tests/db/*.test.mjs",
     "db:migrate": "node --env-file-if-exists=.dev.vars scripts/migrate.mjs",
-    "db:fixture": "node --env-file-if-exists=.dev.vars scripts/load-fixture.mjs"
+    "db:fixture": "node --env-file-if-exists=.dev.vars scripts/load-fixture.mjs",
+    "dev:login": "node --env-file-if-exists=.dev.vars scripts/local-login.mjs"
   },
   "dependencies": {
     "@astryxdesign/core": "0.7.11",

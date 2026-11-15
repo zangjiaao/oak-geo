@@ -50,11 +50,13 @@ export function WorkspaceShell({
   session,
   selection,
   path,
+  localLogin = false,
   children,
 }: {
   session: WorkspaceSession;
   selection: Selection;
   path: string;
+  localLogin?: boolean;
   children: ReactNode;
 }) {
   const groups = navigationFor(session);
@@ -129,7 +131,7 @@ export function WorkspaceShell({
                 {session
                   ? (roleLabels[session.role as keyof typeof roleLabels] ??
                     "账户")
-                  : "未登录"}
+                  : localLogin ? "本地登录" : "未登录"}
               </Link>
             </HStack>
           }
@@ -158,6 +160,7 @@ export function WorkspaceShell({
             未登录，仅可预览和下载模板。
           </Text>
         )}
+        {session?.tenant_id === "fixture-jianzao" && <Text type="supporting">演示数据</Text>}
         <WorkspaceBody>{children}</WorkspaceBody>
       </VStack>
     </AppShell>
