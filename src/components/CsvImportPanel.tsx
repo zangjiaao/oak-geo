@@ -28,6 +28,7 @@ export function CsvImportPanel({ session }: { session: Session }) {
   const [file, setFile] = useState<File | null>(null),
     [channel, setChannel] = useState("B"),
     [industry, setIndustry] = useState("B2B"),
+    [sourceId, setSourceId] = useState(""),
     [authorization, setAuthorization] = useState("");
   const [report, setReport] = useState<Report | null>(null),
     [message, setMessage] = useState(""),
@@ -39,7 +40,9 @@ export function CsvImportPanel({ session }: { session: Session }) {
   } | null>(null);
   function downloadTemplate() {
     const url = URL.createObjectURL(
-      new Blob([keywordImportTemplate(channel)], { type: "text/csv;charset=utf-8" }),
+      new Blob([keywordImportTemplate(channel)], {
+        type: "text/csv;charset=utf-8",
+      }),
     );
     const link = document.createElement("a");
     link.href = url;
@@ -64,6 +67,9 @@ export function CsvImportPanel({ session }: { session: Session }) {
         industry,
         channel,
         csv: await file.text(),
+        ...(channel !== "C" && sourceId.trim()
+          ? { source_id: sourceId.trim() }
+          : {}),
         ...(channel === "C" ? { authorization_ref: authorization } : {}),
       };
       const signature = JSON.stringify(body);
@@ -127,13 +133,27 @@ export function CsvImportPanel({ session }: { session: Session }) {
           onChange={setChannel}
         />
       </HStack>
+      {channel !== "C" && (
+        <TextInput
+          label="来源标识（选填，整个文件填一次）"
+          value={sourceId}
+          onChange={setSourceId}
+        />
+      )}
+      <Text type="supporting">
+        {channel === "C"
+          ? "C 类会依据已核验的书面授权识别来源，无需另填来源标识。"
+          : "飙升识别会比较同一来源口径的两周趋势。来源标识可包含平台、地区、指数口径，例如 google-trends-global-weekly-v1。"}
+        每条观测的趋势未知时留空，系统会说明缺项，不推断上涨。
+      </Text>
       <Button
         label={`下载 ${channel} 类 CSV 空白模板`}
         onClick={downloadTemplate}
       />
       <Text type="supporting">
         模板只有表头，无需登录即可下载。请保留列名，从第二行开始填写，每行一条观测；
-        保存为 UTF-8、英文逗号分隔的 CSV，单文件最多 1 MiB。含逗号、换行的单元格用英文双引号包裹。
+        保存为 UTF-8、英文逗号分隔的 CSV，单文件最多 1
+        MiB。含逗号、换行的单元格用英文双引号包裹。
       </Text>
       <Table
         data={keywordImportFields(channel)}

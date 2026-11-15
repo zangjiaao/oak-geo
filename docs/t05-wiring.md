@@ -116,3 +116,11 @@ flowchart TD
 - keyword_pool_snapshot.append可在原事务内以weekly_pool子job调用intent_cluster.transition；子调用重新走六层，cause指向根事件，审计失败时公共publication/分位、私有簇/候选/run全部回滚。新增辅助租户表强制RLS、只追加；C词读取逐对象审计，不进入共享产物；多品牌归属不明的C留租户级候选，Content/Evidence的私有周批视图只返回其分派对象关联记录。
 - R11优先从weekly_cluster_snapshot的公共键读同pool_version且行业最新的w_pool_percentile；旧fixture的单公共词根路径保留，缺行/stale仍暂缓。规则/来源回执留在私有run；公共表仅许可键/数值/版本与不可逆摘要，不含客户标识。
 - job编排器只调用服务，不签发凭证、不直写库。最多3次指数退避后需耐久dead-letter及告警接收器，缺接收器不运行；当前不安装cron，未冻结真实规则、未启用生产周批。
+
+
+## T11 接线补充（2026-11-15）
+
+- 同一weekly_pool/keyword_pool_snapshot.append事务中，基于来源两周证据写keyword_surge_alert、surge候选与按当前strategist成员生成的个人站内记录；任何审计失败全批回滚。唯一键及run重放不重复通知，不以后台sender跳过角色或RLS。
+- 新辅助表强制租户RLS、只追加；仅存来源指纹、source_word_id与数值证据，不复制C原句。keyword_raw.surge_read、keyword_surge_alert.create、keyword_surge_notification.create逐对象带根cause；C派生证据read逐对象留痕，commit后交付。
+- keyword_pool_snapshot.read的surge_alerts/surge_notifications支撑视图复用原allow；Content/Evidence仍按完整关联对象过滤，个人收件箱按当前策略身份和recipient_user_id过滤。GET不标已读。通用分派SQL谓词移到assignment-scope.mjs复用，语义不变。
+- T10受信冻结记录默认null，未配置cron或真实通知运行；用户此次只授权合并代码、继续开发，未把算法价值声明为已验证。

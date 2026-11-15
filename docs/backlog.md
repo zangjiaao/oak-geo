@@ -160,7 +160,7 @@
 
 ## T10 执行与人审入口
 
-- T10：`review`，从合并T09后的main建立feat/t10-keyword-pool。交付服务层＋周批job，不新建页面；机会看板按T18排期。T09手填负担不扩成本轮自动采集/爬虫。
+- T10：`done`（工程代码）。负责人2026-11-15授权合并PR #11（954e0e2），将规则价值留到可用真实行业数据试跑后验证；这不作为规则已验证有效或已冻结的声明，生产周批仍关闭。从合并T09后的main建立feat/t10-keyword-pool。交付服务层＋周批job，不新建页面；机会看板按T18排期。T09手填负担不扩成本轮自动采集/爬虫。
 - 负责人授权：**允许提出草案，随PR人审，未冻结前禁用真实周批**。以下全部算法选择为t10_rules_draft_v1草案，不冒充既有产品裁定；代码在src/server/api/weekly-rules.mjs，完整匹配词表也在那里。
 
 | 人审项 | 本PR草案 |
@@ -182,3 +182,16 @@
 - 埋点：公共快照/publication/metric/w_pool逐对象system审计；私有cluster经同一事务中的weekly_pool子job重新走六层；C读取记录keyword_raw.weekly_read；candidate/cluster_snapshot逐对象审计，根事件指向run；Content/Evidence的私有run/candidate查询在SQL内按分派簇/机会卡/来源过滤，混合未授权对象的候选整行不返回。R11从簇快照中的公共键读最新行业分位，缺行/stale仍data_pending，无人工排名通道。
 - 启用边界：GEO_WEEKLY_POLICY_RECORD默认null；服务只接受受信配置中带审核人/审核时间/匹配规则digest的冻结回执，body伪造无效。测试替换外部规则登记/数值观测回执，不绕过权限/RLS/状态。未安装cron、未创建云端资源、未冻结规则；实际调度还需接入行业回执、耐久dead-letter与告警接收器，不能只把开关改成true。
 - 当前新增6项回归：算法/缺源及来源口径2项，默认关闭/重试/跨周原子链（含多品牌C待确认、任务范围正反例、逐对象审计/R11映射）3项，DB RLS与只追加1项。最终75 checks＋23 product=98项全绿（0 skip/todo），typecheck、生成器--check、Workers构建、doctor通过；临时测试数据库及构建子进程已清理，未启常驻服务；T03断言/协议、contracts.json、AGENTS.md与产品正文不改。
+
+
+## T11 执行记录
+
+- T11：`review`，从合并T10后的main创建feat/t11-surge-alerts；本PR待人审、不合并。后续第一轮真实试跑按负责人选择：**工作室自营工具或产品**，沿§13.4剧本；不把“简造ERP”虚构fixture当真实案例。
+- 按backlog/§2/§10.4落地首见<14天、连续两个完整周来源趋势up的飙升识别，在同一周批事务写信号、候选预筛和策略人员站内通知。窗口沿用T10上一完整UTC周及前一周；首见沿用T09按归一化词/渠道记录的最早采集时间，不宣称市场诞生日期。
+- 趋势证据解释：使用两个周各自末次观测中来源提供的trend_dir=up（evidence.mode=source_reported_trend），保留两条source_word_id/时间/可选指数。只凭两个数值点无法证明两次环比，缺来源趋势不补造。若强求三个本地完整周桶，新词<14天会互相冲突；当前实现不改14天阈值，明确来源趋势模式，待真实数据验证。
+- 不跨渠道/来源口径拼接。A/B/D优先source_id（平台/地区/指标口径的稳定标识），或URL origin+channel_scope；C用已核验书面授权引用+脱敏版本，忽略客户端伪造来源。两周只看各自末次记录；缺周、缺趋势、源变更、同时间冲突、指数反向、未索引历史均不触发，skipped计数说明缺项；0是有效观测值，缺失保持null，不计算无限环比百分数。
+- 降低重复填写：T09 CSV与页面增加可选source_id，可按文件填一次，或从行/raw_payload读取；冲突行拒绝，不增加原CSV必填列。C无此输入，仍由授权识别。旧时点观测保持原样，不通过重新导入覆盖或补造历史来源。
+- 0013新增两张只追加租户辅助表keyword_surge_alert/keyword_surge_notification（强制RLS、普通geo_app），不复制关键词、C摘录、原始回答，不添加read/viewed状态或GET状态迁移。信号/收件人唯一键防重复；无策略接收人时整批422，不能把未送达当成功。通知=持久站内收件记录，铃铛/收件箱网页随T18，不发送外部消息。
+- 沿既有weekly_pool的keyword_pool_snapshot.append服务同事务执行，不新增job名/端点/权限。个人收件箱只对当前策略用户筛本人的记录；全租户信号仍按原allow/任务分派过滤；C信号读取逐对象审计后才交付。多品牌C归属不明仅留租户级预筛，不广播到各品牌。
+- 版本与原子性：输入digest补含两周来源/趋势/首见证据；补录改变历史输入时409，不改既有run。告警/候选/收件记录任一审计失败，全批回滚；重放不重复通知，新加入人员不追认历史收件。T10规则冻结闸门保持默认null，未启真实周批/cron，不自行冻结已合并草案。
+- 新增5项回归：首见/两周/缺项与来源冲突2项；真实通知/去重/隔离/审计及私有C2项；DB RLS/只追加1项。最终80 checks＋23 product=103项全绿（0 skip/todo）；typecheck、生成器--check、Workers构建、astryx doctor通过（既有主题提示1项、0失败）。临时Postgres与构建进程已退出，未启动常驻服务；冻结T03协议/断言、contracts.json、AGENTS.md及产品正文未改。

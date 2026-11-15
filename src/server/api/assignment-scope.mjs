@@ -32,3 +32,30 @@ export async function relationalKeys(
   }
   return keys;
 }
+
+// Private support projections follow the same cluster/card/source assignments.
+// Reject mixed-scope candidate rows rather than revealing unrelated member IDs.
+export function weeklyPrivatePredicate(runs) {
+  const allowed = (cluster, source) =>
+    assignmentPredicate({
+      tenant: "p.tenant_id",
+      cluster,
+      source,
+      user: "$3",
+    });
+  if (runs)
+    return `EXISTS(
+    SELECT 1 FROM weekly_cluster_snapshot s CROSS JOIN LATERAL unnest(s.representative_word_ids) m(word_id)
+    WHERE s.tenant_id=p.tenant_id AND s.industry=p.industry AND s.pool_version=p.pool_version
+    AND ${allowed("s.cluster_id", "m.word_id")})`;
+  const allOld = `NOT EXISTS(SELECT 1 FROM unnest(p.old_cluster_ids) c(cluster_id)
+    WHERE NOT ${allowed("c.cluster_id", "NULL::text")})`;
+  const allSources = `cardinality(p.source_word_ids)>0 AND NOT EXISTS(
+    SELECT 1 FROM unnest(p.source_word_ids) m(word_id) WHERE NOT EXISTS(
+      SELECT 1 FROM (
+        SELECT NULL::text AS cluster_id
+        UNION SELECT s.cluster_id FROM weekly_cluster_snapshot s WHERE s.tenant_id=p.tenant_id AND m.word_id=ANY(s.representative_word_ids)
+        UNION SELECT q.cluster_id FROM question_pool q WHERE q.tenant_id=p.tenant_id AND q.source_word_id=m.word_id
+      ) related WHERE ${allowed("related.cluster_id", "m.word_id")}))`;
+  return `${allOld} AND (cardinality(p.old_cluster_ids)>0 OR (${allSources}))`;
+}

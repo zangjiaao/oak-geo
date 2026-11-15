@@ -44,7 +44,8 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 - ✅ T07 种子表服务层 CRUD 与行业共享路径已合并（PR #8）
 - ✅ T08 生成语法面板已按负责人授权合并（PR #9）
 - ✅ T09 CSV 导入与模板下载已合并（PR #10）
-- T10 词池周批代码与规则草案待人审，98项测试通过，真实周批默认关闭；当前登录/本地开发会话入口尚未交付，网页实际写入仍需有效会话
+- ✅ T10 词池周批代码已合并（PR #11）；规则草案尚未冻结，真实周批默认关闭
+- T11 飙升信号与策略站内通知已提交人审；首轮真实试跑目标为工作室自营工具/产品。当前登录入口尚未交付，网页写入仍需有效会话
 
 ## Setup
 
@@ -121,3 +122,6 @@ C类需服务端受信授权登记`GEO_C_IMPORT_AUTHORIZATIONS`（真实姓名/�
 
 
 T10周批入口为`src/server/jobs/weekly-pool.mjs`，通过既有keyword_pool_snapshot.append服务触发完整pipeline，再同事务执行受控intent_cluster.transition。算法与审核项见[backlog的T10人审入口](docs/backlog.md#t10-执行与人审入口)。默认`GEO_WEEKLY_POLICY_RECORD=null`，禁止真实运行；`GEO_INDUSTRY_POPULATIONS=[]`只留受信公共数值回执适配入口，不能用私有CSV假扮行业基准。调度需要已有签名weekly_pool身份、耐久dead-letter和告警接收器；本轮不安装cron、不提供一键启用、不绕过登录或RLS。
+
+
+T11在周批事务内创建飙升信号、候选预筛和策略个人站内收件记录。触发需首见<14天且两个完整周各自来源趋势up，来源口径一致；缺项不触发，不从两个指数编造两次环比。A/B/D可在导入页面为整个文件填一次可选source_id（平台/地区/指数口径），C沿用已核验授权。来源标识不回写已存在观测，旧数据不覆盖。服务层读取支撑视图为keyword_pool_snapshot.read的surge_alerts/surge_notifications；收件箱页面随T18，不新增公开HTTP接口或外部消息。T10冻结闸门仍关闭，真实源与规则价值留待自营试跑验证。
