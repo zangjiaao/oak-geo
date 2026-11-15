@@ -24,10 +24,10 @@ type Report = {
   record_results: ResultRow[];
   truncated: boolean;
 };
-export function CsvImportPanel({ session }: { session: Session }) {
+export function CsvImportPanel({ session, industryContext = "" }: { session: Session; industryContext?: string }) {
   const [file, setFile] = useState<File | null>(null),
     [channel, setChannel] = useState("B"),
-    [industry, setIndustry] = useState("B2B"),
+    [industry, setIndustry] = useState(industryContext || "B2B"),
     [sourceId, setSourceId] = useState(""),
     [authorization, setAuthorization] = useState("");
   const [report, setReport] = useState<Report | null>(null),
@@ -109,7 +109,7 @@ export function CsvImportPanel({ session }: { session: Session }) {
   }
   return (
     <VStack gap={4}>
-      <Heading level={2}>CSV 导入</Heading>
+      <Heading level={2}>采集结果导入</Heading>
       <Text type="supporting">
         请先下载模板，按下表列名整理数据。当前不会自动匹配任意表格的列；平台导出文件需先转换为模板格式。
         行业与来源渠道在本页选择。同一时点的重复观测会去重，不同采集时间保留新观测。
@@ -119,6 +119,8 @@ export function CsvImportPanel({ session }: { session: Session }) {
           label="行业"
           value={industry}
           onChange={setIndustry}
+          isDisabled={Boolean(industryContext)}
+          disabledMessage="行业随顶栏品牌切换"
           isRequired
         />
         <Selector

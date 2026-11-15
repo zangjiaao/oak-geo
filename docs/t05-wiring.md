@@ -124,3 +124,10 @@ flowchart TD
 - 新辅助表强制租户RLS、只追加；仅存来源指纹、source_word_id与数值证据，不复制C原句。keyword_raw.surge_read、keyword_surge_alert.create、keyword_surge_notification.create逐对象带根cause；C派生证据read逐对象留痕，commit后交付。
 - keyword_pool_snapshot.read的surge_alerts/surge_notifications支撑视图复用原allow；Content/Evidence仍按完整关联对象过滤，个人收件箱按当前策略身份和recipient_user_id过滤。GET不标已读。通用分派SQL谓词移到assignment-scope.mjs复用，语义不变。
 - T10受信冻结记录默认null，未配置cron或真实通知运行；用户此次只授权合并代码、继续开发，未把算法价值声明为已验证。
+
+
+## T37 SSR框架接线补充（2026-11-15）
+
+- 框架只经worker-runtime进入API层workspace-context；普通geo_app事务核验当前成员、PAT与本租户合同，候选brand ID仅在服务内枚举。每个品牌数据通过原brand.read完整六层后才投影id/name/industry给页面，不新增业务操作或扩大allow。来源/原文不在SSR元数据读路径中。
+- 元数据读取不签发凭证、不写业务对象；后续brand.read仍执行PAT scope/撤销/限流与record_use审计。页面服务端按当前角色/合同裁剪入口；URL品牌/行业须在已授权集合，业务写入继续原服务，UI显隐不是授权。
+- 未登录/无效会话只显示明确的无数据布局预览及原公开模板预览，不提供假账号、默认租户或假指标。匿名查看不连接数据库。

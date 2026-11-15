@@ -15,7 +15,7 @@ interface Candidate extends Record<string, unknown> {
   eligible: boolean;
   reason: string | null;
 }
-export function GenerationPanel({ session }: { session: Session }) {
+export function GenerationPanel({ session, industry = "" }: { session: Session; industry?: string }) {
   const [templateId, setTemplateId] = useState("feature_generator");
   const [values, setValues] = useState<Record<string, string>>({
     mode: "unblocked,online",
@@ -65,7 +65,7 @@ export function GenerationPanel({ session }: { session: Session }) {
       const items: Seed[] = [];
       let cursor: string | null = null;
       do {
-        const query = new URLSearchParams({ status: "active", limit: "100" });
+        const query = new URLSearchParams({ status: "active", limit: "100", ...(industry ? {industry} : {}) });
         if (cursor) query.set("cursor", cursor);
         const response = await fetch(base + "?" + query, { cache: "no-store" }),
           data = await response.json();
@@ -88,7 +88,7 @@ export function GenerationPanel({ session }: { session: Session }) {
     return () => {
       active = false;
     };
-  }, [base, session, revision]);
+  }, [base, session, revision, industry]);
   async function preview() {
     setBusy(true);
     setMessage("");
@@ -176,7 +176,7 @@ export function GenerationPanel({ session }: { session: Session }) {
   }
   return (
     <VStack gap={4}>
-      <Heading level={2}>生成语法</Heading>
+      <Heading level={2}>公共词根生成</Heading>
       <Text type="supporting">
         生成词只用于发现需求；仅许可公共词根可入库，测量问句仍需真实出处。
       </Text>
