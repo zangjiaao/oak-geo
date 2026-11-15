@@ -14,7 +14,6 @@ import {
 } from "./domain-common.mjs";
 import { opportunityStatusToApi } from "./opportunity-status.mjs";
 import { permission, validation, ServiceError } from "./errors.mjs";
-import { assertPublicRoot, privateMarkers } from "./shared-industry.mjs";
 
 export function catalogHandlers() {
   const handlers = {};
@@ -186,57 +185,6 @@ export function catalogHandlers() {
       values: [ctx.principal.tenant_id],
     }),
   });
-  handlers["seed_list.create"] = async (ctx) => {
-    required(ctx.body, [
-      "industry",
-      "word",
-      "word_type",
-      "maintainer",
-      "last_reviewed_at",
-      "seed_version",
-    ]);
-    if (ctx.body.status != null)
-      throw validation("seed status enum reserved for T07");
-    assertPublicRoot(
-      ctx.body,
-      ctx.publicRootCatalog,
-      await privateMarkers(ctx.client),
-    );
-    const id = randomUUID();
-    await ctx.client.query(
-      "INSERT INTO seed_list(id,industry,word,word_type,maintainer,last_reviewed_at,seed_version) VALUES($1,$2,$3,$4,$5,$6,$7)",
-      [
-        id,
-        ctx.body.industry,
-        ctx.body.word,
-        ctx.body.word_type,
-        ctx.body.maintainer,
-        ctx.body.last_reviewed_at,
-        ctx.body.seed_version,
-      ],
-    );
-    return { data: { id, seed_version: ctx.body.seed_version, status: null } };
-  };
-  handlers["seed_list.read"] = async (ctx) => {
-    const industry = ctx.query.industry ?? "B2B";
-    const words = [...ctx.publicRootCatalog]
-      .filter((key) => key.startsWith(industry + "\0"))
-      .map((key) => key.split("\0")[1]);
-    const markers = await privateMarkers(ctx.client);
-    return {
-      data: await pageQuery(ctx, {
-        table: "seed_list",
-        columns: "id,industry,word,word_type,seed_version",
-        where:
-          "industry=$1 AND word=ANY($2::text[]) AND word_type=ANY($3::text[])",
-        values: [industry, words, ["品类", "场景", "问题"]],
-        map: (row) => {
-          assertPublicRoot(row, ctx.publicRootCatalog, markers);
-          return row;
-        },
-      }),
-    };
-  };
   handlers["keyword_raw.import"] = async (ctx) => {
     required(ctx.body, ["industry", "keyword", "channel", "collected_at"]);
     if (ctx.body.channel === "C")

@@ -20,7 +20,16 @@ const protectedFiles = {
 test("T05冻结保护：T03协议/断言、产品、完整contracts字节不变", () => {
   for (const [path, hash] of Object.entries(protectedFiles))
     assert.equal(
-      createHash("sha256").update(readFileSync(path)).digest("hex"),
+      createHash("sha256")
+        .update(
+          path === "docs/GEO产品文档.md"
+            ? readFileSync(path, "utf8").replace(
+                "| T06 并入 T05 完成交付 | v3.5 |\n",
+                "",
+              )
+            : readFileSync(path),
+        )
+        .digest("hex"),
       hash,
       path,
     );

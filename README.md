@@ -39,8 +39,9 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 - ✅ 产品设计定稿（v3.5）
 - ✅ 技术栈拍板：Next.js（App Router）+ astryx + Cloudflare Workers + Neon Postgres
 - ✅ T01 脚手架、T02 API 规格（t02_api_v1，人审冻结）、T03 测试红灯基线已合并
-- T04 数据库迁移与服务层开发 fixture 待人审
-- T05 权限/RLS/审计待人审：checks 51/51、产品验收23/23；见 [review](docs/t05-review.md)
+- ✅ T04 数据库迁移与服务层开发 fixture 已合并（PR #6）
+- ✅ T05 权限/RLS/审计已合并（PR #7）；T06 审计由 T05 吸收完成
+- T07 种子表服务层 CRUD 与行业共享路径待人审；网页界面后续排期，见 [review](docs/t07-review.md)
 
 ## Setup
 

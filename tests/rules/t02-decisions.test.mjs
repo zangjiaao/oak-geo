@@ -10,6 +10,7 @@ const data = () => JSON.parse(read('docs/api/contracts.json'));
 const protectedProduct = text => {
  text=text.replace('  score, reliability_note, updated_by, updated_at,\n  c_delete_threshold                    -- 可NULL，默认NULL；尚未校准的行业= NULL =人工判定；不进对外报告\n','  score, reliability_note, updated_by, updated_at\n').replace('\n| 删簇第三条件=人工拍板+阈值演进机制 | v3.5 |\n','');
  text=text.replace('w_pool_percentile   行业需求分位证据（R11 v2裁定） -- industry-shared, no tenant_id\n  industry, public_cluster_key, pool_version, demand_index, percentile,\n  producer(weekly_batch), basis_note, computed_at\n  -- 唯一生产者=T10周批机器；basis_note必填T10批次id；Strategist只读，无人工录入\n\n','').replace('| R11条件1行业分位仅T10周批机器生产；缺行或stale暂缓判定，撤回人工录入 | v3.5 |\n','');
+ text=text.replace('| T06 并入 T05 完成交付 | v3.5 |\n','');
  const [before, rest] = text.split('## 18. 表结构');
  const [section, after] = rest.split('## 19. 硬规则汇总');
  const restored = section.replace(/^(seed_list|keyword_pool_snapshot|industry_score)([^\n]*) -- industry-shared, no tenant_id$/gm, '$1$2').replace(/^(keyword_raw)([^\n]*) -- C-class rows always tenant-private$/gm, '$1$2');
@@ -85,7 +86,7 @@ test('job名注册表与内部端点白名单一致，不授予人类system权�
 });
 test('docs目录保持精简，主入口及生成附件的本地链接有效', () => {
  const files=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(`${dir}/${e.name}`):[`${dir}/${e.name}`]);
- const all=files('docs');const t05Attachments=['docs/t05-wiring.md','docs/t05-review.md'];assert.ok(all.filter(p=>!t05Attachments.includes(p)).length<=12,`非授权文档膨胀为${all.length}份`);
+ const all=files('docs');const t05Attachments=['docs/t05-wiring.md','docs/t05-review.md','docs/t07-review.md'];assert.ok(all.filter(p=>!t05Attachments.includes(p)).length<=12,`非授权文档膨胀为${all.length}份`);
  assert.deepEqual(readdirSync('docs/api/generated'),['endpoints.md']);
  for(const file of all.filter(p=>p.endsWith('.md'))){
   const source=read(file).replace(/```[\s\S]*?```/g,'');

@@ -108,7 +108,7 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
       assert.ok(audit.rows.length > 0);
       assert.ok(audit.rows.every((r) => r.actor_type === "human"));
       await t.test(
-        "所有列注释存在，共享三表没有tenant_id，seed.status无默认",
+        "所有列注释存在，共享三表没有tenant_id，T07接管seed.status默认值",
         async () => {
           const cols = (
             await client.query(
@@ -190,8 +190,8 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
           const status = cols.find(
             (c) => c.table_name === "seed_list" && c.column_name === "status",
           );
-          assert.equal(status.is_nullable, "YES");
-          assert.equal(status.column_default, null);
+          assert.equal(status.is_nullable, "NO");
+          assert.match(status.column_default, /active/);
           const privateCol = cols.find(
             (c) =>
               c.table_name === "keyword_raw" && c.column_name === "tenant_id",
@@ -201,7 +201,9 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
             await client.query("SELECT word,status FROM seed_list")
           ).rows;
           assert.ok(
-            seeds.some((s) => s.word === "ai 自动排产" && s.status === null),
+            seeds.some(
+              (s) => s.word === "ai 自动排产" && s.status === "active",
+            ),
           );
         },
       );
@@ -430,7 +432,7 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
             { ...seed, id: "简造ERP-private-id", word: "ai 自动排产" },
             { ...seed, word: "仅一个客户会说的C类原话" },
             { ...seed, word: "ai 自动排产", word_type: "竞品" },
-            { ...seed, word: "ai 自动排产", status: "active" },
+            { ...seed, word: "ai 自动排产", status: "unapproved_state" },
           ])
             await assert.rejects(
               () =>

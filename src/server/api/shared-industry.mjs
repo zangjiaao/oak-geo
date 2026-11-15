@@ -16,6 +16,12 @@ const canonical = (value) =>
 function includesPrivate(value, markers) {
   return markers.some((term) => canonical(value).includes(canonical(term)));
 }
+export function assertSharedMaintainer(value, markers) {
+  if (includesPrivate(value, markers))
+    throw validation(
+      "customer identity cannot be stored as a shared maintainer",
+    );
+}
 export function assertPublicRoot(
   { id, industry, word, word_type },
   catalog,
@@ -74,7 +80,17 @@ export async function readSharedIndustry({
       );
     return result.data.items;
   };
-  const seeds = await call("seed_list.read");
+  // Aggregate projection retains its original public-root whitelist. Management
+  // metadata belongs only to the authenticated seed-list management endpoint.
+  const seeds = (await call("seed_list.read")).map(
+    ({ id, industry, word, word_type, seed_version }) => ({
+      id,
+      industry,
+      word,
+      word_type,
+      seed_version,
+    }),
+  );
   const snapshots = await call("keyword_pool_snapshot.read");
   const values = await call("industry_score.read");
   const scores = values.map(

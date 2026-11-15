@@ -1,4 +1,3 @@
-import { assertPublicRoot, privateMarkers } from "./shared-industry.mjs";
 import { randomUUID } from "node:crypto";
 import {
   permission,
@@ -15,17 +14,13 @@ const policies = {
   "official_fact.create": ["strategist"],
   "official_fact.approve": ["factcheck"],
   "review_queue.approve": ["factcheck"],
-  "seed_list.create": ["strategist"],
 };
 
 // Trusted in-process service boundary for migration/fixture provisioning only.
 // actor must come from a server authentication adapter, never an HTTP request body.
-// T05 will provide Web/PAT authentication and full policy coverage; this is not a
-// public route and does not replace that task. SQL is intentionally kept in API.
-export function provisioningOperations(
-  client,
-  { publicRootCatalog = new Set(), auditSink } = {},
-) {
+// Called inside the T05 authenticated transaction and its audit unit; not a
+// public route. T07 seed writes are exclusively in seed-handlers.mjs.
+export function provisioningOperations(client, { auditSink } = {}) {
   async function audit(actor, tenantId, operation, objectId) {
     if (auditSink)
       return auditSink({
@@ -247,25 +242,6 @@ export function provisioningOperations(
         objectId =
           operation === "official_fact.approve" ? review.object_id : review.id;
         result = { id: objectId, status: "approved" };
-      } else if (operation === "seed_list.create") {
-        if (body.status != null)
-          throw validation(
-            "seed status enum not approved; T04 accepts NULL only",
-          );
-        assertPublicRoot(body, publicRootCatalog, await privateMarkers(client));
-        await client.query(
-          "INSERT INTO seed_list(id,industry,word,word_type,maintainer,last_reviewed_at,seed_version) VALUES($1,$2,$3,$4,$5,$6,$7)",
-          [
-            id,
-            body.industry,
-            body.word,
-            body.word_type,
-            body.maintainer,
-            body.last_reviewed_at,
-            body.seed_version,
-          ],
-        );
-        result = { id, seed_version: body.seed_version, status: null };
       }
       await audit(actor, tenant_id, operation, objectId);
       return result;
