@@ -7,6 +7,10 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { FileInput } from "@astryxdesign/core/FileInput";
 import { Button } from "@astryxdesign/core/Button";
 import { Table } from "@astryxdesign/core/Table";
+import {
+  keywordImportFields,
+  keywordImportTemplate,
+} from "@/lib/keyword-import-template.mjs";
 type Session = { tenant_id: string; can_write: boolean } | null;
 interface ResultRow extends Record<string, unknown> {
   record_number: number;
@@ -33,6 +37,23 @@ export function CsvImportPanel({ session }: { session: Session }) {
     key: string;
     body: string;
   } | null>(null);
+  function downloadTemplate() {
+    const url = URL.createObjectURL(
+      new Blob([keywordImportTemplate(channel)], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `keyword-import-${channel}.csv`;
+    link.hidden = true;
+    document.body.append(link);
+    try {
+      link.click();
+      setMessage("已下载空白模板，请在表头下填写真实采集数据后上传。");
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
   async function submit() {
     if (!file || !session) return;
     setBusy(true);
@@ -84,9 +105,8 @@ export function CsvImportPanel({ session }: { session: Session }) {
     <VStack gap={4}>
       <Heading level={2}>CSV 导入</Heading>
       <Text type="supporting">
-        CSV 需包含 keyword、collected_at 列；采集时间使用 UTC，例如
-        2026-01-01T00:00:00Z。可选
-        demand_index、trend_dir；同一时点的重复观测会去重，不同采集时间保留新观测。
+        请先下载模板，按下表列名整理数据。当前不会自动匹配任意表格的列；平台导出文件需先转换为模板格式。
+        行业与来源渠道在本页选择。同一时点的重复观测会去重，不同采集时间保留新观测。
       </Text>
       <HStack gap={4} wrap="wrap">
         <TextInput
@@ -107,6 +127,24 @@ export function CsvImportPanel({ session }: { session: Session }) {
           onChange={setChannel}
         />
       </HStack>
+      <Button
+        label={`下载 ${channel} 类 CSV 空白模板`}
+        onClick={downloadTemplate}
+      />
+      <Text type="supporting">
+        模板只有表头，无需登录即可下载。请保留列名，从第二行开始填写，每行一条观测；
+        保存为 UTF-8、英文逗号分隔的 CSV，单文件最多 1 MiB。含逗号、换行的单元格用英文双引号包裹。
+      </Text>
+      <Table
+        data={keywordImportFields(channel)}
+        idKey="key"
+        density="compact"
+        columns={[
+          { key: "key", header: "CSV 列名" },
+          { key: "required", header: "是否必填" },
+          { key: "description", header: "填写说明" },
+        ]}
+      />
       {channel === "C" && (
         <>
           <TextInput

@@ -24,6 +24,48 @@ const policy = {
 const sensitive =
   "張三住北京市海淀区1号，电话１３８００１３８０００，邮箱 zhang@example.com，身份证11010519491231002X";
 
+test("T09下载模板填入观测后可经真实导入服务处理，C模板不索取来源URL", async () => {
+  const { keywordImportFields, keywordImportTemplate } = await import(
+    "../../src/lib/keyword-import-template.mjs"
+  );
+  let authorization;
+  const env = await startRuntimeEnvironment({
+    resolveImportAuthorization: async () => authorization,
+  });
+  try {
+    const app = env.application;
+    const f = await createFixtureRegistry(app, { clock: env.clock }).fixture("snapshot-input");
+    authorization = {
+      tenant_id: f.tenant_id, ref: "template-auth", document_ref: "written-template-auth",
+      active: true, redaction_policy: policy,
+    };
+    const values = {
+      keyword: "模板回归测试词", collected_at: "2026-01-01T00:00:00Z",
+      demand_index: "", trend_dir: "", excerpt: "虚构测试摘录",
+      source_url: "https://example.com/observation",
+    };
+    for (const channel of ["A", "B", "C", "D"]) {
+      const fields = keywordImportFields(channel);
+      assert.equal(fields.some((field) => field.key === "source_url"), channel !== "C");
+      const template = keywordImportTemplate(channel);
+      assert.ok(template.startsWith("\uFEFFkeyword,collected_at,"));
+      // The downloadable template is blank: it must not create fabricated observations.
+      assert.equal(template.trim().split(/\r?\n/).length, 1);
+      const row = fields.map((field) => values[field.key]).join(",") + "\r\n";
+      const result = ok(await app.call("keyword_raw.import", req(f.actors.strategist, {
+        industry: "B2B", channel, csv: template + row,
+        ...(channel === "C" ? { authorization_ref: "template-auth" } : {}),
+      })));
+      assert.equal(result.added, 1);
+      assert.equal(result.rejected, 0);
+    }
+    const unknownHeaders = await app.call("keyword_raw.import", req(f.actors.strategist, {
+      industry: "B2B", channel: "B", csv: "名称,时间\n任意列名,2026-01-01T00:00:00Z\n",
+    }));
+    assert.equal(unknownHeaders.status, 422);
+  } finally { await env.close(); }
+});
+
 test("T09 CSV按租户/行业/渠道精确去重并回报新增重复拒绝，首见取最早", async () => {
   const env = await startRuntimeEnvironment();
   try {
