@@ -131,3 +131,12 @@ flowchart TD
 - 框架只经worker-runtime进入API层workspace-context；普通geo_app事务核验当前成员、PAT与本租户合同，候选brand ID仅在服务内枚举。每个品牌数据通过原brand.read完整六层后才投影id/name/industry给页面，不新增业务操作或扩大allow。来源/原文不在SSR元数据读路径中。
 - 元数据读取不签发凭证、不写业务对象；后续brand.read仍执行PAT scope/撤销/限流与record_use审计。页面服务端按当前角色/合同裁剪入口；URL品牌/行业须在已授权集合，业务写入继续原服务，UI显隐不是授权。
 - 未登录/无效会话只显示明确的无数据布局预览及原公开模板预览，不提供假账号、默认租户或假指标。匿名查看不连接数据库。
+
+
+## T12 问句池接线补充（2026-11-15）
+
+- 全局页面经question-workbench SSR助手，只用原read服务装配品牌内簇/版本/问句/真实来源；没有匿名或管理连接路径。列表在原scope检查后再按关联分派逐行过滤，C对象读审计commit后进入RSC；聚合版本视图同样记录其C引用。
+- 原目录中的5个问句操作迁入question-pool模块，补冻结契约已声明的archive，注册操作78→79，allow仍245行。HTTP适配器只接冻结路径，固定tid/bid/id/version，Web写要求同源，版本参数不一致422；幂等仍由原application事务层处理。
+- 对齐品牌/版本整集合：create/revise/freeze/archive共用事务锁、0014插入兜底；任何验证或审计失败整批回滚。锚定审计记录old/new版本和ID集合，归档不删除历史或停用已有锚。原T03协议/断言不改，fixture只把连续新增测试簇安排到新版本以符合冻结集合不可增长。
+
+- 浏览器实测修复：Next可能将request.url规范化为监听主机，Web同源检查现绑定实际Host与URL协议，忽略调用方转发头；question与既有seed/import适配器共用http-origin助手。无Origin、跨站、协议不符仍拒绝，PAT仍按原bearer/scopes校验。页面在客户端就绪后开放自定义表单交互，不改变服务权威。

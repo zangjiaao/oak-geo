@@ -190,8 +190,12 @@ export function createFixtureRegistry(
   }
   async function cluster(
     f,
-    { version = 1, freeze = true, anchor = true, name = "测试认知簇" } = {},
+    { version, freeze = true, anchor = true, name = "测试认知簇" } = {},
   ) {
+    // Frozen API closes a whole brand/version. Additional test clusters receive
+    // a new pool version; existing clusters keep their original anchor.
+    version ??= f.nextQuestionVersion ?? 1;
+    f.nextQuestionVersion = Math.max(f.nextQuestionVersion ?? 1, version + 1);
     const c = await invoke("intent_cluster.transition", job(f, "weekly_pool"), {
       brand_id: f.brand_id,
       name,
@@ -980,6 +984,8 @@ export function createFixtureRegistry(
         });
       if (id === "question_pool.read")
         return request(f.actors.strategist, {}, { id: c.questionIds[0] });
+      if (id === "question_pool.archive")
+        return request(f.actors.strategist, {cluster_id:c.id,question_pool_version:c.version,reason:"版本退役"});
       if (id === "question_pool.revise")
         return request(
           f.actors.strategist,

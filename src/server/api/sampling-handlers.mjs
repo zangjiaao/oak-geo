@@ -80,7 +80,7 @@ export function samplingHandlers() {
         throw validation("question anchor mismatch");
       const qs = (
         await ctx.client.query(
-          "SELECT id FROM question_pool WHERE tenant_id=$1 AND cluster_id=$2 AND question_pool_version=$3 AND frozen=true AND archived_at IS NULL ORDER BY id",
+          "SELECT id FROM question_pool WHERE tenant_id=$1 AND cluster_id=$2 AND question_pool_version=$3 AND frozen=true ORDER BY id",
           [ctx.principal.tenant_id, cluster.id, set.question_pool_version],
         )
       ).rows;

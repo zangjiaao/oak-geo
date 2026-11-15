@@ -50,6 +50,7 @@ export const workspacePages = Object.freeze([
     group: "词库",
     label: "CSV 导入",
   },
+  { path: "/library/questions", group: "词库", label: "问句池" },
   {
     path: "/library/snapshots",
     group: "词库",
@@ -111,6 +112,10 @@ export function pageVisible(page, session) {
   if (!session) return true; // Explicit, data-free layout preview.
   if (!Object.hasOwn(roleLabels, session.role)) return false;
   const staff = internal.includes(session.role);
+  if (page.path === "/library/questions")
+    return ["strategist", "factcheck", "cs", "content", "evidence"].includes(
+      session.role,
+    );
   if (page.group === "设置") return session.role === "admin";
   if (page.group === "词库") return staff;
   if (page.path === "/content/reviews") return session.role === "factcheck";

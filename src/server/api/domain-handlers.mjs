@@ -1,3 +1,4 @@
+import { questionPoolHandlers } from "./question-pool.mjs";
 import { catalogHandlers } from "./catalog-handlers.mjs";
 import { samplingHandlers } from "./sampling-handlers.mjs";
 import { archiveHandlers } from "./archive-handlers.mjs";
@@ -8,6 +9,7 @@ export function createDomainHandlers() {
   const registry = {};
   for (const group of [
     catalogHandlers(),
+    questionPoolHandlers(),
     samplingHandlers(),
     contentHandlers(),
     archiveHandlers(),

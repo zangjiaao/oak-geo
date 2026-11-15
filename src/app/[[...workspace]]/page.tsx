@@ -1,3 +1,8 @@
+import {
+  QuestionPoolPanel,
+  type QuestionWorkbench,
+} from "@/components/QuestionPoolPanel";
+import { readQuestionWorkbench } from "@/server/api/question-workbench.mjs";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
@@ -58,6 +63,26 @@ export default async function WorkspacePage({
     );
   } else if (path === "/notifications") {
     content = <EmptyState title="通知中心尚未开放" headingLevel={1} />;
+  } else if (path === "/library/questions") {
+    const query = await searchParams;
+    const data: QuestionWorkbench =
+      session && selection.brand
+        ? await readQuestionWorkbench(await headers(), {
+            brand: selection.brand,
+            cluster_id: query.cluster,
+            version: query.version,
+          })
+        : {};
+    content = (
+      <>
+        <Heading level={1}>问句池</Heading>
+        <QuestionPoolPanel
+          session={session}
+          brandId={selection.brand?.id ?? null}
+          data={data}
+        />
+      </>
+    );
   } else if (path === "/library/generation") {
     content = (
       <>
