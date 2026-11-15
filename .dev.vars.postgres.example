@@ -1,0 +1,16 @@
+NEXTJS_ENV=development
+# Local Docker Compose only. Keep URLs below in sync if changing these values.
+OAK_POSTGRES_DB=oak_geo
+OAK_POSTGRES_PORT=5432
+OAK_POSTGRES_PASSWORD=oak_geo_local
+DATABASE_URL=postgresql://postgres:oak_geo_local@127.0.0.1:5432/oak_geo
+# db:migrate creates geo_app without a password. Set it once via db:password.
+# The example passwords are for local development only.
+GEO_APPLICATION_DATABASE_URL=postgresql://geo_app:oak_geo_app_local@127.0.0.1:5432/oak_geo
+GEO_MIGRATION_ACTOR=local-migration-admin
+# Generate your own value (>=32 characters); never commit the populated .dev.vars.
+GEO_SESSION_SECRET=
+GEO_PUBLIC_ROOT_CATALOG=[["B2B","ai 自动排产"]]
+GEO_C_IMPORT_AUTHORIZATIONS=[]
+GEO_WEEKLY_POLICY_RECORD=null
+GEO_INDUSTRY_POPULATIONS=[]

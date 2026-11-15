@@ -140,6 +140,8 @@ T12问句池在`/library/questions`：选择真实来源配问句、冻结整个
 
 ## 本地验收问句池
 
+本机数据库可按下方“Docker Compose 本地数据库”配置；Neon开发库仍可沿用原连接。
+
 先在 `.dev.vars` 配好 `DATABASE_URL`（开发库迁移管理连接）、`GEO_APPLICATION_DATABASE_URL`（同一开发库的普通 `geo_app` 连接）和 `GEO_SESSION_SECRET`（至少32字符随机值）。迁移执行人与 `GEO_MIGRATION_ACTOR` 保持一致。不要用管理连接充当应用连接。
 
 ```sh
@@ -155,3 +157,38 @@ npm run dev
 进入后可选择来源、填写三条问句与具体维护人 → 冻结v1 → 显式入测锚定 → 修订并补齐v2 → 冻结v2并显式升级；可归档旧版后验证历史仍可读取。它用于验收问句池操作，不代表真实行业规则或探针效果已验证。
 
 若同时验收生成语法的确认写入，另需在 `.dev.vars` 的 `GEO_PUBLIC_ROOT_CATALOG` 配置已许可公共词根，例如演示词根 `[["B2B","ai 自动排产"]]`；默认空目录仍拒绝写入，登录不会绕过许可。
+
+## Docker Compose 本地数据库
+
+安装并启动 Docker Desktop（含 Compose v2）。数据库在容器内运行，Next和迁移命令仍在本机运行。
+
+首次配置：没有 `.dev.vars` 时，执行 `cp -n .dev.vars.postgres.example .dev.vars`；已有该文件时，参考示例更新本地数据库配置，保留原会话密钥等设置，不要覆盖整份文件。`OAK_POSTGRES_*` 与两条连接URL保持一致；终端已导出的同名变量优先。生成会话密钥的命令如下，将输出填入 `GEO_SESSION_SECRET`：
+
+```sh
+node -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))'
+```
+
+启动并等待数据库就绪，然后迁移：
+
+```sh
+npm run db:up
+npm run db:migrate
+npm run db:password
+```
+
+`db:password` 会交互询问两次 `geo_app` 密码。使用示例配置时输入 `oak_geo_app_local`；自定义密码须与 `GEO_APPLICATION_DATABASE_URL` 一致（URL中的特殊字符需编码）。这一步首次设置即可，迁移不会重置密码。`postgres` 仅用于迁移，应用连接始终使用普通 `geo_app`，不能将两条URL都设为管理连接。
+
+接着运行 `npm run dev:login`、`npm run dev` 并打开登录链接。首次进入的是新本地库，不会自动复制Neon数据；如果之前已在运行开发服务，切换配置后重启该服务。
+
+日常使用：
+
+```sh
+npm run db:up
+npm run dev
+```
+
+会话失效时重跑 `npm run dev:login`。有新迁移时重跑 `npm run db:migrate`。停止数据库用 `npm run db:down`，会保留数据卷；该命令不删除数据库数据。手动添加 `--volumes` 才会删除数据，不要用于日常停止。
+
+Compose只向 `127.0.0.1` 发布5432端口，带健康检查；本机已有Postgres占用端口时，先明确选择复用还是使用独立端口，修改 `OAK_POSTGRES_PORT` 后同步两条URL。先前用 `docker run` 创建的容器/卷与本Compose独立，不会自动迁移或接管。
+
+PostgreSQL18的数据卷挂在 `/var/lib/postgresql`，配置依据：[Postgres官方镜像](https://hub.docker.com/_/postgres)、[Compose服务与健康检查](https://docs.docker.com/reference/compose-file/services/)。环境变量只在空数据卷初始化时创建数据库/设置管理密码，已有数据卷不会因改环境变量而自动改密码；已有库改密码后还须同步连接配置。

@@ -241,3 +241,5 @@
 - 搜索/筛选/分页只作用于已授权、已加载集合；锚定始终提交完整三问句ID，不受搜索显示一条影响。CSV按既有最多20条回执做10条/页，明确汇总覆盖全量，不虚构后续记录。生成确认锁定实际产出候选的模板/来源/参数，取消新的配置草稿不替换旧结果溯源；导入失败/取消也不清上次回执。
 - 新增1项列表搜索/分页回归先红后绿，96 checks通过（0 skip/todo）；typecheck、生成器--check、Workers构建与astryx doctor通过（既有主题提示1项，0 fail）。真实浏览器主流程经CLI登录，验证三页无内嵌编辑表单、弹窗取消/Esc/遮罩、错误输入保留、25词搜索/翻页/公共词确认、25行CSV回执分页/C未授权拒收、问句创建/冻结/过滤下完整ID锚定/修订/升级/归档，另验匿名预览/模板下载、FactCheck只读和移动日报；最终pageerror=0。
 - 补充浏览器验收曾在账户页跳转超时一次，完整重跑通过，未稳定复现且未改登录实现，作为开发态导航时序观察记录。三次临时Next/workerd树均在finally清理并核验3000端口关闭，临时浏览器/数据库均已退出。未修改业务服务、权限、状态机、产品/AGENTS/contracts或冻结T03，故本轮不重复此前已通过的23项product。未自行合并，待人审。
+- T12本地数据库环境补充（独立分支`chore/local-postgres-compose`）：按负责人要求新增Compose PostgreSQL18与.dev.vars.postgres.example。仅回环端口、命名持久卷、TCP健康检查；db:up等待健康，db:down保留卷，db:password通过psql交互配置已迁移geo_app的登录密码。应用/迁移仍运行本机，不引入容器业务seed、直写业务库路径或新依赖；已有Neon配置不自动覆盖。README含首次配置、迁移/密码/演示登录及日常停启步骤；基于未合并T12分支，PR应在T12合并后切回main基线。
+- 验证：新增1项架构守卫先红后绿，96 checks通过（0 skip/todo）；官方Compose JSON Schema、环境示例dotenv/JSON解析、真实npm shell转发\password参数验证通过。当前服务器无Docker可执行文件/daemon，未声称容器启动或真实Compose集成实测；未修改业务服务/冻结文件，本轮不重复此前23项product或前端构建。所有临时测试数据库与参数验证文件由finally清理；未启动常驻服务。
