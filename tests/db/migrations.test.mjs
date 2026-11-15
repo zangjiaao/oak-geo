@@ -157,6 +157,8 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
             "weekly_pool_run",
             "weekly_cluster_snapshot",
             "weekly_pool_candidate",
+            "keyword_surge_alert",
+            "keyword_surge_notification",
           ];
           assert.equal(
             new Set(

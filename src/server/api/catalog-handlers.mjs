@@ -1,6 +1,7 @@
 import { pageQuery } from "./pagination.mjs";
 import { appendMachinePercentiles } from "./industry-percentiles.mjs";
 import { appendWeeklyPool, clusterDemand, weeklyPrivatePredicate } from "./weekly-pool.mjs";
+import { readSurgeAlerts } from "./surge-alerts.mjs";
 import { randomUUID } from "node:crypto";
 import { provisioningOperations } from "./provisioning-service.mjs";
 import {
@@ -261,6 +262,7 @@ export function catalogHandlers() {
     return { data: row, objectId: ctx.body.industry + ":" + version };
   };
   handlers["keyword_pool_snapshot.read"] = async (ctx) => {
+    if (["surge_alerts", "surge_notifications"].includes(ctx.query.view)) return readSurgeAlerts(ctx);
     if (ctx.query.view === "weekly_runs" || ctx.query.view === "weekly_candidates") {
       const runs = ctx.query.view === "weekly_runs";
       const values = [ctx.principal.tenant_id, ctx.query.industry ?? "B2B"];

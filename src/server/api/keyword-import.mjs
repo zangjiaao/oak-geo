@@ -97,6 +97,15 @@ function prepare(ctx, row, auth) {
   if (typeof row.keyword !== "string") throw validation("关键词必须为文本");
   const raw = payload(row.raw_payload);
   const policy = auth?.redaction_policy;
+  let sourceId;
+  if (!policy) {
+    const values = [row.source_id, b.source_id, raw.source_id].filter((value) => value != null && value !== "");
+    if (values.some((value) => typeof value !== "string" || !value.trim() || value.trim().length > 256))
+      throw validation("来源标识无效");
+    const ids = [...new Set(values.map((value) => value.trim()))];
+    if (ids.length > 1) throw validation("行内来源标识与文件来源标识冲突");
+    sourceId = ids[0];
+  }
   const keyword = policy
     ? redactImportText(row.keyword, policy)
     : row.keyword.trim();
@@ -136,6 +145,7 @@ function prepare(ctx, row, auth) {
       }
     : {
         ...raw,
+        ...(sourceId ? { source_id: sourceId } : {}),
         ...(row.excerpt ? { excerpt: row.excerpt } : {}),
         ...(row.url || row.source_url
           ? { url: row.url || row.source_url }
