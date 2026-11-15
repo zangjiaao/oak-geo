@@ -31,6 +31,16 @@ export async function createWorkerRuntime(credential) {
       client,
       secret: env.GEO_SESSION_SECRET,
       publicRootCatalog,
+      resolveImportAuthorization: async ({ tenant_id, authorization_ref }) => {
+        const records = JSON.parse(env.GEO_C_IMPORT_AUTHORIZATIONS ?? "[]");
+        return (
+          records.find(
+            (record) =>
+              record.tenant_id === tenant_id &&
+              record.ref === authorization_ref,
+          ) ?? null
+        );
+      },
     });
     return { application, close: () => client.end() };
   } catch (error) {

@@ -5,6 +5,7 @@ import { Heading, Text } from "@astryxdesign/core/Text";
 import { headers } from "next/headers";
 import { readWorkbenchSession } from "@/server/api/worker-runtime.mjs";
 import { GenerationPanel } from "@/components/GenerationPanel";
+import { CsvImportPanel } from "@/components/CsvImportPanel";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
@@ -15,6 +16,7 @@ export default async function Home() {
         <Heading level={1}>GEO</Heading>
         <Text type="body">品牌 AI 回答测量与事实管理</Text>
         <GenerationPanel session={session} />
+        <CsvImportPanel session={session} />
       </VStack>
     </AppShell>
   );

@@ -21,9 +21,13 @@ export function createSeedTransport(runtimeFactory) {
     const meta = { snapshot_id: null, data_as_of: new Date().toISOString() };
     try {
       const url = new URL(request.url);
-      const match = url.pathname.match(
+      const seedMatch = url.pathname.match(
         /^\/api\/tenants\/([^/]+)\/seed-lists(?:\/([^/]+)\/revisions)?\/?$/,
       );
+      const importMatch = url.pathname.match(
+        /^\/api\/tenants\/([^/]+)\/keyword-imports\/?$/,
+      );
+      const match = seedMatch ?? importMatch;
       if (
         !match ||
         !["GET", "POST"].includes(request.method) ||
@@ -50,7 +54,7 @@ export function createSeedTransport(runtimeFactory) {
       let body = {};
       if (request.method === "POST") {
         const bytes = await request.text();
-        if (Buffer.byteLength(bytes) > 1048576)
+        if (Buffer.byteLength(bytes) > (importMatch ? 3 * 1048576 : 1048576))
           throw validation("request too large");
         try {
           body = JSON.parse(bytes);
@@ -70,8 +74,11 @@ export function createSeedTransport(runtimeFactory) {
       }
       runtime = await runtimeFactory(credential);
       const actor = runtime.application.actorFromCredential(credential);
-      const operation =
-        request.method === "GET"
+      const operation = importMatch
+        ? request.method === "GET"
+          ? "keyword_raw.read"
+          : "keyword_raw.import"
+        : request.method === "GET"
           ? "seed_list.read"
           : match[2]
             ? "seed_list.revise"

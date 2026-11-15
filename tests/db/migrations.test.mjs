@@ -151,6 +151,7 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
             "diagnosis_record",
             "archive_review_evidence",
             "seed_generation_metadata",
+            "keyword_import_batch",
           ];
           assert.equal(
             new Set(

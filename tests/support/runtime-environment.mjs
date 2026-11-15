@@ -78,6 +78,8 @@ export async function startRuntimeEnvironment(options = {}) {
         },
         beforeAudit: options.beforeAudit,
         limits: options.limits,
+        resolveImportAuthorization: options.resolveImportAuthorization,
+        loadImportCsv: options.loadImportCsv,
       });
       readyResolve(
         Object.freeze({
