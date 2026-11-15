@@ -348,3 +348,10 @@ T07状态/版本草案（负责人授权agent提出，随PR人审；尚未自行
 - T08对契约冲突的裁定：“仅许可公共词根进入共享种子，source_channel另作元数据”。本次落实为既有seed_list.read生成预览、seed_list.revise显式人工勾选确认，全部词先验证许可；模板/来源种子/计划采集渠道A/B与确认人记录在租户私有seed_generation_metadata，不给共享种子伪造外部观测，不修改问句池。
 - T09批准草案：服务端核验租户绑定的书面授权引用；姓名/地址等结构化身份列不入库，手机号/邮箱/证件号等自动替换；自由文本需要受信姓名/地址词典，缺少可核验脱敏配置拒收、不落库。负责人回复：“按此草案实现 C 类，随 PR 审阅”。A/B/D导入照常实施。
 - T08工程约定随PR审：每次预览最多100个生成词（输入保护，非需求/采样口径）；渠道元数据是计划，不计真实渠道观测；生成确认只允许human，普通种子草稿权限不变。HTTP只适配已声明种子端点，既有权限矩阵不变；会话/PAT经签名校验后重走同一服务，cookie写操作校验Origin，生产不绕过Hyperdrive。
+
+T09实现草案（随本PR人审，落实2026-11-15的C类授权）：
+- 以(tenant_id,industry,channel,normalized_hash,collected_at)识别同一次观测；相同词不同采集时间追加，first_seen_at=min(已知采集时间)。同观测重复不覆盖原文/指数，值冲突计拒绝，保留旧source_word_id。
+- 归一化版本nfkc_opencc_1.4.2_t_cn_v1：NFKC、固定OpenCC t→cn、lowercase、分隔标点/空白规范；保留技术词/型号的+、#、连字符等意义字符，避免C++/C#误并为C。依赖为词典转换库，不引入框架/ORM；见[OpenCC JS官方仓库](https://github.com/nk2028/opencc-js)。
+- 输入契约：industry/channel必填；csv或租户绑定csv_ref二选一；CSV须keyword与UTC collected_at（也可用整批实际采集时间）；可选demand_index/trend_dir/raw_payload。C只用CSV入口，client提供的授权对象/词典不生效，只接受服务端resolveImportAuthorization登记。
+- C授权登记草案字段tenant_id/ref/document_ref/active/revoked_at/expires_at/redaction_policy；policy须version/verified/dictionary_complete/reviewed_by/reviewed_at/names[]/addresses[]。身份列不存；C载荷仅存脱敏excerpt及授权/配置版本，不存原始URL/整行CSV；缺少已核验配置整批拒收。
+- 导入摘要只存计数/版本/时间，逐记录结果最多20条且不回显拒绝原文；CSV坏引号/重复表头/绝对搜索量字段整批拒绝，正常行字段错误逐条计拒绝；1MiB为单次CSV输入保护，不是业务配额/采样承诺。更大文件可分批。

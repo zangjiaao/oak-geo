@@ -3,6 +3,7 @@ import { samplingHandlers } from "./sampling-handlers.mjs";
 import { archiveHandlers } from "./archive-handlers.mjs";
 import { contentHandlers } from "./content-handlers.mjs";
 import { seedHandlers } from "./seed-handlers.mjs";
+import { keywordImportHandlers } from "./keyword-import.mjs";
 export function createDomainHandlers() {
   const registry = {};
   for (const group of [
@@ -11,6 +12,7 @@ export function createDomainHandlers() {
     contentHandlers(),
     archiveHandlers(),
     seedHandlers(),
+    keywordImportHandlers(),
   ])
     for (const [id, handler] of Object.entries(group)) {
       if (Object.hasOwn(registry, id))

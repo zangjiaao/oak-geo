@@ -3,3 +3,6 @@ NEXTJS_ENV=development
 GEO_SESSION_SECRET=
 GEO_APPLICATION_DATABASE_URL=
 GEO_PUBLIC_ROOT_CATALOG=[]
+# Trusted, tenant-bound written authorization + reviewed redaction dictionary.
+# Keep real contacts/addresses in a secret binding; never commit its contents.
+GEO_C_IMPORT_AUTHORIZATIONS=[]

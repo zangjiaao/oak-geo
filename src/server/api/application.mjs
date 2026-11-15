@@ -43,6 +43,8 @@ export async function createApplication({
   limits = () => ({}),
   beforeAudit,
   observe,
+  resolveImportAuthorization = async () => null,
+  loadImportCsv = async () => null,
 }) {
   await assertRuntimeConnection(client);
   const identity = createIdentityAuthority({ secret, now });
@@ -133,6 +135,8 @@ export async function createApplication({
       publicRootCatalog,
       registeredOperations: Object.keys(handlers),
       rootEventId: randomUUID(),
+      resolveImportAuthorization,
+      loadImportCsv,
     };
   }
   function attachUnit(ctx, units) {

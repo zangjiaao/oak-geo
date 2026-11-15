@@ -185,31 +185,11 @@ export function catalogHandlers() {
       values: [ctx.principal.tenant_id],
     }),
   });
-  handlers["keyword_raw.import"] = async (ctx) => {
-    required(ctx.body, ["industry", "keyword", "channel", "collected_at"]);
-    if (ctx.body.channel === "C")
-      throw validation(
-        "C ingestion requires the separately reviewed authorization/redaction ETL; no raw-C write shortcut",
-      );
-    const row = await insertRow(ctx, "keyword_raw", {
-      id: randomUUID(),
-      tenant_id: ctx.principal.tenant_id,
-      industry: ctx.body.industry,
-      keyword: ctx.body.keyword,
-      channel: ctx.body.channel,
-      demand_index: ctx.body.demand_index ?? null,
-      trend_dir: ctx.body.trend_dir ?? "flat",
-      first_seen_at: ctx.body.collected_at,
-      collected_at: ctx.body.collected_at,
-      raw_payload: json(ctx.body.raw_payload ?? {}),
-    });
-    return { data: { id: row.id, added: 1, duplicate: 0, rejected: 0 } };
-  };
   handlers["keyword_raw.read"] = async (ctx) => {
     const data = await pageQuery(ctx, {
       table: "keyword_raw",
       columns:
-        "id,industry,keyword,channel,demand_index,trend_dir,collected_at",
+        "id,industry,keyword,channel,demand_index,trend_dir,collected_at,first_seen_at,normalization_version",
       where: "tenant_id=$1",
       values: [ctx.principal.tenant_id],
     });
@@ -226,7 +206,17 @@ export function catalogHandlers() {
       )
     ).rows[0];
     if (!row) throw permission();
-    return { data: row, sensitive: true };
+    return {
+      data:
+        row.channel === "C"
+          ? {
+              id: row.id,
+              channel: row.channel,
+              redacted_payload: row.raw_payload,
+            }
+          : row,
+      sensitive: true,
+    };
   };
   handlers["keyword_pool_snapshot.append"] = async (ctx) => {
     required(ctx.body, ["industry", "seed_version"]);
