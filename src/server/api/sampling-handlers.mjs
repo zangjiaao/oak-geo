@@ -12,6 +12,12 @@ import {
   scoreIdentity,
 } from "./domain-common.mjs";
 import { permission, validation, ServiceError } from "./errors.mjs";
+import {
+  createProbeSchedule,
+  readDueProbeSchedules,
+  validateScheduleControls,
+  schedulingAudit,
+} from "./probe-scheduling.mjs";
 const dimensions = ["blank", "error", "generic", "competitor"];
 const mean = (values) => {
   const valid = values.filter((v) => v != null).map(Number);
@@ -50,7 +56,7 @@ export async function judgmentBasis(ctx, brandId, version) {
 }
 export function samplingHandlers() {
   const h = {};
-  h["probe_batch.create"] = async (ctx) => {
+  const createOne = async (ctx, scheduling = {}) => {
     required(ctx.body, [
       "type",
       "snapshot_id",
@@ -117,10 +123,16 @@ export function samplingHandlers() {
       status: "pending",
       cluster_question_sets: json(sets),
       baseline_batch_id: ctx.body.baseline_batch_id ?? null,
+      ...scheduling,
     });
     return { data: row };
   };
+  h["probe_batch.create"] = (ctx) =>
+    Object.hasOwn(ctx.body, "schedule")
+      ? createProbeSchedule(ctx, createOne)
+      : createOne(ctx);
   h["probe_batch.read"] = async (ctx) => {
+    if (ctx.query.view === "scheduled") return readDueProbeSchedules(ctx);
     const batch = await getRow(ctx, "probe_batch", ctx.params.id);
     const restricted = ["content", "evidence"].includes(ctx.principal.role);
     const page = await pageQuery(ctx, {
@@ -169,12 +181,46 @@ export function samplingHandlers() {
     });
     if (batch.status !== "pending")
       throw conflict("only pending batch can start");
+    if (new Date(batch.scheduled_at).getTime() > ctx.now())
+      throw conflict("scheduled time has not arrived");
+    // Creation may precede execution by weeks; preserve the existing 90-day
+    // archive eligibility gate at the actual sampling time as well.
+    for (const set of batch.cluster_question_sets) {
+      const cluster = await getRow(ctx, "intent_cluster", set.cluster_id);
+      if (
+        cluster.status === "archived" &&
+        ctx.now() - new Date(cluster.archived_at).getTime() >= 90 * 86400_000
+      )
+        throw validation("archive transition ended");
+    }
+    await validateScheduleControls(
+      ctx,
+      batch.brand_id,
+      batch.schedule_meta?.control_cluster_ids ?? [],
+    );
     await judgmentBasis(ctx, batch.brand_id, batch.lexicon_version);
     return {
       data: await change(ctx, "probe_batch", batch.id, {
         status: "running",
         started_at: new Date(ctx.now()).toISOString(),
       }),
+    };
+  };
+  h["probe_batch.cancel"] = async (ctx) => {
+    required(ctx.body, ["reason"]);
+    if (typeof ctx.body.reason !== "string")
+      throw validation("reason must be text");
+    const batch = await getRow(ctx, "probe_batch", ctx.params.id, {
+      lock: true,
+    });
+    if (batch.status !== "pending")
+      throw conflict("only pending batch can be cancelled");
+    return {
+      data: await change(ctx, "probe_batch", batch.id, {
+        status: "cancelled",
+        finished_at: new Date(ctx.now()).toISOString(),
+      }),
+      auditMeta: { ...schedulingAudit(ctx, batch.id), reason: ctx.body.reason },
     };
   };
   h["probe_batch.execute"] = async (ctx) => {
