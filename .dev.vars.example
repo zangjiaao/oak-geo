@@ -1,4 +1,7 @@
 NEXTJS_ENV=development
+# CLI migration connection (owner/admin direct URL), separate from the app role.
+DATABASE_URL=
+GEO_MIGRATION_ACTOR=local-migration-admin
 # Empty until an identity provider and a non-owner local development DB are configured.
 GEO_SESSION_SECRET=
 GEO_APPLICATION_DATABASE_URL=

@@ -91,7 +91,9 @@ T03 已建立真实服务层验收的红灯基线：`npm run test:checks`验证�
 
 `migrations/0001_core.sql` 至 `0004_opportunity_status.sql`覆盖产品§18T04的29张业务表（原18为历史计数），另有迁移账本`schema_migration`。使用原生`pg`驱动，不引入ORM。所有列有注释；版本/分数唯一约束、租户复合外键、冻结与终态守卫在数据库兜底。四个API投影不被擅自扩成四张业务表。机会卡英文存储码与冻结API中文值经服务层映射，表见`t02-decisions.md`；0004仅重编码，原迁移校验和保留。
 
-对明确指定的开发数据库执行（连接串由环境注入，不写进仓库）：
+`db:migrate` 与 `db:fixture` 会加载项目根目录的 `.dev.vars`，终端已设置的同名环境变量优先。`DATABASE_URL` 填目标开发库的迁移管理连接，`GEO_APPLICATION_DATABASE_URL` 填普通 `geo_app` 连接；`.dev.vars` 不提交仓库。
+
+配置后执行：
 
 ```sh
 # DATABASE_URL = 目标开发库的直连 Postgres URL；GEO_MIGRATION_ACTOR = 执行人标识

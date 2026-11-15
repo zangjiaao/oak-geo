@@ -5,7 +5,7 @@ import { applyMigrations } from "../src/server/api/migration-service.mjs";
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString)
   throw new Error(
-    "Set DATABASE_URL explicitly to the intended migration database",
+    "Set DATABASE_URL in .dev.vars or the process environment to the intended migration database",
   );
 const root = new URL("../migrations/", import.meta.url);
 const files = readdirSync(root)
