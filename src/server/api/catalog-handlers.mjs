@@ -1,5 +1,6 @@
 import { pageQuery } from "./pagination.mjs";
 import { appendMachinePercentiles } from "./industry-percentiles.mjs";
+import { appendWeeklyPool, clusterDemand, weeklyPrivatePredicate } from "./weekly-pool.mjs";
 import { randomUUID } from "node:crypto";
 import { provisioningOperations } from "./provisioning-service.mjs";
 import {
@@ -219,6 +220,7 @@ export function catalogHandlers() {
     };
   };
   handlers["keyword_pool_snapshot.append"] = async (ctx) => {
+    if (ctx.body.weekly_pipeline === true) return appendWeeklyPool(ctx);
     required(ctx.body, ["industry", "seed_version"]);
     if (
       ![...ctx.publicRootCatalog].some((key) =>
@@ -259,6 +261,30 @@ export function catalogHandlers() {
     return { data: row, objectId: ctx.body.industry + ":" + version };
   };
   handlers["keyword_pool_snapshot.read"] = async (ctx) => {
+    if (ctx.query.view === "weekly_runs" || ctx.query.view === "weekly_candidates") {
+      const runs = ctx.query.view === "weekly_runs";
+      const values = [ctx.principal.tenant_id, ctx.query.industry ?? "B2B"];
+      let where = "p.tenant_id=$1 AND p.industry=$2";
+      if (["content", "evidence"].includes(ctx.principal.role)) {
+        values.push(ctx.principal.user_id);
+        where += " AND " + weeklyPrivatePredicate(runs);
+      }
+      return { data: await pageQuery(ctx, {
+        table: runs ? "weekly_pool_run p" : "weekly_pool_candidate p",
+        columns: runs
+          ? "id,industry,pool_version,window_start,window_end,policy_version,source_ref,source_digest,created_at"
+          : "id,brand_id,industry,pool_version,reason,cardinality(source_word_ids) AS source_count,source_word_ids[1:20] AS source_word_ids,cardinality(source_word_ids)>20 AS sources_truncated,old_cluster_ids[1:20] AS old_cluster_ids,created_at",
+        where, values,
+        order: [["p.created_at", "DESC"], ["p.id", "DESC"]],
+      }) };
+    }
+    if (ctx.query.view === "demand") return { data: await pageQuery(ctx, {
+      table: "weekly_public_metric",
+      columns: "industry,pool_version,public_cluster_key,root,intent_type,demand_score,percentile,demand_tier,channel_percentiles,source_coverage",
+      where: "industry=$1 AND pool_version=$2", values: [ctx.query.industry ?? "B2B", ctx.query.pool_version],
+      order: [["public_cluster_key", "ASC"]],
+      map: (row) => ({ ...row, demand_score: row.demand_score == null ? null : Number(row.demand_score), percentile: row.percentile == null ? null : Number(row.percentile) }),
+    }) };
     if (ctx.query.view === "percentiles")
       return {
         data: await pageQuery(ctx, {
@@ -282,6 +308,8 @@ export function catalogHandlers() {
     };
   };
   handlers["intent_cluster.transition"] = async (ctx) => {
+    if (Object.hasOwn(ctx.body, "status") || Object.hasOwn(ctx.body, "question_pool_version"))
+      throw validation("周批不得裸改状态或问句锚定版本");
     if (ctx.params.id) {
       const row = await getRow(ctx, "intent_cluster", ctx.params.id, {
         lock: true,
@@ -290,7 +318,7 @@ export function catalogHandlers() {
       const updated = await change(ctx, "intent_cluster", row.id, {
         pool_version: ctx.body.pool_version,
       });
-      return { data: updated };
+      return { data: updated, auditMeta: { cause_event_id: ctx.body.cause_event_id ?? null } };
     }
     required(ctx.body, ["brand_id", "name", "intent_type", "pool_version"]);
     const row = await insertRow(ctx, "intent_cluster", {
@@ -302,11 +330,12 @@ export function catalogHandlers() {
       status: "active",
       pool_version: ctx.body.pool_version,
     });
-    return { data: row };
+    return { data: row, auditMeta: { cause_event_id: ctx.body.cause_event_id ?? null } };
   };
-  handlers["intent_cluster.read"] = async (ctx) => ({
-    data: await getRow(ctx, "intent_cluster", ctx.params.id),
-  });
+  handlers["intent_cluster.read"] = async (ctx) => {
+    const row = await getRow(ctx, "intent_cluster", ctx.params.id);
+    return { data: { ...row, demand: await clusterDemand(ctx, row.id, row.pool_version) } };
+  };
   handlers["question_pool.create"] = async (ctx) => {
     required(ctx.body, [
       "cluster_id",

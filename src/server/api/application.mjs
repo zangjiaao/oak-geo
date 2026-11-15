@@ -45,6 +45,8 @@ export async function createApplication({
   observe,
   resolveImportAuthorization = async () => null,
   loadImportCsv = async () => null,
+  loadWeeklyPolicy = async () => null,
+  loadIndustryPopulation = async () => null,
 }) {
   await assertRuntimeConnection(client);
   const identity = createIdentityAuthority({ secret, now });
@@ -92,6 +94,7 @@ export async function createApplication({
     "review_queue.approve": ["content_reconcile:content_asset.transition"],
     "review_queue.reject": ["content_reconcile:content_asset.transition"],
     "intent_cluster.archive": ["backflow_scan:backflow_ticket.create"],
+    "keyword_pool_snapshot.append": ["weekly_pool:intent_cluster.transition"],
   });
   async function authorizeRequest(operation, request) {
     const endpoint = endpointMap.get(operation);
@@ -137,6 +140,8 @@ export async function createApplication({
       rootEventId: randomUUID(),
       resolveImportAuthorization,
       loadImportCsv,
+      loadWeeklyPolicy,
+      loadIndustryPopulation,
     };
   }
   function attachUnit(ctx, units) {

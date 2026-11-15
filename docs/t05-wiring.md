@@ -108,3 +108,11 @@ flowchart TD
 - R11新增私有不可变证据包与可空行业阈值，manual_review_required是证据状态，不增加簇状态。NULL阈值不自动判第三条件；配置阈值最多生成建议工单，最终仍是Strategist显式人工动作。
 - **R11条件1 v2已批准**：w_pool_percentile仅T10周批机器生产。受控weekly_pool调用词池append，在许可公共观测的demand_index上做percent_rank，绑定T10批次id；fixture只替换观测回执。Strategist没有写入口。缺行或不匹配簇/最新行业pool_version时data_pending，不另设天数TTL，不得归档。不从单租户B类私有样本现场排名，不提供人工排名补位。
 - 当前注册表精确枚举77个冻结操作；未注册操作拒绝。逐项计数与未实现清单由`t05-review.md`列出，不将后端切片视作T07–T29全任务完成。
+
+
+## T10 接线补充（2026-11-15，规则草案待人审）
+
+- 词池append的weekly_pipeline路径先校验受信规则冻结回执，默认null直接422，无业务写入；客户端body不能替代。既有固定六层、普通geo_app及全部冻结操作白名单保持，未新增资源/操作。
+- keyword_pool_snapshot.append可在原事务内以weekly_pool子job调用intent_cluster.transition；子调用重新走六层，cause指向根事件，审计失败时公共publication/分位、私有簇/候选/run全部回滚。新增辅助租户表强制RLS、只追加；C词读取逐对象审计，不进入共享产物；多品牌归属不明的C留租户级候选，Content/Evidence的私有周批视图只返回其分派对象关联记录。
+- R11优先从weekly_cluster_snapshot的公共键读同pool_version且行业最新的w_pool_percentile；旧fixture的单公共词根路径保留，缺行/stale仍暂缓。规则/来源回执留在私有run；公共表仅许可键/数值/版本与不可逆摘要，不含客户标识。
+- job编排器只调用服务，不签发凭证、不直写库。最多3次指数退避后需耐久dead-letter及告警接收器，缺接收器不运行；当前不安装cron，未冻结真实规则、未启用生产周批。

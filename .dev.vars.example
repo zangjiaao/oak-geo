@@ -6,3 +6,7 @@ GEO_PUBLIC_ROOT_CATALOG=[]
 # Trusted, tenant-bound written authorization + reviewed redaction dictionary.
 # Keep real contacts/addresses in a secret binding; never commit its contents.
 GEO_C_IMPORT_AUTHORIZATIONS=[]
+# T10 stays disabled until the product owner freezes the reviewed rule digest.
+GEO_WEEKLY_POLICY_RECORD=null
+# Trusted public numeric receipts only, never tenant CSV or C-class original text.
+GEO_INDUSTRY_POPULATIONS=[]

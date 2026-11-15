@@ -31,6 +31,11 @@ export async function createWorkerRuntime(credential) {
       client,
       secret: env.GEO_SESSION_SECRET,
       publicRootCatalog,
+      loadWeeklyPolicy: async () => JSON.parse(env.GEO_WEEKLY_POLICY_RECORD || "null"),
+      loadIndustryPopulation: async ({ industry, window }) =>
+        JSON.parse(env.GEO_INDUSTRY_POPULATIONS || "[]").find((record) =>
+          record.industry === industry && record.window_start === window.start && record.window_end === window.end,
+        ) ?? null,
       resolveImportAuthorization: async ({ tenant_id, authorization_ref }) => {
         const records = JSON.parse(env.GEO_C_IMPORT_AUTHORIZATIONS ?? "[]");
         return (

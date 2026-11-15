@@ -61,6 +61,19 @@ export async function appendMachinePercentiles(ctx, pool) {
 }
 
 export async function readArchivePercentile(ctx, cluster, industry) {
+  const mapped = (await ctx.client.query(
+    "SELECT public_cluster_key FROM weekly_cluster_snapshot WHERE tenant_id=$1 AND cluster_id=$2 AND industry=$3 AND pool_version=$4",
+    [ctx.principal.tenant_id, cluster.id, industry, cluster.pool_version],
+  )).rows[0];
+  if (mapped) {
+    const rows = (await ctx.client.query(
+      `SELECT public_cluster_key,pool_version,percentile,producer,basis_note FROM w_pool_percentile
+       WHERE industry=$1 AND public_cluster_key=$2 AND pool_version=$3
+       AND pool_version=(SELECT max(pool_version) FROM keyword_pool_snapshot WHERE industry=$1)`,
+      [industry, mapped.public_cluster_key, cluster.pool_version],
+    )).rows;
+    return { status: rows.length ? "evaluated" : "data_pending", met: rows.length === 1 && Number(rows[0].percentile) <= 0.2, rows };
+  }
   const roots = (
     await ctx.client.query(
       `SELECT DISTINCT k.keyword FROM question_pool q
