@@ -41,7 +41,8 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 - ✅ T01 脚手架、T02 API 规格（t02_api_v1，人审冻结）、T03 测试红灯基线已合并
 - ✅ T04 数据库迁移与服务层开发 fixture 已合并（PR #6）
 - ✅ T05 权限/RLS/审计已合并（PR #7）；T06 审计由 T05 吸收完成
-- T07 种子表服务层 CRUD 与行业共享路径待人审；网页界面后续排期，见 [review](docs/t07-review.md)
+- ✅ T07 种子表服务层 CRUD 与行业共享路径已合并（PR #8）
+- T08 生成语法面板开发中；T09 CSV 导入按独立功能分支推进
 
 ## Setup
 
@@ -106,3 +107,5 @@ T05的0005–0008迁移为原25张租户表、tenant及辅助租户表强制RLS�
 ## License
 
 Private — 内部产品仓库。
+
+生成语法面板使用既有Web会话（HTTP-only的geo_session cookie）或per-user PAT；本轮不提供登录/签发接口。身份提供方需沿用服务层签名密钥与身份声明；未登录可本地预览，确认写入要求有效身份与Strategist权限。普通运行连接与公共词根许可目录由服务端配置，目录格式为`[["行业","公共词根"],…]`，默认空目录拒绝确认；实际部署使用Hyperdrive，Next开发环境可用GEO_APPLICATION_DATABASE_URL。GEO_SESSION_SECRET需至少32字符随机值，示例文件不提供默认密钥。

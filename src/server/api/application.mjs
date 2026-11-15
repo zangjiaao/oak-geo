@@ -424,6 +424,25 @@ export async function createApplication({
   const application = Object.freeze({
     call,
     issueActor,
+    actorFromCredential: (credential) => {
+      const p = identity.verify(credential);
+      if (p.credential_kind === "job")
+        throw permission(
+          "job credentials are not accepted by the browser transport",
+        );
+      return Object.fromEntries(
+        Object.entries({
+          credential,
+          user_id: p.user_id,
+          tenant_id: p.tenant_id,
+          role: p.role,
+          actor_type: p.actor_type,
+          brand_id: p.brand_id,
+          agent_run_id: p.agent_run_id,
+          prompt_version: p.prompt_version,
+        }).filter(([, value]) => value !== undefined),
+      );
+    },
     registeredOperations: () => Object.keys(handlers),
     inspectSecurity: () => inspectRuntimeConnection(client),
     evaluationOrder: permissionEvaluationOrder,

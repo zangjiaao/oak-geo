@@ -65,10 +65,12 @@ export async function startRuntimeEnvironment(options = {}) {
                 modelVersion: "recorded-v1",
               }
             : null,
-        publicRootCatalog: new Set([
-          "B2B\0ai 自动排产",
-          ...Array.from({ length: 4 }, (_, i) => "B2B\0公开词根" + (i + 1)),
-        ]),
+        publicRootCatalog:
+          options.publicRootCatalog ??
+          new Set([
+            "B2B\0ai 自动排产",
+            ...Array.from({ length: 4 }, (_, i) => "B2B\0公开词根" + (i + 1)),
+          ]),
         observe: (phase, detail) => {
           if (phase === "failure" && process.env.GEO_TEST_TRACE)
             process.stderr.write(JSON.stringify(detail) + "\n");

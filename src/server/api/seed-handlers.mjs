@@ -7,6 +7,7 @@ import {
   assertSharedMaintainer,
 } from "./shared-industry.mjs";
 import { pageQuery } from "./pagination.mjs";
+import { previewGeneration, confirmGeneration } from "./generation-service.mjs";
 
 const columns =
   "id,logical_id,previous_id,industry,word,word_type,maintainer,last_reviewed_at,seed_version,status,created_at";
@@ -112,9 +113,14 @@ export function seedHandlers() {
         ])
       ).rows[0];
       if (!old) throw permission("seed outside accessible shared plane");
+      if (ctx.body.generation) return confirmGeneration(ctx, old, write);
       return write(ctx, old);
     },
     "seed_list.read": async (ctx) => {
+      if (ctx.query.generation)
+        return {
+          data: { items: await previewGeneration(ctx, ctx.query.generation) },
+        };
       const industry = ctx.query.industry ?? "B2B";
       const words = [...ctx.publicRootCatalog]
         .filter((key) => key.startsWith(industry + "\0"))
@@ -148,26 +154,58 @@ export function seedHandlers() {
           values.push(ctx.query[key]);
           where += ` AND s.${key}=$${values.length}`;
         }
-      return {
-        data: await pageQuery(ctx, {
-          table: "seed_list s",
-          columns: columns
-            .split(",")
-            .map((c) => "s." + c)
-            .join(","),
-          where,
-          values,
-          order: [
-            ["s.seed_version", "ASC"],
-            ["s.id", "ASC"],
-          ],
-          map: (row) => {
-            assertPublicRoot(row, ctx.publicRootCatalog, markers);
-            assertSharedMaintainer(row.maintainer, markers);
-            return row;
-          },
-        }),
-      };
+      const withMetadata = Boolean(ctx.query.include_generation_meta);
+      if (withMetadata) values.push(ctx.principal.tenant_id);
+      const data = await pageQuery(ctx, {
+        table: withMetadata
+          ? `seed_list s LEFT JOIN seed_generation_metadata g ON g.seed_id=s.id AND g.tenant_id=$${values.length}`
+          : "seed_list s",
+        columns: columns
+          .split(",")
+          .map((c) => "s." + c)
+          .join(",") +
+          (withMetadata
+            ? ",g.template_id AS generation_template_id,g.source_channel AS generation_source_channel,g.planned AS generation_planned"
+            : ""),
+        where,
+        values,
+        order: [
+          ["s.seed_version", "ASC"],
+          ["s.id", "ASC"],
+        ],
+        map: (row) => {
+          assertPublicRoot(row, ctx.publicRootCatalog, markers);
+          assertSharedMaintainer(row.maintainer, markers);
+          if (!withMetadata) return row;
+          const {
+            generation_template_id,
+            generation_source_channel,
+            generation_planned,
+            ...seed
+          } = row;
+          // Include metadata in pageQuery's byte budget before flattening.
+          return {
+            ...seed,
+            generation_metadata: generation_template_id
+              ? {
+                  seed_id: seed.id,
+                  template_id: generation_template_id,
+                  source_channel: generation_source_channel,
+                  planned: generation_planned,
+                }
+              : null,
+          };
+        },
+      });
+      if (withMetadata) {
+        data.generation_metadata = data.items.flatMap((row) =>
+          row.generation_metadata ? [row.generation_metadata] : [],
+        );
+        data.items = data.items.map(
+          ({ generation_metadata, ...seed }) => seed,
+        );
+      }
+      return { data };
     },
   };
 }
