@@ -34,7 +34,7 @@ export async function previewGeneration(ctx, input) {
     throw validation(e.message);
   }
   const markers = await privateMarkers(ctx.client);
-  return candidates.map((row) => {
+  const items = candidates.map((row) => {
     let eligible = true;
     try {
       assertPublicRoot(
@@ -55,6 +55,12 @@ export async function previewGeneration(ctx, input) {
       reason: eligible ? null : "不在许可公共词根目录内",
     };
   });
+  assertResponseBudget(items);
+  return items;
+}
+function assertResponseBudget(items) {
+  if (Buffer.byteLength(JSON.stringify(items)) > 18000)
+    throw validation("生成结果超出响应预算，请缩小预览或分批确认");
 }
 export async function confirmGeneration(ctx, base, write) {
   if (ctx.principal.actor_type !== "human")
@@ -122,6 +128,7 @@ export async function confirmGeneration(ctx, base, write) {
     );
     items.push(row);
   }
+  assertResponseBudget(items);
   return {
     data: { items, source_channel: input.source_channel, planned: true },
     objectId: base.id,

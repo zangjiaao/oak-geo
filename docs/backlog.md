@@ -138,6 +138,6 @@
 - T07：`done`。负责人2026-11-15批准PR #8合并，已合并到main；active/deprecated及NULL回填提案随PR获得人审。网页排期不因服务层合并改变。
 - T08：`review`，task/t08-generation-panel从合并后的main建立。五类模板预览＋勾选人工确认；只写许可公共词根到既有seed_list.revise路径，source_channel另存租户私有计划元数据，不伪造观测/热度/测量问句。
 - 面板遵循astryx AppShellContentOnly框架；薄HTTP路由只调用API层，Web/PAT验签、当前角色/租户重校验、同源写入、24h幂等；不开放凭证签发或管理连接。生产运行要求Hyperdrive，开发直连仅普通geo_app。
-- 测试：五模板/缺参/去重、预览零业务写入、非许可词整批拒绝、人工确认/来源绑定、元数据租户隔离、幂等及真实Web/PAT范围/CSRF；既有T03协议/断言、contracts.json与产品正文不改。无需新增权限或操作；0010仅补生成元数据辅助表。
+- 测试：五模板/缺参/去重、预览零业务写入、非许可词整批拒绝、人工确认/来源绑定、元数据租户隔离、幂等及真实Web/PAT范围/CSRF；20KB预算覆盖预览、原子确认及带元数据分页，超限确认整批回滚、游标无遗漏；既有T03协议/断言、contracts.json与产品正文不改。无需新增权限或操作；0010仅补生成元数据辅助表。
 - T09负责人已批准C类授权验真/脱敏草案，另分支实施；本PR不提前接采集或真实探针。
-- T08验证：59 checks＋23 product=82项全绿（保留T07的78项＋新增4项），0 skip/todo；生成器、typecheck、Workers构建、doctor通过。未登录面板实际HTTP 200渲染通过；生产仍须配置身份提供方、Hyperdrive与公共词根目录，不提供假登录/假入库。Next dev自动规则写入已禁用，AGENTS.md字节保留。
+- T08验证：60 checks＋23 product=83项全绿（保留T07的78项＋新增5项），0 skip/todo；生成器、typecheck、Workers构建、doctor通过。未登录面板实际HTTP 200渲染通过；生产仍须配置身份提供方、Hyperdrive与公共词根目录，不提供假登录/假入库。Next dev自动规则写入已禁用，AGENTS.md字节保留。

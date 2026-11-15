@@ -8,6 +8,45 @@ const req = (actor, body = {}, id, query = {}) => ({
   params: id ? { id } : {},
   query,
 });
+
+test("T08生成预览/确认与附渠道元数据分页均遵守20KB预算，游标无遗漏", async () => {
+  const features = Array.from({ length: 60 }, (_, i) => `public${i}${"a".repeat(80)}`);
+  const words = features.map((word) => word + " generator");
+  const env = await startRuntimeEnvironment({
+    publicRootCatalog: new Set(["B2B\0ai 自动排产", ...words.map((word) => "B2B\0" + word)]),
+  });
+  try {
+    const app = env.application;
+    const f = await createFixtureRegistry(app, { clock: env.clock }).fixture("snapshot-input");
+    const input = { template_id: "feature_generator", inputs: { feature: features }, source_channel: "A" };
+    assert.equal((await app.call("seed_list.read", req(f.actors.strategist, {}, undefined, {
+      generation: { ...input, source_seed_id: f.seed.id, inputs: { feature: ["a".repeat(20000)] } },
+    }))).status, 422);
+    const confirm = (selected_keywords) => app.call("seed_list.revise", req(f.actors.strategist, {
+      generation: { ...input, selected_keywords }, confirmed: true,
+      maintainer: "张三（虚构）", last_reviewed_at: "2026-11-15T00:00:00Z",
+    }, f.seed.id));
+    assert.equal((await confirm(words)).status, 422);
+    assert.equal(ok(await app.call("seed_list.read", req(f.actors.strategist))).items.length, 1);
+    for (let i = 0; i < words.length; i += 10) ok(await confirm(words.slice(i, i + 10)));
+    let cursor, pages = 0;
+    const seen = new Set(), metadata = new Set();
+    do {
+      const response = await app.call("seed_list.read", req(f.actors.strategist, {}, undefined, {
+        industry: "B2B", include_generation_meta: true, limit: 100, cursor,
+      }));
+      const data = ok(response);
+      assert.ok(Buffer.byteLength(JSON.stringify(response)) < 20000);
+      for (const item of data.items) { assert.ok(!seen.has(item.id)); seen.add(item.id); }
+      for (const item of data.generation_metadata) metadata.add(item.seed_id);
+      cursor = data.next_cursor;
+      assert.ok(++pages < 10);
+    } while (cursor);
+    assert.equal(seen.size, 61);
+    assert.equal(metadata.size, 60);
+    assert.ok(pages > 1);
+  } finally { await env.close(); }
+});
 const ok = (r) => {
   assert.equal(r.status, 200, JSON.stringify(r.error));
   return r.data;

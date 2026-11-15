@@ -154,12 +154,19 @@ export function seedHandlers() {
           values.push(ctx.query[key]);
           where += ` AND s.${key}=$${values.length}`;
         }
+      const withMetadata = Boolean(ctx.query.include_generation_meta);
+      if (withMetadata) values.push(ctx.principal.tenant_id);
       const data = await pageQuery(ctx, {
-        table: "seed_list s",
+        table: withMetadata
+          ? `seed_list s LEFT JOIN seed_generation_metadata g ON g.seed_id=s.id AND g.tenant_id=$${values.length}`
+          : "seed_list s",
         columns: columns
           .split(",")
           .map((c) => "s." + c)
-          .join(","),
+          .join(",") +
+          (withMetadata
+            ? ",g.template_id AS generation_template_id,g.source_channel AS generation_source_channel,g.planned AS generation_planned"
+            : ""),
         where,
         values,
         order: [
@@ -169,16 +176,34 @@ export function seedHandlers() {
         map: (row) => {
           assertPublicRoot(row, ctx.publicRootCatalog, markers);
           assertSharedMaintainer(row.maintainer, markers);
-          return row;
+          if (!withMetadata) return row;
+          const {
+            generation_template_id,
+            generation_source_channel,
+            generation_planned,
+            ...seed
+          } = row;
+          // Include metadata in pageQuery's byte budget before flattening.
+          return {
+            ...seed,
+            generation_metadata: generation_template_id
+              ? {
+                  seed_id: seed.id,
+                  template_id: generation_template_id,
+                  source_channel: generation_source_channel,
+                  planned: generation_planned,
+                }
+              : null,
+          };
         },
       });
-      if (ctx.query.include_generation_meta) {
-        data.generation_metadata = (
-          await ctx.client.query(
-            "SELECT seed_id,template_id,source_channel,planned FROM seed_generation_metadata WHERE tenant_id=$1 AND seed_id=ANY($2::text[])",
-            [ctx.principal.tenant_id, data.items.map((row) => row.id)],
-          )
-        ).rows;
+      if (withMetadata) {
+        data.generation_metadata = data.items.flatMap((row) =>
+          row.generation_metadata ? [row.generation_metadata] : [],
+        );
+        data.items = data.items.map(
+          ({ generation_metadata, ...seed }) => seed,
+        );
       }
       return { data };
     },
