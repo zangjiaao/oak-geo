@@ -38,9 +38,7 @@ function WorkspaceBody({ children }: { children: ReactNode }) {
   return (
     <VStack gap={4}>
       <Heading level={1}>移动端日报</Heading>
-      <Text type="body">
-        完整工作台请在桌面端使用。移动端仅展示日报摘要，数据接入后更新。
-      </Text>
+      <Text type="body">请在桌面端使用完整工作台。</Text>
       <Text type="supporting">今日新增错误：待接入</Text>
       <Text type="supporting">待审项：待接入</Text>
       <Text type="supporting">飙升词：待接入</Text>
@@ -74,6 +72,7 @@ export function WorkspaceShell({
     <HStack gap={3} wrap="wrap">
       <Selector
         label="品牌"
+        isLabelHidden
         value={selection.brand?.id ?? ""}
         options={brands.map((b) => ({ value: b.id, label: b.name }))}
         placeholder={session ? "暂无可见品牌" : "登录后选择品牌"}
@@ -87,6 +86,7 @@ export function WorkspaceShell({
       />
       <Selector
         label="行业"
+        isLabelHidden
         value={selection.industry}
         options={industries.map((industry) => ({
           value: industry,
@@ -94,7 +94,6 @@ export function WorkspaceShell({
         }))}
         placeholder="尚未选择行业"
         isDisabled={!industries.length}
-        disabledMessage="行业来自当前可见品牌"
         size="sm"
         variant="secondary"
         onChange={(industry) => {
@@ -111,13 +110,7 @@ export function WorkspaceShell({
       topNav={
         <TopNav
           label="GEO 顶栏"
-          heading={
-            <TopNavHeading
-              heading="GEO"
-              headingHref={href("/")}
-              subheading="品牌 AI 回答测量"
-            />
-          }
+          heading={<TopNavHeading heading="GEO" headingHref={href("/")} />}
           startContent={context}
           endContent={
             <HStack gap={4} wrap="wrap">
@@ -143,14 +136,7 @@ export function WorkspaceShell({
         />
       }
       sideNav={
-        <SideNav
-          aria-label="GEO 主导航"
-          footer={
-            <Text type="supporting">
-              {session ? "周级测量 · 口径可追溯" : "布局预览 · 未登录"}
-            </Text>
-          }
-        >
+        <SideNav aria-label="GEO 主导航">
           {groups.map((group) => (
             <SideNavSection key={group.label} title={group.label}>
               {group.items.map((page) => (
@@ -169,8 +155,7 @@ export function WorkspaceShell({
       <VStack gap={6}>
         {!session && (
           <Text type="supporting" role="status">
-            当前为未登录布局预览，不读取租户数据。生成预览和 CSV
-            模板可用，写入需要有效账号。
+            未登录，仅可预览和下载模板。
           </Text>
         )}
         <WorkspaceBody>{children}</WorkspaceBody>

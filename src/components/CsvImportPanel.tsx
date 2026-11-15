@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
-import { Heading, Text } from "@astryxdesign/core/Text";
+import { Text } from "@astryxdesign/core/Text";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { FileInput } from "@astryxdesign/core/FileInput";
@@ -24,7 +24,13 @@ type Report = {
   record_results: ResultRow[];
   truncated: boolean;
 };
-export function CsvImportPanel({ session, industryContext = "" }: { session: Session; industryContext?: string }) {
+export function CsvImportPanel({
+  session,
+  industryContext = "",
+}: {
+  session: Session;
+  industryContext?: string;
+}) {
   const [file, setFile] = useState<File | null>(null),
     [channel, setChannel] = useState("B"),
     [industry, setIndustry] = useState(industryContext || "B2B"),
@@ -51,7 +57,7 @@ export function CsvImportPanel({ session, industryContext = "" }: { session: Ses
     document.body.append(link);
     try {
       link.click();
-      setMessage("已下载空白模板，请在表头下填写真实采集数据后上传。");
+      setMessage("模板已下载");
     } finally {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -109,11 +115,6 @@ export function CsvImportPanel({ session, industryContext = "" }: { session: Ses
   }
   return (
     <VStack gap={4}>
-      <Heading level={2}>采集结果导入</Heading>
-      <Text type="supporting">
-        请先下载模板，按下表列名整理数据。当前不会自动匹配任意表格的列；平台导出文件需先转换为模板格式。
-        行业与来源渠道在本页选择。同一时点的重复观测会去重，不同采集时间保留新观测。
-      </Text>
       <HStack gap={4} wrap="wrap">
         <TextInput
           label="行业"
@@ -137,26 +138,14 @@ export function CsvImportPanel({ session, industryContext = "" }: { session: Ses
       </HStack>
       {channel !== "C" && (
         <TextInput
-          label="来源标识（选填，整个文件填一次）"
+          label="文件来源标识（选填）"
+          placeholder="如 google-trends-global-weekly-v1"
           value={sourceId}
           onChange={setSourceId}
         />
       )}
-      <Text type="supporting">
-        {channel === "C"
-          ? "C 类会依据已核验的书面授权识别来源，无需另填来源标识。"
-          : "飙升识别会比较同一来源口径的两周趋势。来源标识可包含平台、地区、指数口径，例如 google-trends-global-weekly-v1。"}
-        每条观测的趋势未知时留空，系统会说明缺项，不推断上涨。
-      </Text>
-      <Button
-        label={`下载 ${channel} 类 CSV 空白模板`}
-        onClick={downloadTemplate}
-      />
-      <Text type="supporting">
-        模板只有表头，无需登录即可下载。请保留列名，从第二行开始填写，每行一条观测；
-        保存为 UTF-8、英文逗号分隔的 CSV，单文件最多 1
-        MiB。含逗号、换行的单元格用英文双引号包裹。
-      </Text>
+      <Button label={`下载 ${channel} 类模板`} onClick={downloadTemplate} />
+      <Text type="supporting">请保留模板列名。</Text>
       <Table
         data={keywordImportFields(channel)}
         idKey="key"
@@ -175,14 +164,11 @@ export function CsvImportPanel({ session, industryContext = "" }: { session: Ses
             onChange={setAuthorization}
             isRequired
           />
-          <Text type="supporting">
-            C
-            类需有效书面授权及已核验的姓名、地址脱敏词典；缺少配置会拒收。姓名、地址等身份列不入库，文本在入库前自动脱敏。
-          </Text>
+          <Text type="supporting">授权与脱敏配置需审核通过，否则拒收。</Text>
         </>
       )}
       <FileInput
-        label="选择 CSV 文件"
+        label="CSV 文件"
         value={file}
         onChange={(value) => {
           setFile(Array.isArray(value) ? (value[0] ?? null) : value);
@@ -190,7 +176,7 @@ export function CsvImportPanel({ session, industryContext = "" }: { session: Ses
         }}
         accept=".csv,text/csv"
         maxSize={1048576}
-        description="UTF-8 CSV，单批最多 1 MiB"
+        description="UTF-8，最大 1 MiB"
         isDisabled={!session?.can_write || busy}
         disabledMessage="需策略角色登录后导入"
       />
@@ -242,11 +228,7 @@ export function CsvImportPanel({ session, industryContext = "" }: { session: Ses
               { key: "code", header: "拒绝原因" },
             ]}
           />
-          {report.truncated && (
-            <Text type="supporting">
-              展示前20条处理结果；汇总计数覆盖整批，不回显拒绝行原文。
-            </Text>
-          )}
+          {report.truncated && <Text type="supporting">仅显示前 20 条。</Text>}
         </>
       )}
     </VStack>
