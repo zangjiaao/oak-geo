@@ -7,6 +7,10 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Button } from "@astryxdesign/core/Button";
 import { Table } from "@astryxdesign/core/Table";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { FormDialog } from "./FormDialog";
+import { ListToolbar, ListFooter } from "./ListPage";
+import { listWindow } from "@/lib/list-view.mjs";
 import { generationTemplates, generateCandidates } from "@/lib/generation.mjs";
 type Session = { tenant_id: string; can_write: boolean } | null;
 type Seed = { id: string; industry: string; word: string; status: string };
@@ -15,6 +19,11 @@ interface Candidate extends Record<string, unknown> {
   eligible: boolean;
   reason: string | null;
 }
+type PreviewConfig = {
+  template_id: string;
+  inputs: Record<string, string[]>;
+  source_seed_id: string;
+};
 export function GenerationPanel({
   session,
   industry = "",
@@ -30,11 +39,18 @@ export function GenerationPanel({
     [source, setSource] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]),
     [selected, setSelected] = useState<string[]>([]);
+  const [previewConfig, setPreviewConfig] = useState<PreviewConfig | null>(
+    null,
+  );
   const [channel, setChannel] = useState("A"),
     [maintainer, setMaintainer] = useState("");
   const [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false),
-    [page, setPage] = useState(0);
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState(""),
+    [eligibility, setEligibility] = useState("all"),
+    [page, setPage] = useState(1);
+  const [dialog, setDialog] = useState<"generate" | "confirm" | null>(null);
   const [revision, setRevision] = useState(0);
   const pending = useRef<{
     signature: string;
@@ -58,12 +74,14 @@ export function GenerationPanel({
       ),
     [template, values],
   );
-  function invalidate() {
-    setCandidates([]);
-    setSelected([]);
-    setMessage("");
-    setPage(0);
-  }
+  const view = listWindow(candidates, {
+    query,
+    fields: ["keyword"],
+    page,
+    matches: (row) =>
+      eligibility === "all" ||
+      (eligibility === "eligible" ? row.eligible : !row.eligible),
+  });
   useEffect(() => {
     if (!session) return;
     let active = true;
@@ -99,58 +117,68 @@ export function GenerationPanel({
       active = false;
     };
   }, [base, session, revision, industry]);
+  function open(next: "generate" | "confirm") {
+    setError("");
+    setDialog(next);
+  }
   async function preview() {
     setBusy(true);
-    setMessage("");
-    setSelected([]);
-    setPage(0);
+    setError("");
+    const config = {
+      template_id: templateId,
+      inputs: params,
+      source_seed_id: source,
+    };
     try {
-      if (!session) {
-        setCandidates(
-          generateCandidates({ template_id: templateId, inputs: params }).map(
-            (row) => ({
-              ...row,
-              eligible: false,
-              reason: "待登录校验",
-            }),
-          ),
-        );
-        return;
+      let rows: Candidate[];
+      if (!session)
+        rows = generateCandidates(config).map((row) => ({
+          ...row,
+          eligible: false,
+          reason: "登录后校验公共词根许可",
+        }));
+      else {
+        if (!source) throw new Error("请先建立并选择启用的公共种子");
+        const query = new URLSearchParams({
+          generation: JSON.stringify(config),
+        });
+        const response = await fetch(base + "?" + query, { cache: "no-store" }),
+          data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message ?? "预览失败");
+        rows = data.data.items;
       }
-      if (!source) throw new Error("请先建立并选择启用的公共种子");
-      const query = new URLSearchParams({
-        generation: JSON.stringify({
-          template_id: templateId,
-          inputs: params,
-          source_seed_id: source,
-        }),
-      });
-      const response = await fetch(base + "?" + query, { cache: "no-store" }),
-        data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message ?? "预览失败");
-      setCandidates(data.data.items);
+      setCandidates(rows);
+      setPreviewConfig(config);
+      setSelected([]);
+      setPage(1);
+      setQuery("");
+      setEligibility("all");
+      setMessage("");
+      setDialog(null);
     } catch (error) {
-      setCandidates([]);
-      setMessage(error instanceof Error ? error.message : "预览失败");
+      setError(error instanceof Error ? error.message : "预览失败");
     } finally {
       setBusy(false);
     }
   }
   async function confirm() {
+    if (!previewConfig) return;
     setBusy(true);
-    setMessage("");
+    setError("");
     try {
+      // Commit the configuration that produced the visible candidates, not any
+      // subsequently edited/cancelled generation form draft.
       const draft = {
         confirmed: true,
         maintainer,
         generation: {
-          template_id: templateId,
-          inputs: params,
+          template_id: previewConfig.template_id,
+          inputs: previewConfig.inputs,
           source_channel: channel,
           selected_keywords: selected,
         },
       };
-      const signature = JSON.stringify([source, draft]);
+      const signature = JSON.stringify([previewConfig.source_seed_id, draft]);
       if (pending.current?.signature !== signature)
         pending.current = {
           signature,
@@ -161,7 +189,10 @@ export function GenerationPanel({
           }),
         };
       const response = await fetch(
-          base + "/" + encodeURIComponent(source) + "/revisions",
+          base +
+            "/" +
+            encodeURIComponent(previewConfig.source_seed_id) +
+            "/revisions",
           {
             method: "POST",
             headers: {
@@ -174,20 +205,115 @@ export function GenerationPanel({
         data = await response.json();
       if (!response.ok) throw new Error(data.error?.message ?? "确认失败");
       pending.current = null;
+      setDialog(null);
       setMessage(`已入库 ${data.data.items.length} 个公共词根`);
       setCandidates([]);
       setSelected([]);
+      setPreviewConfig(null);
       setRevision((value) => value + 1);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "确认失败");
+      setError(error instanceof Error ? error.message : "确认失败");
     } finally {
       setBusy(false);
     }
   }
   return (
     <VStack gap={4}>
-      <Text type="supporting">仅许可公共词根可入库。</Text>
-      <HStack gap={4} wrap="wrap">
+      <ListToolbar>
+        <HStack gap={3} wrap="wrap">
+          <TextInput
+            label="搜索生成词"
+            isLabelHidden
+            type="search"
+            placeholder="搜索生成词"
+            value={query}
+            onChange={(value) => {
+              setQuery(value);
+              setPage(1);
+            }}
+          />
+          <Selector
+            label="准入状态"
+            isLabelHidden
+            value={eligibility}
+            options={[
+              { value: "all", label: "全部准入状态" },
+              { value: "eligible", label: "可入库" },
+              { value: "blocked", label: "不可入库" },
+            ]}
+            onChange={(value) => {
+              setEligibility(value);
+              setPage(1);
+            }}
+          />
+        </HStack>
+        <HStack gap={3} wrap="wrap">
+          <Button
+            label={`确认入库（${selected.length}）`}
+            isDisabled={!session?.can_write || !selected.length || busy}
+            onClick={() => open("confirm")}
+          />
+          <Button
+            label="生成词组"
+            variant="primary"
+            isDisabled={busy}
+            onClick={() => open("generate")}
+          />
+        </HStack>
+      </ListToolbar>
+      {view.items.length ? (
+        <Table
+          data={view.items}
+          idKey="keyword"
+          density="compact"
+          columns={[
+            {
+              key: "select",
+              header: "选择",
+              renderCell: (row) => (
+                <CheckboxInput
+                  label={"选择 " + row.keyword}
+                  isLabelHidden
+                  value={selected.includes(row.keyword)}
+                  isDisabled={!row.eligible || !session?.can_write || busy}
+                  onChange={(checked) =>
+                    setSelected((current) =>
+                      checked
+                        ? [...current, row.keyword]
+                        : current.filter((word) => word !== row.keyword),
+                    )
+                  }
+                />
+              ),
+            },
+            { key: "keyword", header: "生成词" },
+            {
+              key: "reason",
+              header: "准入",
+              renderCell: (row) => (
+                <Text type="supporting">
+                  {row.eligible ? "可入库" : row.reason}
+                </Text>
+              ),
+            },
+          ]}
+        />
+      ) : (
+        <EmptyState
+          title={candidates.length ? "没有匹配的生成词" : "尚未生成词组"}
+        />
+      )}
+      <ListFooter page={view.page} total={view.total} onChange={setPage} />
+      {message && <Text role="status">{message}</Text>}
+      <FormDialog
+        isOpen={dialog === "generate"}
+        title="生成词组"
+        busy={busy}
+        error={error}
+        onClose={() => setDialog(null)}
+        onSubmit={preview}
+        submitLabel="批量预览"
+      >
         <Selector
           label="模板"
           value={templateId}
@@ -195,10 +321,7 @@ export function GenerationPanel({
             value: item.id,
             label: item.label,
           }))}
-          onChange={(value) => {
-            setTemplateId(value);
-            invalidate();
-          }}
+          onChange={setTemplateId}
         />
         {session && (
           <Selector
@@ -208,115 +331,49 @@ export function GenerationPanel({
               value: item.id,
               label: item.word,
             }))}
-            onChange={(value) => {
-              setSource(value);
-              invalidate();
-            }}
+            onChange={setSource}
             placeholder="请选择启用的公共种子"
           />
         )}
-      </HStack>
-      <HStack gap={4} wrap="wrap">
         {template.fields.map(([key, label]) => (
           <TextInput
             key={key}
             label={label}
             placeholder="多个值用逗号分隔"
             value={values[key] ?? ""}
-            onChange={(value) => {
-              setValues((current) => ({ ...current, [key]: value }));
-              invalidate();
-            }}
+            onChange={(value) =>
+              setValues((current) => ({ ...current, [key]: value }))
+            }
           />
         ))}
-      </HStack>
-      <Button label="批量预览" onClick={preview} isLoading={busy} />
-      {candidates.length > 0 && (
-        <>
-          <Table
-            data={candidates.slice(page * 20, page * 20 + 20)}
-            idKey="keyword"
-            density="compact"
-            columns={[
-              {
-                key: "select",
-                header: "选择",
-                renderCell: (row) => (
-                  <CheckboxInput
-                    label={"选择 " + row.keyword}
-                    isLabelHidden
-                    value={selected.includes(row.keyword)}
-                    isDisabled={!row.eligible || !session?.can_write || busy}
-                    onChange={(checked) =>
-                      setSelected((current) =>
-                        checked
-                          ? [...current, row.keyword]
-                          : current.filter((word) => word !== row.keyword),
-                      )
-                    }
-                  />
-                ),
-              },
-              { key: "keyword", header: "生成词" },
-              {
-                key: "reason",
-                header: "准入",
-                renderCell: (row) => (
-                  <Text type="supporting">
-                    {row.eligible ? "可入库" : row.reason}
-                  </Text>
-                ),
-              },
-            ]}
-          />
-          <HStack gap={3}>
-            <Button
-              label="上一页"
-              isDisabled={page === 0}
-              onClick={() => setPage((value) => value - 1)}
-            />
-            <Text type="supporting">
-              第 {page + 1} 页 · 共 {candidates.length} 条
-            </Text>
-            <Button
-              label="下一页"
-              isDisabled={(page + 1) * 20 >= candidates.length}
-              onClick={() => setPage((value) => value + 1)}
-            />
-          </HStack>
-          <HStack gap={4} wrap="wrap">
-            <TextInput
-              label="维护人"
-              value={maintainer}
-              onChange={setMaintainer}
-              isRequired
-            />
-            <Selector
-              label="计划采集渠道"
-              value={channel}
-              options={[
-                { value: "A", label: "A · 检索类" },
-                { value: "B", label: "B · 平台内" },
-              ]}
-              onChange={setChannel}
-            />
-          </HStack>
-          <Button
-            label={"确认入库（" + selected.length + "）"}
-            variant="primary"
-            isLoading={busy}
-            isDisabled={
-              !session?.can_write || !selected.length || !maintainer.trim()
-            }
-            onClick={confirm}
-          />
-        </>
-      )}
-      {message && (
-        <Text type="body" role="status">
-          {message}
-        </Text>
-      )}
+      </FormDialog>
+      <FormDialog
+        isOpen={dialog === "confirm"}
+        title="确认入库"
+        description={`已选 ${selected.length} 个公共词根。`}
+        busy={busy}
+        error={error}
+        disabled={!session?.can_write || !selected.length || !maintainer.trim()}
+        onClose={() => setDialog(null)}
+        onSubmit={confirm}
+        submitLabel="确认入库"
+      >
+        <TextInput
+          label="维护人"
+          value={maintainer}
+          onChange={setMaintainer}
+          isRequired
+        />
+        <Selector
+          label="计划采集渠道"
+          value={channel}
+          options={[
+            { value: "A", label: "A · 检索类" },
+            { value: "B", label: "B · 平台内" },
+          ]}
+          onChange={setChannel}
+        />
+      </FormDialog>
     </VStack>
   );
 }

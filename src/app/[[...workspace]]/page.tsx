@@ -12,6 +12,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { readWorkbenchSession } from "@/server/api/worker-runtime.mjs";
 import { localSessionAllowed } from "@/server/api/local-session.mjs";
 import { LocalSignInPanel } from "@/components/LocalSignInPanel";
+import { PageHeading } from "@/components/ListPage";
 import {
   WorkspaceShell,
   type WorkspaceSession,
@@ -80,7 +81,10 @@ export default async function WorkspacePage({
         : {};
     content = (
       <>
-        <Heading level={1}>问句池</Heading>
+        <PageHeading
+          title="问句池"
+          description="每簇三问句，冻结后修订另开版本。"
+        />
         <QuestionPoolPanel
           session={session}
           brandId={selection.brand?.id ?? null}
@@ -91,7 +95,10 @@ export default async function WorkspacePage({
   } else if (path === "/library/generation") {
     content = (
       <>
-        <Heading level={1}>生成语法</Heading>
+        <PageHeading
+          title="生成语法"
+          description="按模板组合候选词，仅许可公共词根可入库。"
+        />
         <GenerationPanel
           key={selection.industry}
           session={session}
@@ -102,7 +109,10 @@ export default async function WorkspacePage({
   } else if (path === "/library/import") {
     content = (
       <>
-        <Heading level={1}>CSV 导入</Heading>
+        <PageHeading
+          title="CSV 导入"
+          description="导入采集数据；C 类需通过授权与脱敏校验。"
+        />
         <CsvImportPanel
           key={selection.industry}
           session={session}
@@ -147,7 +157,12 @@ export default async function WorkspacePage({
     );
   }
   return (
-    <WorkspaceShell session={session} selection={selection} path={path} localLogin={localLogin}>
+    <WorkspaceShell
+      session={session}
+      selection={selection}
+      path={path}
+      localLogin={localLogin}
+    >
       {content}
     </WorkspaceShell>
   );
