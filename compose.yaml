@@ -1,0 +1,28 @@
+# Local development database. Application and migrations run on the host.
+# npm db:* commands explicitly load .dev.vars for interpolation.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${OAK_POSTGRES_DB:-oak_geo}
+      POSTGRES_PASSWORD: ${OAK_POSTGRES_PASSWORD:-oak_geo_local}
+    ports:
+      - target: 5432
+        published: "${OAK_POSTGRES_PORT:-5432}"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d \"$${POSTGRES_DB}\""]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

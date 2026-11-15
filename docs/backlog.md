@@ -232,3 +232,6 @@
 
 - T12浏览器验收入口修复：新增`npm run dev:login`，显式加载.dev.vars并仅使用普通geo_app，通过原fixture/服务准备独立虚构租户、固定策略账号、三条演示B来源和演示簇；数据保留，重复不清空、不改锚、不恢复撤权。CLI签发24h Web凭证，链接用fragment携带；账户页立即移除片段并同源交接为HttpOnly/SameSite会话。桥接仅development+回环地址，生产404，不接受PAT/job、客户端指定角色或非演示租户；正式登录提供方仍待接入，真实周批/探针保持关闭。接线补充已同步t05-wiring。
 - 本轮新增3项回归：真实CLI+普通数据库+浏览器会话交接后的问句写入/重复保留/撤权失效、生产与非回环/管理回退拒绝、同源与凭证形态边界；另覆盖有效非演示租户凭证与过期凭证拒绝。95 checks＋23 product=118项通过（0 skip/todo），A02覆盖79操作；typecheck、生成器--check、Workers构建与astryx doctor通过（既有主题提示1项、0 fail）。浏览器从实际CLI链接登录（无手工注入cookie），完成三问句→整版冻结→锚定→v2修订/冻结/升级→归档读历史→重复命令后数据保留→小屏只读，pageerror=0；修复账户页已打开时fragment变化不触发交接的问题。两次临时Next/workerd树均在finally退出，端口3000关闭，临时数据库/浏览器已清理，无常驻服务。产品/AGENTS/contracts/T03断言与协议不改，仍在PR #14等人审、不合并。
+
+- T12本地数据库环境补充（独立分支`chore/local-postgres-compose`）：按负责人要求新增Compose PostgreSQL18与.dev.vars.postgres.example。仅回环端口、命名持久卷、TCP健康检查；db:up等待健康，db:down保留卷，db:password通过psql交互配置已迁移geo_app的登录密码。应用/迁移仍运行本机，不引入容器业务seed、直写业务库路径或新依赖；已有Neon配置不自动覆盖。README含首次配置、迁移/密码/演示登录及日常停启步骤；基于未合并T12分支，PR应在T12合并后切回main基线。
+- 验证：新增1项架构守卫先红后绿，96 checks通过（0 skip/todo）；官方Compose JSON Schema、环境示例dotenv/JSON解析、真实npm shell转发\password参数验证通过。当前服务器无Docker可执行文件/daemon，未声称容器启动或真实Compose集成实测；未修改业务服务/冻结文件，本轮不重复此前23项product或前端构建。所有临时测试数据库与参数验证文件由finally清理；未启动常驻服务。
