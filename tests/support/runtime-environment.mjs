@@ -80,6 +80,8 @@ export async function startRuntimeEnvironment(options = {}) {
         limits: options.limits,
         resolveImportAuthorization: options.resolveImportAuthorization,
         loadImportCsv: options.loadImportCsv,
+        loadWeeklyPolicy: options.loadWeeklyPolicy,
+        loadIndustryPopulation: options.loadIndustryPopulation,
       });
       readyResolve(
         Object.freeze({

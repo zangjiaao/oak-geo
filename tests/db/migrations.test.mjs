@@ -152,6 +152,11 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
             "archive_review_evidence",
             "seed_generation_metadata",
             "keyword_import_batch",
+            "weekly_pool_publication",
+            "weekly_public_metric",
+            "weekly_pool_run",
+            "weekly_cluster_snapshot",
+            "weekly_pool_candidate",
           ];
           assert.equal(
             new Set(
@@ -170,6 +175,8 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
                 "seed_list",
                 "keyword_pool_snapshot",
                 "industry_score",
+                "weekly_pool_publication",
+                "weekly_public_metric",
               ].includes(table)
             )
               assert.ok(
@@ -183,6 +190,8 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
             "seed_list",
             "keyword_pool_snapshot",
             "industry_score",
+            "weekly_pool_publication",
+            "weekly_public_metric",
           ])
             assert.ok(
               !cols.some(

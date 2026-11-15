@@ -43,7 +43,8 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 - ✅ T05 权限/RLS/审计已合并（PR #7）；T06 审计由 T05 吸收完成
 - ✅ T07 种子表服务层 CRUD 与行业共享路径已合并（PR #8）
 - ✅ T08 生成语法面板已按负责人授权合并（PR #9）
-- T09 CSV 导入待人审（PR #10，基线 main）；当前登录/本地开发会话入口尚未交付，网页实际写入仍需有效会话
+- ✅ T09 CSV 导入与模板下载已合并（PR #10）
+- T10 词池周批代码与规则草案待人审，98项测试通过，真实周批默认关闭；当前登录/本地开发会话入口尚未交付，网页实际写入仍需有效会话
 
 ## Setup
 
@@ -117,3 +118,6 @@ Private — 内部产品仓库。
 CSV导入使用`POST /api/tenants/{tid}/keyword-imports`，JSON含`industry`、`channel`、`csv`文本；界面选择本地CSV后走相同服务，单文件1MiB。表头示例：`keyword,collected_at,demand_index`，时间示例`2026-01-01T00:00:00Z`。重复文件不会新增同次观测，跨采集时点保留记录；source_word_id不因归一化被改写。简繁转换锁定[OpenCC JS](https://github.com/nk2028/opencc-js)版本，升级需显式处理归一化版本。
 
 C类需服务端受信授权登记`GEO_C_IMPORT_AUTHORIZATIONS`（真实姓名/地址词典用secret binding，不提交仓库）。登记形如`{tenant_id,ref,document_ref,active,redaction_policy:{version,verified,dictionary_complete,reviewed_by,reviewed_at,names:[],addresses:[]}}`；配置为空或未核验时拒收。C身份列不入库，文本按审核词典及规则自动脱敏；拒绝记录只回序号/原因，不回原文。`csv_ref`仅对接受信的租户文件适配器；本轮浏览器直接发送内存CSV，不保留原始文件。
+
+
+T10周批入口为`src/server/jobs/weekly-pool.mjs`，通过既有keyword_pool_snapshot.append服务触发完整pipeline，再同事务执行受控intent_cluster.transition。算法与审核项见[backlog的T10人审入口](docs/backlog.md#t10-执行与人审入口)。默认`GEO_WEEKLY_POLICY_RECORD=null`，禁止真实运行；`GEO_INDUSTRY_POPULATIONS=[]`只留受信公共数值回执适配入口，不能用私有CSV假扮行业基准。调度需要已有签名weekly_pool身份、耐久dead-letter和告警接收器；本轮不安装cron、不提供一键启用、不绕过登录或RLS。

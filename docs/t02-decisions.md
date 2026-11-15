@@ -355,3 +355,12 @@ T09实现草案（随本PR人审，落实2026-11-15的C类授权）：
 - 输入契约：industry/channel必填；csv或租户绑定csv_ref二选一；CSV须keyword与UTC collected_at（也可用整批实际采集时间）；可选demand_index/trend_dir/raw_payload。C只用CSV入口，client提供的授权对象/词典不生效，只接受服务端resolveImportAuthorization登记。
 - C授权登记草案字段tenant_id/ref/document_ref/active/revoked_at/expires_at/redaction_policy；policy须version/verified/dictionary_complete/reviewed_by/reviewed_at/names[]/addresses[]。身份列不存；C载荷仅存脱敏excerpt及授权/配置版本，不存原始URL/整行CSV；缺少已核验配置整批拒收。
 - 导入摘要只存计数/版本/时间，逐记录结果最多20条且不回显拒绝原文；CSV坏引号/重复表头/绝对搜索量字段整批拒绝，正常行字段错误逐条计拒绝；1MiB为单次CSV输入保护，不是业务配额/采样承诺。更大文件可分批。
+
+
+## T10 草案授权与接线补充（2026-11-15）
+
+负责人原文：“允许提出草案，随 PR 人审，未冻结前禁用真实周批”。此为提出算法草案和实现默认关闭路径的授权，**不是规则冻结批准**。完整人审表放在backlog.md“T10执行与人审入口”；规则与词表文件weekly-rules.mjs保持draft命名，部署配置没有冻结回执，未添加cron。
+
+接线记录：T10的keyword_pool_snapshot.append→weekly_pool:intent_cluster.transition加入已存在的受控子job因果白名单，仍在同一事务重走固定六层及审计；详见t05-wiring.md追加。R11增加从T10私有簇快照读取公共簇键的映射，不再限于单一原词；缺行/stale继续data_pending。产品正文和冻结contracts均未改。
+
+| T10周批接线补充：同事务子job/公共行业分位映射；规则草案待人审、真实周批未启用 | v3.5 |
