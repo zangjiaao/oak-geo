@@ -31,7 +31,7 @@
 | T11 | 飙升告警 job | T10 | 首见 <14 天且连续两周环比上升 → 通知策略角色；周批内完成 |
 | T12 | 问句池管理（done） | T05 | §3：溯源五字段必填（缺一拒绝）；版本冻结/开新版本；冻结后不可改的测试 |
 | T13 | 探针调度器（done） | T02, T12 | §12.1 三种出场时机（评分批次 / 事件复测 / 月度全量）三套排期逻辑；接入期加急标志 |
-| T14 | 模型适配器（doing，接入变更待裁定） | T01 | 4 家模型 API 统一抽象（模型/温度/轮次参数化）；**各家联网参数接入（检索轨/记忆轨双口径，产品文档 §4）**；citation 元数据与正文链接归一化抽取；重试 + 限流 + 配额计数（按 probe 类型）；拒答识别落 `refused` |
+| T14 | 模型适配器（review，候选未批准） | T01 | 4 家模型 API 统一抽象（模型/温度/轮次参数化）；**各家联网参数接入（检索轨/记忆轨双口径，产品文档 §4）**；citation 元数据与正文链接归一化抽取；重试 + 限流 + 配额计数（按 probe 类型）；拒答识别落 `refused` |
 | T15 | 探针执行与落库 | T13, T14 | `probe` / `probe_result` 写入；`raw_answer` 存储；配额告警触发 |
 | T16 | MVP 判定工作台 | T15 | 先产出 `judging-spec.md`（正则清单 + 品牌词表匹配 + spec_score 规则 + 五类高危）人审冻结；然后实现：四类判定 {0,0.5,1} + 人工修改界面 + 10% 抽检队列 |
 | T17 | 评分聚合管道 | T16 | 三层聚合（回答→问句→簇）；`judge_version` 必填；样本不足写 null+insufficient_sample（测试覆盖硬规则 3、4） |
@@ -258,7 +258,7 @@
 
 - 最终验证：109 checks（原97＋新增12）与原23项product通过，总132项；A02覆盖80注册操作，归档闸门补充后原R11另行通过。队列兼容/HTTP编码修复后最终109 checks已完整重跑；typecheck、生成器--check、Workers构建、astryx doctor通过（既有主题warn1、fail0）。测试数据库/子进程均已清理，无常驻服务；未做真实模型/用户数据库调用。T13停在review，新增字段草案随PR审核，不自行合并或冻结。
 
-## T14 开工复核（2026-11-15，接入变更待裁定）
+## T14 开工复核（2026-11-15，初次复核记录）
 
 - 负责人批准合并 T13：PR #17 已合并，main 为 `6f7923c`；上节 review 是合并前交付记录。T14 从该基线新建 `feat/t14-model-adapters`。
 - 以下是官方文档核查结果，不是模型清单批准、模型实测或规格冻结；没有调用付费 API，也没有读取或写入用户数据库。
@@ -270,7 +270,28 @@
 | 智谱 | [内置联网工具](https://docs.bigmodel.cn/cn/guide/tools/web-search)与[对话补全](https://docs.bigmodel.cn/api-reference/模型-api/对话补全)提供工具与温度参数 | 仍需确认同一具体模型支持双轨与两档温度；独立搜索 API 不替代模型原生联网 |
 | 混元 | [官方迁移公告](https://cloud.tencent.com.cn/document/product/1729/104753)说明旧平台停止新购，已购服务继续使用；[旧兼容接口](https://cloud.tencent.com.cn/document/product/1729/111007)有 `enable_enhancement` | 须先确认沿用已购旧服务，还是允许复核 TokenHub 的混元原生联网接口；不能静默换平台、减为三家或以外置搜索拼接替代 |
 
-- 已按 AGENTS.md §2“能力变动即停下问人”提交接入路径问题：是否允许继续复核 TokenHub 与豆包原生联网接口、提出四家具体模型候选随 PR 人审，模型清单未批准前禁用真实探针；或沿用负责人已有的混元旧平台服务。尚无裁定，不修改厂商、温度、模型清单、产品正文或冻结契约。
+- 初次复核按 AGENTS.md §2“能力变动即停下问人”提交接入路径问题，随后负责人批准继续复核和提候选，模型清单批准前禁用真实探针；答复原文见 t02-decisions.md。上表保留开工时四家调查背景，当前优先级以下节为准。
 - 后续实现必须保留：检索轨 72 / 记忆轨 36，原始温度 0 不得被默认值覆盖；快照锁定模型版本，能力或版本变化拒绝执行；重试遵循冻结契约的整批指数退避 ≤3 次，不能只补失败问句；额度沿现有 probe 类型服务计数，不能另开无审计调用路径。
 - `refused` 的厂商原生安全信号与回答文本语义判据须区分；文本正则、词表等判据仍属 T16 judging-spec 人审范围，不因适配器需要而自行补规则。
-- 本次仅存档开工复核与 T13 完成簿记；T14 未实现、未完成，生产模型能力注册仍关闭。接口路径裁定后继续适配器、模拟响应测试与服务接线，再提交实现 PR 审查。
+- 初次提交仅存档复核与 T13 簿记，随后实现记录见下节；T14 未冻结模型清单，生产模型能力注册仍关闭。
+
+## T14 适配器候选实现（review，真实探针禁用）
+
+- 负责人随后指定优先关注豆包、千问、DeepSeek、小红书点点。此为候选优先级，未批准具体模型或第四主轨席位；不修改产品正文、AGENTS.md、冻结 contracts 或既定 72/36 口径。PR #18 承接本次实现，不自行合并。
+
+| 优先候选 | 本次接口方案 | 批准/启用前仍需满足 |
+|---|---|---|
+| 豆包 `doubao-seed-2-1-pro-260915` | [官方联网示例](https://docs.volcengine.com/docs/ark/web-search?lang=en)：Chat + `web_search_options: {}`，记忆轨不传该字段；显式关闭思考，保留温度；引用取 annotations | 账号开通对应模型与搜索组件、两轨能力实测；排除温度固定 1 的旧 `260215` 型号 |
+| 千问 `qwen-plus-2025-12-01` | [北京快照模型](https://help.aliyun.com/zh/model-studio/qwen-plus) + [DashScope 原生 HTTP](https://help.aliyun.com/zh/model-studio/web-search/)；工作空间北京域名、enable_search、返回来源及角标；不用缺少来源元数据的兼容接口 | 确认地域、工作空间和快照可用；该 API 的结果不能直接代表千问 App 或 iPhone Apple 智能 |
+| DeepSeek `deepseek-v4-pro` | [标准 Responses `web_search`](https://api-docs.deepseek.com/guides/responses_api/)，reasoning.effort=none；记忆轨 tools=[] / tool_choice=none | 别名对应的稳定版本证据仍缺，不能伪造版本号。新 `deepseek_web_search` 路径[忽略温度](https://api-docs.deepseek.com/guides/build_a_chatbot/#ignored-parameters)，不作为 0/0.7 主轨替代 |
+| 小红书点点 `dots3-note-prev` | [官方模型开放平台](https://dots.ai/platform/docs)已公开模型调用、工具调用和思考示例；读取公开文档静态资源核验，未登录或调用模型 | 公开文档尚未找到原生联网、温度控制与稳定版本证明；不能把模型 API 等同点点 App 搜索。暂不实现虚假联网适配器，也不占用可执行主轨席位 |
+
+- 混元 TokenHub 的[Chat 原生联网](https://cloud.tencent.com/document/product/1823/132358)协议保留为调查过的备选适配器，未默认补为第四家。第四席位、DeepSeek 版本锁定、点点是否转校准轨，随候选人审处理；本 PR 不减少模型数，不以外置 SERP 拼接或非官方采集接口替代。
+- `model-adapters.mjs` 只从冻结配置和簇锚定生成完整 72/36 清单，缺问句/版本、混轨、错误温度或轮次均拒绝；请求只发单条 user 问句，不注入其他原文或新系统提示。四个可核验协议（含混元备选）的编码与解析可离线测试，点点保持未实现。
+- citation 保留完整 HTTP(S) URL，正文链接与原生引用标注去重；搜索返回的候选来源单独保留，只有角标指向的来源才进入 cited_urls，不把所有搜索结果当引用；域名从引用 URL 派生，显式命中仍由既定指标层计算。开启搜索与实际调用数分别记录，未知数为 null；记忆轨出现原生搜索证据即拒绝。
+- 原生 content_filter 可标 refused；普通文本即使写“不知道”也不自行判拒答，返回 refusal_review_required 交 T16 judging-spec/人工审核。空答、截断、未完成工具调用、型号或温度回显变化、HTTP200内嵌错误均不得当完整结果交付。
+- `model-transport.mjs` 只做单次调用，必须注入 fetch 和服务持有的 reserve/settle 控制器；控制器先发 probe 配额/分布式限流许可，再发送，成功/失败都结算 token/搜索用量，未知耗量不补0。控制器须绑定已鉴权 job，不能信任 probe 内自报租户；本次没有实现持久控制器、付费网络调用或新计费表，T15 执行接线前不得启用。现有 probe 服务落库计数、幂等与审计另有真实 geo_app 集成回归。
+- `probe-adapter-batch.mjs` 只接完整冻结清单，失败丢弃整次尝试，1/2/4秒指数退避最多3次并尊重 Retry-After；任何一次失败都不会交付半批结果，耗尽发批次身份的 dead-letter + 告警，失败丢弃或通知不可持久完成时抛错。批次 start/fail/compensate、成功落库、持久回收与执行者接线归 T15，不以回调模拟声称生产闭环已完成。
+- `worker-runtime.mjs` 已显式接入关闭的 productionModelCapabilities；候选清单不能提供生产能力，环境变量或 API key 不能解锁。快照 freeze 和后续执行继续 fail closed。未安装 cron、未增加 HTTP/原文读取端点、未改现有配额和权限规则。
+- 验证：先新增测试红（缺模块），再实现转绿；自查另以红例复现“豆包旧型号忽略温度”与“异步等待时配置被改写”，补拦截和上下文复制后重跑。最终129 checks（原109＋新增20：19项模拟协议/边界、1项真实服务配额/鉴权/幂等/审计）＋22项产品硬规则＋A02全部通过，共152项，0 skip/todo；A02仍覆盖原80项注册操作。typecheck、生成器--check、格式检查、Workers构建、astryx doctor通过（既有主题warn1、fail0）。测试仅隔离临时Postgres和模拟fetch，未调用真实模型/用户数据库；未新增文档文件。
+- 进程清理：Workers构建独立进程组150416及其子进程（含workerd150569）退出；测试启动器/Node/临时Postgres记录PID逐个核验均已退出，无本任务端口监听，无常驻服务。
