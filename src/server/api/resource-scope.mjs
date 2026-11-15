@@ -222,5 +222,17 @@ export async function resourceScope(client, endpoint, request, principal) {
     keys.push(...assignments.map((a) => `${a.object_type}:${a.object_id}`));
     brand_id = id;
   }
+  if (!id && (resource === "question_pool" || (resource === "intent_cluster" && endpoint.operation === "read"))) {
+    if (!brand_id) throw permission("brand required for list");
+    await read("SELECT id FROM brand WHERE tenant_id=$1 AND id=$2", [tid, brand_id]);
+    if (["content", "evidence"].includes(principal.role)) {
+      const assigned = (await client.query(`SELECT DISTINCT a.object_type,a.object_id FROM task_assignment a
+        LEFT JOIN intent_cluster c ON a.object_type='intent_cluster' AND c.tenant_id=a.tenant_id AND c.id=a.object_id
+        LEFT JOIN opportunity_card o ON a.object_type='opportunity_card' AND o.tenant_id=a.tenant_id AND o.id=a.object_id
+        WHERE a.tenant_id=$1 AND a.user_id=$2 AND ((c.brand_id=$3 AND ($4::text IS NULL OR c.id=$4)) OR (o.brand_id=$3 AND ($4::text IS NULL OR o.intent_cluster_id=$4)) OR
+        (a.object_type='keyword_raw' AND EXISTS(SELECT 1 FROM question_pool q JOIN intent_cluster k ON k.tenant_id=q.tenant_id AND k.id=q.cluster_id WHERE q.tenant_id=a.tenant_id AND q.source_word_id=a.object_id AND k.brand_id=$3 AND ($4::text IS NULL OR q.cluster_id=$4))))`, [tid,principal.user_id,brand_id,clusterId??null])).rows;
+      keys.push(...assigned.map(a=>`${a.object_type}:${a.object_id}`));
+    }
+  }
   return { brand_id, clusterId, cardId, assetId, sourceId, snapshot_id, keys };
 }

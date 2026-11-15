@@ -5,7 +5,7 @@ import { provisionJianzao } from "../src/server/api/fixture-service.mjs";
 const connectionString = process.env.GEO_APPLICATION_DATABASE_URL;
 if (!connectionString)
   throw new Error(
-    "Set GEO_APPLICATION_DATABASE_URL to the non-owner geo_app database connection",
+    "Set GEO_APPLICATION_DATABASE_URL in .dev.vars or the process environment to the non-owner geo_app database connection",
   );
 const client = await connectDatabase({ connectionString });
 try {

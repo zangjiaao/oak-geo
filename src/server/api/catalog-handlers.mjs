@@ -1,3 +1,4 @@
+import { listClusters } from "./question-pool.mjs";
 import { pageQuery } from "./pagination.mjs";
 import { appendMachinePercentiles } from "./industry-percentiles.mjs";
 import { appendWeeklyPool, clusterDemand, weeklyPrivatePredicate } from "./weekly-pool.mjs";
@@ -188,12 +189,16 @@ export function catalogHandlers() {
     }),
   });
   handlers["keyword_raw.read"] = async (ctx) => {
+    const values = [ctx.principal.tenant_id];
+    let where = "tenant_id=$1";
+    if (ctx.query.industry) { values.push(ctx.query.industry); where += " AND industry=$2"; }
+    if (ctx.query.provenance_ready === "true") where += " AND (channel<>'C' OR (authorization_ref IS NOT NULL AND redaction_policy_version IS NOT NULL))";
     const data = await pageQuery(ctx, {
       table: "keyword_raw",
       columns:
         "id,industry,keyword,channel,demand_index,trend_dir,collected_at,first_seen_at,normalization_version",
-      where: "tenant_id=$1",
-      values: [ctx.principal.tenant_id],
+      where,
+      values,
     });
     for (const row of data.items)
       if (row.channel === "C")
@@ -335,139 +340,9 @@ export function catalogHandlers() {
     return { data: row, auditMeta: { cause_event_id: ctx.body.cause_event_id ?? null } };
   };
   handlers["intent_cluster.read"] = async (ctx) => {
+    if (!ctx.params.id) return listClusters(ctx);
     const row = await getRow(ctx, "intent_cluster", ctx.params.id);
     return { data: { ...row, demand: await clusterDemand(ctx, row.id, row.pool_version) } };
-  };
-  handlers["question_pool.create"] = async (ctx) => {
-    required(ctx.body, [
-      "cluster_id",
-      "question",
-      "source_word_id",
-      "intent_type",
-      "source_channel",
-      "collected_at",
-      "maintainer",
-      "question_pool_version",
-    ]);
-    const cluster = await getRow(ctx, "intent_cluster", ctx.body.cluster_id);
-    if (cluster.status !== "active") throw conflict();
-    if (
-      (
-        await ctx.client.query(
-          "SELECT id FROM question_pool WHERE tenant_id=$1 AND cluster_id=$2 AND question_pool_version=$3 AND frozen=true LIMIT 1",
-          [ctx.principal.tenant_id, cluster.id, ctx.body.question_pool_version],
-        )
-      ).rowCount
-    )
-      throw conflict("frozen version cannot grow");
-    const source = (
-      await ctx.client.query(
-        "SELECT id,channel FROM keyword_raw WHERE tenant_id=$1 AND id=$2",
-        [ctx.principal.tenant_id, ctx.body.source_word_id],
-      )
-    ).rows[0];
-    if (!source) throw validation("source_word_id not found");
-    if (source.channel !== ctx.body.source_channel)
-      throw validation("source channel disagrees with provenance");
-    const row = await insertRow(ctx, "question_pool", {
-      id: randomUUID(),
-      tenant_id: ctx.principal.tenant_id,
-      cluster_id: cluster.id,
-      question: ctx.body.question,
-      source_word_id: ctx.body.source_word_id,
-      intent_type: ctx.body.intent_type,
-      source_channel: ctx.body.source_channel,
-      collected_at: ctx.body.collected_at,
-      maintainer: ctx.body.maintainer,
-      question_pool_version: ctx.body.question_pool_version,
-      frozen: false,
-    });
-    return { data: row };
-  };
-  handlers["question_pool.read"] = async (ctx) => ({
-    data: await getRow(ctx, "question_pool", ctx.params.id),
-  });
-  handlers["question_pool.freeze"] = async (ctx) => {
-    const cluster = ctx.body.cluster_id ?? ctx.scope.clusterId;
-    required({ cluster }, ["cluster"]);
-    const rows = (
-      await ctx.client.query(
-        "SELECT id,frozen FROM question_pool WHERE tenant_id=$1 AND cluster_id=$2 AND question_pool_version=$3 ORDER BY id FOR UPDATE",
-        [ctx.principal.tenant_id, cluster, ctx.body.question_pool_version ?? 1],
-      )
-    ).rows;
-    if (rows.length !== 3)
-      throw validation("frozen measurement set requires three questions");
-    for (const q of rows) {
-      if (q.frozen) throw conflict("already frozen");
-      await change(ctx, "question_pool", q.id, { frozen: true });
-      event(ctx, "question_pool.freeze", "question_pool", q.id);
-    }
-    return {
-      data: {
-        cluster_id: cluster,
-        question_pool_version: ctx.body.question_pool_version ?? 1,
-        frozen: true,
-        question_ids: rows.map((q) => q.id),
-      },
-      objectId: cluster,
-    };
-  };
-  handlers["question_pool.revise"] = async (ctx) => {
-    required(ctx.body, ["question", "question_pool_version", "reason"]);
-    const old = await getRow(ctx, "question_pool", ctx.params.id);
-    if (
-      !old.frozen ||
-      ctx.body.question_pool_version <= old.question_pool_version
-    )
-      throw conflict("revision requires newer version");
-    const { id, ...fields } = old;
-    const row = await insertRow(ctx, "question_pool", {
-      ...fields,
-      id: randomUUID(),
-      question: ctx.body.question,
-      question_pool_version: ctx.body.question_pool_version,
-      frozen: false,
-      archived_at: null,
-    });
-    return { data: row };
-  };
-  handlers["question_pool.upgrade_anchor"] = async (ctx) => {
-    required(ctx.body, [
-      "cluster_id",
-      "question_pool_version",
-      "question_ids",
-      "reason",
-    ]);
-    const cluster = await getRow(ctx, "intent_cluster", ctx.body.cluster_id, {
-      lock: true,
-    });
-    if (
-      cluster.question_pool_version != null &&
-      ctx.body.question_pool_version <= cluster.question_pool_version
-    )
-      throw conflict("anchor must advance manually");
-    const rows = (
-      await ctx.client.query(
-        "SELECT id,frozen FROM question_pool WHERE tenant_id=$1 AND cluster_id=$2 AND question_pool_version=$3 AND id=ANY($4::text[])",
-        [
-          ctx.principal.tenant_id,
-          cluster.id,
-          ctx.body.question_pool_version,
-          ctx.body.question_ids,
-        ],
-      )
-    ).rows;
-    if (
-      rows.length !== 3 ||
-      new Set(ctx.body.question_ids).size !== 3 ||
-      rows.some((r) => !r.frozen)
-    )
-      throw validation("anchor needs the same three frozen IDs");
-    const row = await change(ctx, "intent_cluster", cluster.id, {
-      question_pool_version: ctx.body.question_pool_version,
-    });
-    return { data: row };
   };
   handlers["scoring_snapshot.create"] = async (ctx) => {
     required(ctx.body, [

@@ -1,4 +1,5 @@
 import { permission, validation, ServiceError } from "./errors.mjs";
+import { sameOriginRequest } from "./http-origin.mjs";
 
 export function requestCredential(headers) {
   const bearer = headers.get("authorization");
@@ -48,7 +49,7 @@ export function createSeedTransport(runtimeFactory) {
       if (
         request.method === "POST" &&
         credential.startsWith("web.") &&
-        request.headers.get("origin") !== url.origin
+        !sameOriginRequest(request)
       )
         throw permission("same-origin confirmation required");
       let body = {};
