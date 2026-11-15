@@ -160,7 +160,6 @@ export function WorkspaceShell({
             未登录，仅可预览和下载模板。
           </Text>
         )}
-        {session?.tenant_id === "fixture-jianzao" && <Text type="supporting">演示数据</Text>}
         <WorkspaceBody>{children}</WorkspaceBody>
       </VStack>
     </AppShell>
