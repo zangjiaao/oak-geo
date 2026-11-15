@@ -47,7 +47,7 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 - ✅ T10 词池周批代码已合并（PR #11）；规则草案尚未冻结，真实周批默认关闭
 - ✅ T11 飙升信号与策略站内通知已合并（PR #12）；首轮真实试跑目标为工作室自营工具/产品。提供开发机本地演示登录，正式身份提供方接入仍待交付
 
-- T12 问句池管理已提交人审，入口：`/library/questions`。
+- ✅ T12 问句池管理已合并（PR #14），入口：`/library/questions`；本地Compose配置（PR #15）与词库弹窗布局（PR #16）已合并。
 - ✅ T37 全局应用框架已合并（PR #13）：顶栏、八组导航、独立路由和角色/品牌上下文；生成与导入已归词库。
 
 ## Setup
@@ -192,3 +192,40 @@ npm run dev
 Compose只向 `127.0.0.1` 发布5432端口，带健康检查；本机已有Postgres占用端口时，先明确选择复用还是使用独立端口，修改 `OAK_POSTGRES_PORT` 后同步两条URL。先前用 `docker run` 创建的容器/卷与本Compose独立，不会自动迁移或接管。
 
 PostgreSQL18的数据卷挂在 `/var/lib/postgresql`，配置依据：[Postgres官方镜像](https://hub.docker.com/_/postgres)、[Compose服务与健康检查](https://docs.docker.com/reference/compose-file/services/)。环境变量只在空数据卷初始化时创建数据库/设置管理密码，已有数据卷不会因改环境变量而自动改密码；已有库改密码后还须同步连接配置。
+
+
+## T13 探针排期（待人审）
+
+先运行 `npm run db:migrate` 应用0015。T13建立排期与审计，不调用模型、不安装真实cron；执行侧接T14/T15，发布登记事件的真实生产者接T25。复测台网页属于T26，本轮没有新增表单页面。
+
+现有 `probe_batch.create` 新增可选 `schedule` 实现草案；不传时保留既有独立批次用法。T13排期路径强制：基线/月度30簇，事件3目标＋3对照，各簇三条已冻结/已锚定问句。CS显式提供范围；系统核验同品牌、有效判定基准，以及复测与已完成基线的快照/问句一致。不同口径返回422 incomparable。
+
+发布事件的调用结构（变量来自已核验的真实对象）：
+
+```js
+await application.call("probe_batch.create", {
+  actor: csActor,
+  body: {
+    type: "event",
+    snapshot_id: baseline.snapshot_id,
+    baseline_batch_id: baseline.id,
+    scheduled_at: new Date(Date.parse(publication.published_at) + 3 * 86400_000).toISOString(),
+    cluster_question_sets: sixAnchoredQuestionSets,
+    schedule: {
+      source_event_id: publication.id,
+      published_at: publication.published_at,
+      target_cluster_ids: threeTargetIds,
+      control_cluster_ids: threeControlIds,
+      expedited: false,
+    },
+  },
+});
+```
+
+一次事务生成D+3/14/30三批，响应保留首批字段并附 `items`。月度使用 `type: "monthly"`、完成的基线、30簇清单，schedule填 `source_event_id` 与 `month: "YYYY-MM"`；scheduled_at必须在该月，具体UTC时间由配置提供。首次基线使用已冻结snapshot与30簇清单，schedule只需source_event_id及可选expedited。字段草案在本PR人审，不自行冻结。
+
+自然键持久去重：基线按品牌/配置，月度按品牌/基线/月，事件按品牌/登记事件/时点。相同请求不重复建任务，变更范围/时点等载荷返回409；取消后的旧身份不会重投复活。重登记必须使用新的登记事件id，旧pending保留，CS可走原cancel显式取消。旧批次、配置和历史不覆盖。
+
+内部服务调用 `probe_batch.read` 的 `query: { view: "scheduled" }` 可查看本租户到期pending队列，仅CS/Strategist/FactCheck，按加急、到期时间、ID分页；`due_only: "false"`仅供查看未来pending。后台执行者须用受控probe_execute且绑定具体batch_id，start再次检查已到期、对照未做内容动作与判定基准。调度不消耗探针配额。
+
+Web/PAT薄HTTP已接 `POST /api/tenants/{tid}/probe-batches`、`GET /api/tenants/{tid}/probe-batches/{id}`、`POST /api/tenants/{tid}/probe-batches/{id}/cancel`；不开放集合、内部队列或原始回答。Web写同源，角色与PAT scopes由原服务校验。`src/server/jobs/probe-scheduler.mjs`接受已签名event_schedule身份和准备好的请求，只调用服务；启用前须配置持久dead-letter与告警接收器，5xx整单指数退避≤3次，4xx不重试。

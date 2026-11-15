@@ -1032,14 +1032,14 @@ export function createFixtureRegistry(
       f.snapshot = await config(f);
       if (id === "probe_batch.create")
         return request(f.actors.cs, batchBody(f, [f.cluster], f.snapshot));
-      if (id === "probe_batch.start" || id === "probe_batch.read") {
+      if (["probe_batch.start", "probe_batch.read", "probe_batch.cancel"].includes(id)) {
         const b = await batch(f, [f.cluster], f.snapshot, {
           start: false,
           execute: false,
         });
         return request(
-          id.endsWith(".read") ? f.actors.strategist : b.probeJob,
-          {},
+          id.endsWith(".read") ? f.actors.strategist : id.endsWith(".cancel") ? f.actors.cs : b.probeJob,
+          id.endsWith(".cancel") ? { reason: "负责人批准的旧pending排期取消" } : {},
           { id: b.id },
         );
       }
