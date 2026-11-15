@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
-import { Heading, Text } from "@astryxdesign/core/Text";
+import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
@@ -15,7 +15,13 @@ interface Candidate extends Record<string, unknown> {
   eligible: boolean;
   reason: string | null;
 }
-export function GenerationPanel({ session }: { session: Session }) {
+export function GenerationPanel({
+  session,
+  industry = "",
+}: {
+  session: Session;
+  industry?: string;
+}) {
   const [templateId, setTemplateId] = useState("feature_generator");
   const [values, setValues] = useState<Record<string, string>>({
     mode: "unblocked,online",
@@ -65,7 +71,11 @@ export function GenerationPanel({ session }: { session: Session }) {
       const items: Seed[] = [];
       let cursor: string | null = null;
       do {
-        const query = new URLSearchParams({ status: "active", limit: "100" });
+        const query = new URLSearchParams({
+          status: "active",
+          limit: "100",
+          ...(industry ? { industry } : {}),
+        });
         if (cursor) query.set("cursor", cursor);
         const response = await fetch(base + "?" + query, { cache: "no-store" }),
           data = await response.json();
@@ -88,7 +98,7 @@ export function GenerationPanel({ session }: { session: Session }) {
     return () => {
       active = false;
     };
-  }, [base, session, revision]);
+  }, [base, session, revision, industry]);
   async function preview() {
     setBusy(true);
     setMessage("");
@@ -101,7 +111,7 @@ export function GenerationPanel({ session }: { session: Session }) {
             (row) => ({
               ...row,
               eligible: false,
-              reason: "登录后校验公共词根许可",
+              reason: "待登录校验",
             }),
           ),
         );
@@ -176,13 +186,7 @@ export function GenerationPanel({ session }: { session: Session }) {
   }
   return (
     <VStack gap={4}>
-      <Heading level={2}>生成语法</Heading>
-      <Text type="supporting">
-        生成词只用于发现需求；仅许可公共词根可入库，测量问句仍需真实出处。
-      </Text>
-      {!session && (
-        <Text type="body">可先预览模板，登录内部工作台后校验并确认入库。</Text>
-      )}
+      <Text type="supporting">仅许可公共词根可入库。</Text>
       <HStack gap={4} wrap="wrap">
         <Selector
           label="模板"
@@ -216,7 +220,8 @@ export function GenerationPanel({ session }: { session: Session }) {
         {template.fields.map(([key, label]) => (
           <TextInput
             key={key}
-            label={label + "（多个值用逗号分隔）"}
+            label={label}
+            placeholder="多个值用逗号分隔"
             value={values[key] ?? ""}
             onChange={(value) => {
               setValues((current) => ({ ...current, [key]: value }));
@@ -228,9 +233,6 @@ export function GenerationPanel({ session }: { session: Session }) {
       <Button label="批量预览" onClick={preview} isLoading={busy} />
       {candidates.length > 0 && (
         <>
-          <Text type="supporting">
-            共 {candidates.length} 条；请勾选需要入库的许可公共词根。
-          </Text>
           <Table
             data={candidates.slice(page * 20, page * 20 + 20)}
             idKey="keyword"
@@ -242,6 +244,7 @@ export function GenerationPanel({ session }: { session: Session }) {
                 renderCell: (row) => (
                   <CheckboxInput
                     label={"选择 " + row.keyword}
+                    isLabelHidden
                     value={selected.includes(row.keyword)}
                     isDisabled={!row.eligible || !session?.can_write || busy}
                     onChange={(checked) =>
@@ -272,7 +275,9 @@ export function GenerationPanel({ session }: { session: Session }) {
               isDisabled={page === 0}
               onClick={() => setPage((value) => value - 1)}
             />
-            <Text type="supporting">第 {page + 1} 页</Text>
+            <Text type="supporting">
+              第 {page + 1} 页 · 共 {candidates.length} 条
+            </Text>
             <Button
               label="下一页"
               isDisabled={(page + 1) * 20 >= candidates.length}
@@ -281,7 +286,7 @@ export function GenerationPanel({ session }: { session: Session }) {
           </HStack>
           <HStack gap={4} wrap="wrap">
             <TextInput
-              label="维护人姓名"
+              label="维护人"
               value={maintainer}
               onChange={setMaintainer}
               isRequired
@@ -296,9 +301,6 @@ export function GenerationPanel({ session }: { session: Session }) {
               onChange={setChannel}
             />
           </HStack>
-          <Text type="supporting">
-            计划采集渠道作为元数据保存，不代表已有观测或热度。
-          </Text>
           <Button
             label={"确认入库（" + selected.length + "）"}
             variant="primary"

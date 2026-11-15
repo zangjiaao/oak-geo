@@ -2,41 +2,37 @@ const fields = [
   {
     key: "keyword",
     required: "必填",
-    description: "关键词或实际采集的问句；也识别中文列名“关键词”“词”。",
+    description: "实际采集的关键词或问句。",
   },
   {
     key: "collected_at",
     required: "必填",
-    description:
-      "真实采集时间，UTC，例如 2026-01-01T00:00:00Z；也识别“采集时间”。",
+    description: "UTC 采集时间，例如 2026-01-01T00:00:00Z。",
   },
   {
     key: "demand_index",
     required: "选填",
-    description:
-      "来源提供的数值指数；没有就留空，不能用 0 代替缺失；也识别“热度指数”。",
+    description: "来源指数；缺失留空，勿填 0。",
   },
   {
     key: "trend_dir",
     required: "选填",
-    description:
-      "up（上升）、flat（持平）、down（下降），未知留空；也识别“趋势”。",
+    description: "up（上升）、flat（持平）、down（下降）；未知留空。",
   },
   {
     key: "excerpt",
     required: "选填",
-    description: "原始表述摘录；C 类会按已审核配置脱敏后保存。",
+    description: "原文摘录；C 类自动脱敏。",
   },
   {
     key: "source_id",
     required: "选填",
-    description:
-      "同平台、地区、指数口径使用固定标识；可在页面为整个文件统一填写，不必逐行重复。C 类由书面授权确定来源。",
+    description: "同平台、地区与指标口径使用固定标识。",
   },
   {
     key: "source_url",
     required: "选填",
-    description: "观测来源的完整链接；也识别 url。C 类模板不索取链接。",
+    description: "完整来源 URL。",
   },
 ];
 

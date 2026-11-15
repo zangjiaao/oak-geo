@@ -2,6 +2,7 @@ import { createApplication } from "./application.mjs";
 import { connectDatabase } from "./database.mjs";
 import { createIdentityAuthority } from "./identity.mjs";
 import { requestCredential } from "./seed-http.mjs";
+import { readWorkspaceContext } from "./workspace-context.mjs";
 
 async function bindings() {
   let cf = {};
@@ -47,27 +48,30 @@ export async function createWorkerRuntime(credential) {
         );
       },
     });
-    return { application, close: () => client.end() };
+    return {
+      application,
+      readWorkspace: () => readWorkspaceContext({
+        client,
+        application,
+        secret: env.GEO_SESSION_SECRET,
+        credential,
+      }),
+      close: () => client.end(),
+    };
   } catch (error) {
     await client.end();
     throw error;
   }
 }
 export async function readWorkbenchSession(headers) {
+  let runtime;
   try {
     const credential = requestCredential(headers);
-    const env = await bindings();
-    const principal = createIdentityAuthority({
-      secret: env.GEO_SESSION_SECRET,
-      now: Date.now,
-    }).verify(credential);
-    if (!["web", "pat"].includes(principal.credential_kind)) return null;
-    return {
-      tenant_id: principal.tenant_id,
-      can_write:
-        principal.role === "strategist" && principal.actor_type === "human",
-    };
+    runtime = await createWorkerRuntime(credential);
+    return await runtime.readWorkspace();
   } catch {
     return null;
+  } finally {
+    if (runtime) await runtime.close();
   }
 }

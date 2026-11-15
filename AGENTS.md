@@ -84,6 +84,7 @@ Agent Runtime 与 MCP Server、自动爬虫（B 类采集是人工+半自动：C
 - 目录约定：`src/server/api`（服务层）/ `src/server/jobs`（批处理）/ `src/app`（页面）/ `migrations/`（数据库迁移）/ `tests/rules`（硬规则测试）/ `tests/arch`（架构测试）
 - 每任务一个分支 / 一个提交序列，提交信息格式：`[Txx] 一句话`。
 - 数据库变更一律走迁移文件，禁止手改库。
+- **UI 核心要求**：Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining. 删除重复标题、口号及复述界面的说明；保留必要的字段标签（含无障碍名称）、操作指引、错误/权限提示、口径与状态。
 - UI 采用 astryx：遵守 §11 官方块的工作流（模板起步、无裸 div、token 化样式、交付前 `astryx doctor`）。
 
 ## 10. 规格文件索引（冻结后即为法律）
