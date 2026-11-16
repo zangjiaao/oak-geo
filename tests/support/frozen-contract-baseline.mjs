@@ -7,9 +7,9 @@ export const t42EndpointIds = [
   "finish",
   "confirm",
 ].map((name) => "product_profile." + name);
-// Remove only the explicitly authorized additive T42 surface before applying
+// Remove only the explicitly authorized additive T42/T43 surfaces before applying
 // existing T02 hashes. Every pre-existing property remains hash protected.
-export function withoutT42(raw) {
+export function withoutProductAmendments(raw) {
   const d = structuredClone(raw),
     amendment = d.amendments.find((a) => a.id === "T42");
   assert.deepEqual(
@@ -21,6 +21,14 @@ export function withoutT42(raw) {
     ],
     ["pending_review", t42EndpointIds, [], 11],
   );
+  const creation = d.amendments.find((a) => a.id === "T43");
+  assert.deepEqual([creation?.status, creation?.endpoint_ids, creation?.added_operations, creation?.added_allow_rows],
+    ["pending_review", ["brand.create"], [], 1]);
+  const createEndpoint = d.endpoints.filter((e) => e.id === "brand.create");
+  assert.equal(createEndpoint.length, 1);
+  assert.deepEqual([createEndpoint[0].amendment_id, createEndpoint[0].resource, createEndpoint[0].grants], ["T43", "brand", ["owner"]]);
+  d.endpoints = d.endpoints.filter((e) => e.id !== "brand.create");
+  d.amendments = d.amendments.filter((a) => a.id !== "T43");
   const endpoints = d.endpoints.filter((e) => e.resource === "product_profile");
   assert.deepEqual(
     endpoints.map((e) => e.id),

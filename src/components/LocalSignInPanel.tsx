@@ -5,7 +5,7 @@ import { Text } from "@astryxdesign/core/Text";
 
 export function LocalSignInPanel() {
   const [status, setStatus] = useState(
-    "在终端运行 npm run dev:login，打开输出的登录链接。",
+    "验收品牌引导：在终端运行 npm run dev:login -- --role=owner，打开输出的登录链接。",
   );
   useEffect(() => {
     function exchangeFragment() {
@@ -27,10 +27,15 @@ export function LocalSignInPanel() {
             throw new Error(
               result.error?.message ?? "登录失败，请重新运行 npm run dev:login。",
             );
-          // Fixed destination; never follow a user-supplied return URL.
-          window.location.replace(
-            "/library/questions?brand=fixture-jianzao-brand&industry=B2B",
-          );
+          // Honor the server's role-specific destination. Only the local
+          // fixture entry points are allowed; never follow an arbitrary URL.
+          const next = result.data?.next;
+          if (![
+            "/?brand=fixture-jianzao-brand",
+            "/knowledge?brand=fixture-jianzao-brand",
+          ].includes(next))
+            throw new Error("登录入口无效，请重新打开对应角色的登录链接。");
+          window.location.replace(next);
         })
         .catch((error) => setStatus(error.message));
     }

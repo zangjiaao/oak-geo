@@ -19,6 +19,11 @@ export async function resourceScope(client, endpoint, request, principal) {
     p = request.params ?? {},
     q = request.query ?? {};
   const tid = principal.tenant_id;
+  if (endpoint.id === "brand.create") {
+    if (p.bid != null || p.id != null || b.brand_id != null || q.brand_id != null)
+      throw permission("creation cannot target an existing brand");
+    return { brand_id: null, keys: [] };
+  }
   let brand_id =
       b.brand_id ?? p.bid ?? request.actor?.brand_id ?? principal.brand_id,
     clusterId = b.cluster_id ?? b.intent_cluster_id ?? q.cluster_id,

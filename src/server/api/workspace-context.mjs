@@ -5,6 +5,7 @@ import {
   checkTenant,
   checkAllow,
   checkCredentialAndMode,
+  ownerWorkspaceCredential,
 } from "./authorization.mjs";
 import { assertRuntimeConnection } from "./runtime-connection.mjs";
 import { permission, ServiceError } from "./errors.mjs";
@@ -68,7 +69,10 @@ export async function readWorkspaceContext({
   }
   const brands = [];
   for (const { id } of ids) {
-    if (principal.brand_id && principal.brand_id !== id) continue;
+    if (
+      !ownerWorkspaceCredential(principal) &&
+      principal.brand_id && principal.brand_id !== id
+    ) continue;
     const result = await application.call("brand.read", {
       actor,
       params: { tid: principal.tenant_id, bid: id, id },

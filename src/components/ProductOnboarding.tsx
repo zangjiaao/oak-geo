@@ -127,13 +127,15 @@ function useProfile(session: WorkspaceSession, brandId: string | null) {
       active = false;
     };
   }, [endpoint]);
-  async function mutate(action: string, body: unknown = {}) {
-    if (!endpoint) throw new Error("请先登录并选择品牌");
+  async function mutate(
+    action: string, body: unknown = {}, targetEndpoint = endpoint,
+  ) {
+    if (!targetEndpoint) throw new Error("请先登录并选择品牌");
     const bytes = JSON.stringify(body),
-      signature = endpoint + "/" + action + bytes;
+      signature = targetEndpoint + "/" + action + bytes;
     if (key.current?.signature !== signature)
       key.current = { signature, id: crypto.randomUUID() };
-    const response = await fetch(endpoint + "/" + action, {
+    const response = await fetch(targetEndpoint + "/" + action, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -144,7 +146,7 @@ function useProfile(session: WorkspaceSession, brandId: string | null) {
       payload = await response.json();
     if (!response.ok) throw new Error(payload.error?.message || "操作失败");
     key.current = null;
-    await refresh();
+    if (targetEndpoint === endpoint) await refresh();
     return payload.data;
   }
   async function act(work: () => Promise<void>) {
@@ -174,16 +176,22 @@ export function BrandProfileForm({
   session,
   brandId,
   welcome = false,
+  creating = false,
 }: {
   session: WorkspaceSession;
   brandId: string | null;
   welcome?: boolean;
+  creating?: boolean;
 }) {
   const store = useProfile(session, brandId),
     [input, setInput] = useState<Input>(empty),
     [links, setLinks] = useState(""),
     [extras, setExtras] = useState(!welcome),
     [notice, setNotice] = useState("");
+  const createdBrand = useRef<{
+    id: string; research_configured: boolean;
+  } | null>(null);
+  const canWrite = store.canWrite && (!creating || session?.role === "owner");
   const hydrated = useRef(false);
   useEffect(() => {
     if (!hydrated.current && store.data) {
@@ -194,10 +202,9 @@ export function BrandProfileForm({
       }
     }
   }, [store.data]);
-  const ready =
-    store.loaded &&
-    Boolean(store.data) &&
-    (!store.data?.profile || hydrated.current);
+  const ready = creating
+    ? canWrite
+    : store.loaded && Boolean(store.data) && (!store.data?.profile || hydrated.current);
   if (!session)
     return (
       <EmptyState
@@ -205,13 +212,15 @@ export function BrandProfileForm({
         actions={<Link href="/account">登录</Link>}
       />
     );
-  if (!brandId) return <EmptyState title="请管理员先为账号开通品牌" />;
+  if (creating && !canWrite)
+    return <EmptyState title="当前账号不能新增品牌" description="请使用可编辑品牌资料的 Owner 账号。" />;
+  if (!brandId && !creating) return <EmptyState title="请管理员先为账号开通品牌" />;
   const change = (key: keyof Input, value: string) =>
     setInput((previous) => ({ ...previous, [key]: value }));
   async function save(investigate: boolean) {
     setNotice("");
     await store.act(async () => {
-      await store.mutate("save", {
+      const data = {
         input: {
           ...input,
           official_urls: links
@@ -219,12 +228,24 @@ export function BrandProfileForm({
             .map((s) => s.trim())
             .filter(Boolean),
         },
-      });
-      if (investigate && store.data?.research_configured)
-        await store.mutate("investigate");
+      };
+      const root = `/api/tenants/${encodeURIComponent(session!.tenant_id)}/brands`;
+      let savedId = brandId;
+      if (creating) {
+        if (!createdBrand.current)
+          createdBrand.current = await store.mutate("create", data, root);
+        else
+          await store.mutate("save", data, root + "/" + encodeURIComponent(createdBrand.current.id) + "/product-profile");
+        savedId = createdBrand.current!.id;
+      } else await store.mutate("save", data);
+      if (
+        investigate &&
+        (creating ? createdBrand.current?.research_configured : store.data?.research_configured)
+      )
+        await store.mutate("investigate", {}, root + "/" + encodeURIComponent(savedId!) + "/product-profile");
       if (welcome || investigate)
         window.location.assign(
-          "/knowledge?brand=" + encodeURIComponent(brandId!),
+          "/knowledge?brand=" + encodeURIComponent(savedId!),
         );
       else setNotice("品牌资料已保存，知识库已同步");
     });
@@ -241,11 +262,16 @@ export function BrandProfileForm({
           ) : null}
         </VStack>
         {store.error ? <Text role="alert">{store.error}</Text> : null}
+        {store.error && creating && createdBrand.current ? (
+          <Link href={"/knowledge?brand=" + encodeURIComponent(createdBrand.current.id)}>
+            品牌已创建，前往知识库继续
+          </Link>
+        ) : null}
         {notice ? <Text role="status">{notice}</Text> : null}
-        {!store.canWrite ? (
+        {!canWrite ? (
           <Text type="supporting">当前账号只读，Owner 可修改品牌资料。</Text>
         ) : null}
-        {welcome && !store.canWrite ? (
+        {welcome && !canWrite ? (
           <Link href={"/knowledge?brand=" + brandId}>查看品牌知识库</Link>
         ) : null}
         <TextInput
@@ -256,7 +282,7 @@ export function BrandProfileForm({
           value={input.name}
           onChange={(value) => change("name", value)}
           isRequired
-          isDisabled={!store.canWrite || store.busy || !ready}
+          isDisabled={!canWrite || store.busy || !ready}
         />
         <TextArea
           label="品牌描述"
@@ -271,7 +297,7 @@ export function BrandProfileForm({
           description={welcome ? undefined : "介绍产品能力、适用人群、价格与限制。"}
           maxLength={2000}
           isRequired
-          isDisabled={!store.canWrite || store.busy || !ready}
+          isDisabled={!canWrite || store.busy || !ready}
         />
         {welcome ? (
           <HStack>
@@ -293,20 +319,20 @@ export function BrandProfileForm({
               value={input.website}
               onChange={(value) => change("website", value)}
               placeholder="https://example.com/"
-              isDisabled={!store.canWrite || store.busy || !ready}
+              isDisabled={!canWrite || store.busy || !ready}
             />
             <TextArea
               label="官方资料链接（选填，每行一个）"
               value={links}
               onChange={setLinks}
-              isDisabled={!store.canWrite || store.busy || !ready}
+              isDisabled={!canWrite || store.busy || !ready}
             />
             <TextArea
               label="重点核查或补充说明（选填）"
               value={input.notes}
               onChange={(value) => change("notes", value)}
               maxLength={1000}
-              isDisabled={!store.canWrite || store.busy || !ready}
+              isDisabled={!canWrite || store.busy || !ready}
             />
           </VStack>
         ) : null}
@@ -328,7 +354,7 @@ export function BrandProfileForm({
             endContent={welcome ? <Icon icon="chevronRight" /> : undefined}
             onClick={() => save(welcome)}
             isDisabled={
-              !store.canWrite ||
+              !canWrite ||
               store.busy ||
               !ready ||
               !input.name.trim() ||
@@ -341,7 +367,7 @@ export function BrandProfileForm({
               variant="secondary"
               onClick={() => save(true)}
               isDisabled={
-                !store.canWrite ||
+                !canWrite ||
                 store.busy ||
                 !ready ||
                 !store.data?.research_configured

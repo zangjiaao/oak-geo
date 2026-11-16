@@ -39,13 +39,13 @@ const emit = (original, value) => {
   if (readFileSync(path, 'utf8') !== value) throw new Error(`${path} is stale; regenerate documentation`);
  } else writeFileSync(path, value);
 };
-const scope = (role, e) => role==='owner' && e.resource==='user_member' ? 'tenant' : ['owner','editor','viewer'].includes(role) ? 'brand' : ['content','evidence'].includes(role) ? 'assigned_object' : 'tenant';
+const scope = (role, e) => e.id==='brand.create' ? 'tenant' : role==='owner' && e.resource==='user_member' ? 'tenant' : ['owner','editor','viewer'].includes(role) ? 'brand' : ['content','evidence'].includes(role) ? 'assigned_object' : 'tenant';
 const conditions = (role,e) => {
  const rules=['tenant_match','pat_intersection','actor_role_policy'];
- if(['owner','editor','viewer'].includes(role)){if(e.resource!=='user_member')rules.push('own_brand');rules.push('diagnosis_readonly_except_objection_create');}
+ if(['owner','editor','viewer'].includes(role)){if(e.id==='brand.create')rules.push('self_owner_assignment_only');else if(e.resource!=='user_member')rules.push('own_brand');rules.push('diagnosis_readonly_except_objection_create');}
  if(['content','evidence'].includes(role))rules.push('assigned_opportunity_cluster_source');
- if(e.method==='POST'&&['owner','editor','viewer'].includes(role)&&e.id!=='objection.create')rules.push('mode_full');
- if(['approve','grant','confirm','retire','upgrade_anchor','cleanup','delete'].includes(e.operation)||['product_profile.save','product_profile.investigate'].includes(e.id))rules.push('human_decision');
+ if(e.method==='POST'&&['owner','editor','viewer'].includes(role)&&e.id!=='objection.create')rules.push(e.id==='brand.create'?'mode_not_diagnosis':'mode_full');
+ if(['approve','grant','confirm','retire','upgrade_anchor','cleanup','delete'].includes(e.operation)||['brand.create','product_profile.save','product_profile.investigate'].includes(e.id))rules.push('human_decision');
  if(e.resource!=='product_profile'&&['revise','submit','withdraw'].includes(e.operation))rules.push('author_self_when_object_authored');
  if(e.operation==='approve'&&['claim_block','evidence_package','diagnosis_report','review_queue','official_fact'].includes(e.resource))rules.push('not_author');
  if(e.resource==='backflow_ticket'&&e.operation==='complete')rules.push('assigned_user_self');

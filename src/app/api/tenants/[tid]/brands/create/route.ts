@@ -1,0 +1,4 @@
+import { createProductOnboardingTransport } from "@/server/api/product-onboarding-http.mjs";
+import { createWorkerRuntime } from "@/server/api/worker-runtime.mjs";
+export const dynamic = "force-dynamic";
+export const POST = createProductOnboardingTransport(createWorkerRuntime);

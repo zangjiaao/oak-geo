@@ -61,7 +61,7 @@ export function WorkspaceShell({
 }) {
   const groups = navigationFor(session);
   const brands = session?.brands ?? [];
-  const industries = [...new Set(brands.map((b) => b.industry))];
+  const industries = [...new Set(brands.map((b) => b.industry).filter(Boolean))];
   const href = (next: string) => workspaceHref(next, selection);
   function selectBrand(id: string) {
     const brand = brands.find((b) => b.id === id);
@@ -86,6 +86,9 @@ export function WorkspaceShell({
         size="sm"
         variant="secondary"
       />
+      {session?.role === "owner" && session.mode !== "diagnosis" ? (
+        <Button label="新增品牌" variant="ghost" size="sm" href="/welcome?new=1" />
+      ) : null}
       <Selector
         label="行业"
         isLabelHidden
