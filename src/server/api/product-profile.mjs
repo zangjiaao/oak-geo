@@ -111,12 +111,24 @@ export function validateResearchOutput(value, sources) {
 // Model output is a review draft. A broken citation must not discard unrelated
 // candidates; strict source validation is repeated when a human confirms a fact.
 export function prepareResearchDraft(value, sources) {
-  if (!value || !Array.isArray(value.facts) || value.facts.length > 12)
-    throw validation("调查结果需要有效的事实候选");
-  const envelope = validateResearchOutput({ ...value, facts: [] }, sources);
+  if (!value || !Array.isArray(value.facts))
+    throw validation("模型结果缺少事实列表", {reason:"research_result_format"});
+  const notices = Array.isArray(value.notices) ? value.notices.filter(item=>typeof item==='string').slice(0,8).map(item=>item.slice(0,350)) : [];
+  const notice = message => { if(!notices.includes(message))notices.push(message); };
+  const list = (items,label) => {
+    if(items==null)return [];
+    if(!Array.isArray(items)){notice(`${label}未按列表返回，已保留事实候选供确认。`);return [];}
+    if(items.length>8)notice(`${label}较多，当前显示前8项。`);
+    return items.filter(item=>typeof item==='string'&&item.trim()).slice(0,8).map(item=>item.trim().slice(0,350));
+  };
+  if(value.facts.length>12)notice(`本轮提取了${value.facts.length}条候选，当前保留前12条；其余可缩小资料范围后继续整理。`);
+  const envelope = {
+    summary: typeof value.summary==='string' ? value.summary.trim().slice(0,1000) : '',
+    conflicts: list(value.conflicts,'口径冲突'),unknowns: list(value.unknowns,'待核实项'),
+  };
   return {
-    ...envelope,
-    facts: value.facts.map((raw) => {
+    ...envelope, notices,
+    facts: value.facts.slice(0,12).map((raw) => {
       const issues = [];
       const category = factCategories.includes(raw?.category) ? raw.category : "spec";
       if (category !== raw?.category) issues.push("请选择正确的事实分类");

@@ -53,6 +53,7 @@ export type Source = {
   collected_at: string;
 };
 export type Research = {
+  notices?: string[];
   facts: Fact[];
   sources: Source[];
   summary: string;
