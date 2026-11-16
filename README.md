@@ -25,7 +25,7 @@ AI 时代用户不再搜索，而是提问。oak-geo 让品牌在模型回答里
 |---|---|---|
 | [`AGENTS.md`](./AGENTS.md) | 开发宪法：技术栈（已拍板）、行为铁律、架构硬约束、astryx UI 工作流 | v1.1 |
 | [`docs/GEO产品文档.md`](./docs/GEO产品文档.md) | 产品唯一事实源：方法论 / 产品设计（含界面与用户旅程）/ 数据建模 / 决策记录 | v3.5 |
-| [`docs/backlog.md`](./docs/backlog.md) | 36 个开发任务切片，带完成定义 | v1.0 |
+| [`docs/backlog.md`](./docs/backlog.md) | okdata / OKSocial真实试跑路线，V1–V4验收与T01–T40追踪 | v2.0 规划待人审 |
 | [`docs/api-spec-template.md`](./docs/api-spec-template.md) | API 契约与状态机设计模板（任务 T02 的输入） | 模板就绪 |
 
 API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集、权限、状态机和抽检附录集中在 `docs/api/`。历史验证记录放在 `docs/archive/`。
@@ -35,6 +35,8 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 本项目采用 **Agent 开发 + 人工关卡**：所有编码会话以 `AGENTS.md` 为第一读取物（含"歧义即停"清单与测试先红后绿纪律），任务从 `docs/backlog.md` 认领，**合并权在人**。MVP 不做清单与 13 条架构预留（Agent / MCP 预留）见 AGENTS.md §7 与产品文档 §15–16。
 
 ## 状态
+
+按 [backlog v2.0](./docs/backlog.md) 先跑通 okdata 的真实模型回答，再用 OKSocial 复现，随后验证发布后的变化。当前尚无真实行业闭环；T10规则、T14模型清单仍待审（T14工程实现PR #18已合并），真实探针未启用。
 
 - ✅ 产品设计定稿（v3.5）
 - ✅ 技术栈拍板：Next.js（App Router）+ astryx + Cloudflare Workers + Neon Postgres
@@ -48,6 +50,7 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 - ✅ T11 飙升信号与策略站内通知已合并（PR #12）；首轮真实试跑目标为工作室自营工具/产品。提供开发机本地演示登录，正式身份提供方接入仍待交付
 
 - ✅ T12 问句池管理已合并（PR #14），入口：`/library/questions`；本地Compose配置（PR #15）与词库弹窗布局（PR #16）已合并。
+- ✅ T13排期已合并（PR #17）；真实模型执行与结果页面仍待V1交付，不代表后台已经自动采样。
 - ✅ T37 全局应用框架已合并（PR #13）：顶栏、八组导航、独立路由和角色/品牌上下文；生成与导入已归词库。
 
 ## Setup
