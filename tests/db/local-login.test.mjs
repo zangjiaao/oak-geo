@@ -23,7 +23,7 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
     const host = encodeURIComponent(management.connectionParameters.host), port = management.connectionParameters.port;
     const ordinary = `postgresql://geo_app@localhost/postgres?host=${host}&port=${port}`;
     const secret = randomBytes(32).toString("hex");
-    const invoke = (script) => run(process.execPath, ["--env-file-if-exists=.dev.vars", join(root, "scripts", script)], { cwd: dir, env: environment(), timeout: 30000 });
+    const invoke = (script, args=[]) => run(process.execPath, ["--env-file-if-exists=.dev.vars", join(root, "scripts", script), ...args], { cwd: dir, env: environment(), timeout: 30000 });
     let client;
     try {
       writeFileSync(join(dir, ".dev.vars"), `DATABASE_URL='postgresql://postgres@localhost/postgres?host=${host}&port=${port}'\nGEO_APPLICATION_DATABASE_URL='${ordinary}'\nGEO_SESSION_SECRET=${secret}\n`, { mode: 0o600 });
@@ -67,13 +67,20 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
       assert.equal((await exchange(foreign.credential)).status, 403);
       const expired = createIdentityAuthority({ secret, now: () => Date.now() - 25 * 3600_000 }).issue({ tenant_id: "fixture-jianzao", user_id: "fixture-strategist", role: "strategist", actor_type: "human" });
       assert.equal((await exchange(expired)).status, 403);
+      for(const role of ['owner','factcheck']){
+        const login=await invoke('local-login.mjs',['--role='+role]);
+        const roleUrl=new URL(login.stdout.trim().split('\n').at(-1));
+        const token=new URLSearchParams(roleUrl.hash.slice(1)).get('session');
+        const response=await exchange(token);assert.equal(response.status,200);
+        const result=await response.json();assert.ok(result.data.next.startsWith(role==='factcheck'?'/knowledge':'/'));
+      }
       const admin = app.issueActor({ user_id: "local-migration-admin", tenant_id: "fixture-jianzao", role: "admin", actor_type: "human" });
       ok(await app.call("user_member.configure", { actor: admin, body: { user_id: actor.user_id, role: "cs", replace_role: "strategist" } }));
       const revoked = await exchange(credential);
       assert.equal(revoked.status, 403);
       assert.equal(revoked.headers.get("set-cookie"), null);
       await assert.rejects(invoke("local-login.mjs"), (e) => e.code === 1);
-      assert.equal(closed, 5);
+      assert.equal(closed, 7);
     } finally {
       if (client) await client.end();
       rmSync(dir, { recursive: true, force: true });

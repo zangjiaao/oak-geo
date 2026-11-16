@@ -1,3 +1,4 @@
+import { productOnboardingHandlers } from './product-onboarding.mjs';
 import { questionPoolHandlers } from "./question-pool.mjs";
 import { catalogHandlers } from "./catalog-handlers.mjs";
 import { samplingHandlers } from "./sampling-handlers.mjs";
@@ -9,6 +10,7 @@ export function createDomainHandlers() {
   const registry = {};
   for (const group of [
     catalogHandlers(),
+    productOnboardingHandlers(),
     questionPoolHandlers(),
     samplingHandlers(),
     contentHandlers(),

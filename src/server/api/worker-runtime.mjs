@@ -1,3 +1,4 @@
+import { createProductResearchAgent } from './product-research-agent.mjs';
 import { createApplication } from "./application.mjs";
 import { connectDatabase } from "./database.mjs";
 import { createIdentityAuthority } from "./identity.mjs";
@@ -30,7 +31,9 @@ export async function createWorkerRuntime(credential) {
     const publicRootCatalog = new Set(
       entries.map(([industry, word]) => industry + "\0" + word),
     );
+    const productResearchAgent = createProductResearchAgent({apiKey: env.DEEPSEEK_API_KEY, model: env.GEO_PRODUCT_RESEARCH_MODEL || "deepseek-v4-flash"});
     const application = await createApplication({
+      productResearchAgent,
       client,
       secret: env.GEO_SESSION_SECRET,
       publicRootCatalog,
@@ -54,6 +57,7 @@ export async function createWorkerRuntime(credential) {
     });
     return {
       application,
+      productResearchAgent,
       readWorkspace: () => readWorkspaceContext({
         client,
         application,

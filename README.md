@@ -8,6 +8,20 @@ GEO 方法论验证 MVP：从产品事实与真实用户任务出发，通过 AP
 
 开发前读 [AGENTS.md](AGENTS.md)，复用既有服务与权限、审计、数据隔离；不直接写库，不自行合并。完整后台、固定机会评分和通用 Agent Runtime 后置。
 
+## 品牌欢迎引导与知识库（T42）
+
+首次登录后进入独立 `/welcome`，只需填写品牌名称和描述，官网与官方资料链接选填。保存后由 AI SDK + DeepSeek 搜索、读取公开来源并拆解事实，结果保存在 `/knowledge`。后续从 `/settings/brand` 修改当前资料；不做品牌资料版本管理。知识库同时保留用户提供的原话、调查出处、待核实项与已确认事实。
+
+先运行迁移，再在服务端设置 `DEEPSEEK_API_KEY`；默认模型 `GEO_PRODUCT_RESEARCH_MODEL=deepseek-v4-flash`，直接使用 DeepSeek Provider，不经过 AI Gateway。未配置时仍可完成引导并保存资料，知识库明确提示尚未调查。账号和所属品牌需先开通，公开注册／身份提供方接入不在本次范围。
+
+客户 Owner 填写并确认；Editor/Viewer只读，Strategist可协助，FactCheck独立放行。用户提供的描述作为来源保留，不伪装成网页证据；品牌方声明与官方原文可送审，第三方描述不能直接当L1官方事实。未放行不供judge使用；修改资料不会覆盖已经批准的官方事实，后者仍走既有撤回流程。正式测量的问句、快照和判定版本机制保持不变。
+
+调查通过 DeepSeek Search/Fetch API，资料会发送至DeepSeek，只填写获授权的公开品牌信息。每租户每小时最多10次调查，同时一个有效运行；单次最多6轮生成、10次来源调用，90秒超时。先预留drafting用量，失败和未知用量如实记录；调查期间资料发生变化时不覆盖新资料。
+
+依据：[AI SDK DeepSeek](https://ai-sdk.dev/providers/ai-sdk-providers/deepseek)、[DeepSeek Search/Fetch](https://api-docs.deepseek.com/guides/search/)。测试录制响应不代表已通过真实线上调查验证。本轮不提前生成或启动监控问句。
+
+本地验收可分别执行 `npm run dev:login -- --role=owner` 与 `npm run dev:login -- --role=factcheck` 获取不同角色的本地签名登录链接；仅development回环入口可用，不开放生产角色选择。
+
 ## Setup
 
 Next.js App Router + OpenNext Workers，全局框架按产品§13.1与astryx AppShellTopNavWithSideNav构建。首页是工作台，生成语法在`/library/generation`，CSV导入在`/library/import`，问句池在`/library/questions`；尚未实现的业务页面显示待交付。未登录可看无数据布局与原公开预览，不能入库。

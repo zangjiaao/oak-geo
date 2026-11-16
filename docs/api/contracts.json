@@ -30,7 +30,8 @@
     "offboarding",
     "deletion_ledger",
     "brand_lexicon",
-    "official_fact"
+    "official_fact",
+    "product_profile"
   ],
   "roles": [
     "owner",
@@ -3581,6 +3582,191 @@
         "C_data"
       ],
       "amendment_id": "T41"
+    },
+    {
+      "id": "product_profile.read",
+      "resource": "product_profile",
+      "operation": "read",
+      "method": "GET",
+      "path": "/tenants/{tid}/brands/{bid}/product-profile",
+      "semantic": "read-only",
+      "destructive": false,
+      "mutates_state": false,
+      "idempotency_hours": null,
+      "audit": null,
+      "request": {},
+      "response": {
+        "profile": null,
+        "knowledge": {
+          "user_provided": null,
+          "facts": []
+        },
+        "research_stale": false,
+        "run": null,
+        "reviews": [],
+        "research_configured": false
+      },
+      "validation": "读取本品牌最新产品档案、调查进度与审核状态；不返回完整来源正文、秘密或其他品牌资料",
+      "side_effects": "维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布",
+      "grants": [
+        "owner",
+        "editor",
+        "viewer",
+        "strategist",
+        "factcheck"
+      ],
+      "system_job": null,
+      "risk_tags": [],
+      "amendment_id": "T42"
+    },
+    {
+      "id": "product_profile.save",
+      "resource": "product_profile",
+      "operation": "revise",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/product-profile/save",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "product_profile.save",
+      "request": {
+        "input": {
+          "name": "示例产品",
+          "website": "https://example.com/",
+          "description": "产品介绍",
+          "audience": "开发者",
+          "official_urls": [],
+          "notes": ""
+        }
+      },
+      "response": {
+        "id": "profile_or_run1"
+      },
+      "validation": "human Owner(full/self)或Strategist；仅需品牌名称与描述，官网选填；直接维护同品牌唯一当前资料并同步品牌显示名称；不提供资料版本管理",
+      "side_effects": "维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布",
+      "grants": [
+        "owner",
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [],
+      "amendment_id": "T42"
+    },
+    {
+      "id": "product_profile.investigate",
+      "resource": "product_profile",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/product-profile/investigate",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "product_profile.investigate",
+      "request": {},
+      "response": {
+        "id": "profile_or_run1"
+      },
+      "validation": "human Owner(full/self)或Strategist；已保存品牌资料并配置DeepSeek；预留drafting用量后才调用；每租户一个有效调查，每小时最多10次",
+      "side_effects": "维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布",
+      "grants": [
+        "owner",
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "quota"
+      ],
+      "amendment_id": "T42"
+    },
+    {
+      "id": "product_profile.claim",
+      "resource": "product_profile",
+      "operation": "execute",
+      "method": "POST",
+      "path": "/internal/tenants/{tid}/brands/{bid}/product-profile/claim",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "product_profile.claim",
+      "request": {
+        "run_id": "run1"
+      },
+      "response": {
+        "id": "profile_or_run1"
+      },
+      "validation": "仅product_research受控job；event_id绑定run_id及品牌；同一运行只能领取一次，过期不可执行；领取后才允许调用外部API",
+      "side_effects": "维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布",
+      "grants": [],
+      "system_job": "product_research",
+      "risk_tags": [
+        "quota"
+      ],
+      "amendment_id": "T42"
+    },
+    {
+      "id": "product_profile.finish",
+      "resource": "product_profile",
+      "operation": "complete",
+      "method": "POST",
+      "path": "/internal/tenants/{tid}/brands/{bid}/product-profile/finish",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "product_profile.finish",
+      "request": {
+        "run_id": "run1",
+        "error": "调查失败，未生成事实"
+      },
+      "response": {
+        "id": "profile_or_run1"
+      },
+      "validation": "仅product_research受控job；完成后不可改；实际来源逐条核验；当前资料已改变则记失败而不覆盖；无法取得用量时记unknown",
+      "side_effects": "维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布",
+      "grants": [],
+      "system_job": "product_research",
+      "risk_tags": [
+        "quota"
+      ],
+      "amendment_id": "T42"
+    },
+    {
+      "id": "product_profile.confirm",
+      "resource": "product_profile",
+      "operation": "confirm",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/product-profile/confirm",
+      "semantic": "proposal",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "product_profile.confirm",
+      "request": {
+        "facts": [
+          {
+            "id": "candidate1",
+            "text": "待人工确认的事实"
+          }
+        ],
+        "official_source_ids": []
+      },
+      "response": {
+        "id": "profile_or_run1"
+      },
+      "validation": "human Owner(full/self)或Strategist；仅确认当前调查中的真实事实候选；用户声明或官方原文可创建draft官方事实及waiting审核；第三方描述不可冒充L1；FactCheck独立放行",
+      "side_effects": "维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布",
+      "grants": [
+        "owner",
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "judge_input"
+      ],
+      "amendment_id": "T42"
     }
   ],
   "states": {
@@ -4285,6 +4471,18 @@
       "trigger_allowed": [
         "event_id"
       ]
+    },
+    "product_research": {
+      "endpoints": [
+        "product_profile.claim",
+        "product_profile.finish"
+      ],
+      "batch_required": false,
+      "trigger_required": true,
+      "affected_object_required": true,
+      "trigger_allowed": [
+        "event_id"
+      ]
     }
   },
   "citation_policy": {
@@ -4598,7 +4796,13 @@
       "official_fact.create",
       "official_fact.approve",
       "official_fact.retract",
-      "question_pool.delete"
+      "question_pool.delete",
+      "product_profile.read",
+      "product_profile.save",
+      "product_profile.investigate",
+      "product_profile.claim",
+      "product_profile.finish",
+      "product_profile.confirm"
     ],
     "resource_layers": {
       "需求层": [
@@ -4614,7 +4818,8 @@
         "industry_score",
         "diagnosis_report",
         "brand_lexicon",
-        "official_fact"
+        "official_fact",
+        "product_profile"
       ],
       "生产层": [
         "content_asset",
@@ -4835,6 +5040,21 @@
         "delete"
       ],
       "added_allow_rows": 1
+    },
+    {
+      "id": "T42",
+      "status": "pending_review",
+      "authorization": "负责人授权首次引导：Owner填写确认、FactCheck独立放行，Editor/Viewer只读；AI SDK+DeepSeek调查，正式模型清单不变",
+      "endpoint_ids": [
+        "product_profile.read",
+        "product_profile.save",
+        "product_profile.investigate",
+        "product_profile.claim",
+        "product_profile.finish",
+        "product_profile.confirm"
+      ],
+      "added_operations": [],
+      "added_allow_rows": 11
     }
   ]
 }

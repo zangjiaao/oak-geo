@@ -83,6 +83,7 @@ export async function startRuntimeEnvironment(options = {}) {
         loadWeeklyPolicy: options.loadWeeklyPolicy,
         loadIndustryPopulation: options.loadIndustryPopulation,
         fetchTrendSource: options.fetchTrendSource,
+        productResearchAgent: options.productResearchAgent ?? {configured:true,model:"fixture-research",prompt_version:"product_facts_v1"},
       });
       readyResolve(
         Object.freeze({

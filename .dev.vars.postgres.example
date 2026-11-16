@@ -16,3 +16,7 @@ GEO_WEEKLY_POLICY_RECORD=null
 GEO_INDUSTRY_POPULATIONS=[]
 # Google Trends via SerpAPI. Server-only; never expose as NEXT_PUBLIC_*.
 SERPAPI_API_KEY=
+
+# T42 product investigation only; unrelated to the approved probe model set.
+DEEPSEEK_API_KEY=
+GEO_PRODUCT_RESEARCH_MODEL=deepseek-v4-flash

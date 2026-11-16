@@ -26,8 +26,10 @@
     "dev:login": "node --env-file-if-exists=.dev.vars scripts/local-login.mjs"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "3.0.87",
     "@astryxdesign/core": "0.7.11",
     "@opennextjs/cloudflare": "1.20.16",
+    "ai": "7.0.173",
     "embedded-postgres": "18.6.0-beta.19",
     "next": "16.4.5",
     "opencc-js": "1.4.2",

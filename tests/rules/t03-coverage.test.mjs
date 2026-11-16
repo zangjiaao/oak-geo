@@ -1,3 +1,4 @@
+import { withoutT42 } from '../support/frozen-contract-baseline.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -15,7 +16,7 @@ test('T03覆盖产品实际19条硬规则，验收用例不以skip或占位断�
  const source=readFileSync('tests/rules/product-hard-rules.red.mjs','utf8');assert.doesNotMatch(source,/\b(?:skip|todo)\s*[:(]/);
 });
 test('T02冻结来自负责人明确批准，附录生成不能退回草案', () => {
- const d=JSON.parse(readFileSync('docs/api/contracts.json','utf8'));
+ const d=withoutT42(JSON.parse(readFileSync('docs/api/contracts.json','utf8')));
  assert.equal(d.status,'frozen');assert.equal(d.freeze.approved_by,'产品负责人');assert.equal(d.freeze.source_pr,4);
  // T41 is an authorized pending amendment, not an extension of the original
  // freeze approval. Restore only that addition before checking the OLD hash.

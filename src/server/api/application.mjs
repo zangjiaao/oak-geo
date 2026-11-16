@@ -47,6 +47,7 @@ export async function createApplication({
   loadImportCsv = async () => null,
   loadWeeklyPolicy = async () => null,
   loadIndustryPopulation = async () => null,
+  productResearchAgent = { configured: false },
   fetchTrendSource = async () => {
     throw new ServiceError(422, "validation_failed", "来源接口尚未配置");
   },
@@ -146,6 +147,7 @@ export async function createApplication({
       loadWeeklyPolicy,
       loadIndustryPopulation,
       fetchTrendSource,
+      productResearchAgent,
     };
   }
   function attachUnit(ctx, units) {
@@ -244,6 +246,7 @@ export async function createApplication({
         "probe_batch.execute": "probe",
         "probe_result.judge": "judge",
         "claim_block.create": "drafting",
+        "product_profile.investigate": "drafting",
         "claim_block.revise": "drafting",
       }[operation];
       const target =

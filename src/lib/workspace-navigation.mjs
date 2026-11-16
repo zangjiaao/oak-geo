@@ -20,6 +20,7 @@ const internal = [
   "admin",
 ];
 export const workspacePages = Object.freeze([
+  { path: "/knowledge", group: "总览", label: "知识库" },
   {
     path: "/",
     group: "总览",
@@ -91,6 +92,7 @@ export const workspacePages = Object.freeze([
     group: "证据",
     label: "证据包 / 异议复核",
   },
+  { path: "/settings/brand", group: "设置", label: "品牌设置" },
   {
     path: "/settings/members",
     group: "设置",
@@ -112,6 +114,7 @@ export function pageVisible(page, session) {
   if (!session) return true; // Explicit, data-free layout preview.
   if (!Object.hasOwn(roleLabels, session.role)) return false;
   const staff = internal.includes(session.role);
+  if (["/knowledge","/settings/brand"].includes(page.path)) return ["owner","editor","viewer","strategist","factcheck"].includes(session.role);
   if (page.path === "/library/questions")
     return ["strategist", "factcheck", "cs", "content", "evidence"].includes(
       session.role,

@@ -1,5 +1,6 @@
 import {
   mkdtempSync,
+  appendFileSync,
   mkdirSync,
   chmodSync,
   chownSync,
@@ -66,6 +67,19 @@ export async function withPostgres(fn) {
       ["-D", data, "-k", socket, "-h", "", "-F"],
       { ...asUser, stdio: ["ignore", "pipe", "pipe"] },
     );
+    appendFileSync(
+      join(tmpdir(), `oak-geo-test-processes-${process.pid}.jsonl`),
+      JSON.stringify({
+        purpose: "isolated PostgreSQL test",
+        cwd: process.cwd(),
+        pid: server.pid,
+        parent_pid: process.pid,
+        port: 5432,
+        transport: "unix_socket_only",
+        socket,
+        data,
+      }) + "\n",
+    );
     server.stdout.on("data", (b) => {
       log += b;
     });
@@ -92,11 +106,20 @@ export async function withPostgres(fn) {
     }
     if (!ready)
       throw new Error("Postgres failed to start: " + log.slice(-1500));
+    const children = (await run("ps", ["-axo", "pid=,ppid=,comm="])).stdout
+      .split("\n")
+      .map((row) => row.trim().split(/\s+/))
+      .filter((row) => row[1] === String(server.pid))
+      .map((row) => Number(row[0]));
+    appendFileSync(
+      join(tmpdir(), `oak-geo-test-processes-${process.pid}.jsonl`),
+      JSON.stringify({ pid: server.pid, children }) + "\n",
+    );
     return await fn(client);
   } finally {
     if (client) await client.end().catch(() => {});
     if (server?.exitCode === null)
-      await run(bin("pg_ctl"), ["-D", data, "-m", "immediate", "-w", "stop"], {
+      await run(bin("pg_ctl"), ["-D", data, "-m", "smart", "-w", "stop"], {
         ...asUser,
         timeout: 10000,
       }).catch(() => {
