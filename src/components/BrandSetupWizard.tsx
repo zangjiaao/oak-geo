@@ -18,12 +18,15 @@ import zhCN from "@astryxdesign/core/locales/zh-CN.generated.js";
 import {readResearchEvents} from "@/lib/research-events.mjs";
 import {researchProgress} from "@/lib/research-progress.mjs";
 import {BrandProfileForm,useProfile,categories,type Fact,type Source} from "./ProductOnboarding";
+import {defaultTopic,topicCategory} from '@/lib/fact-topics.mjs';
+import {ResearchFindings} from './ResearchFindings';
 import type {WorkspaceSession} from "./WorkspaceShell";
 
 type Activity={kind:string;phase:string;call_id?:string;at?:string;query?:string;url?:string;count?:number;message?:string};
 type Draft=Fact & {has_numbers:boolean|null;number_value:string;caliber:string;boundary:string};
-const draft=(fact:Fact):Draft=>({...fact,evidence:fact.evidence.slice(0,1),has_numbers:fact.has_numbers??null,number_value:fact.number_value??"",caliber:fact.caliber??"",boundary:fact.boundary??""});
+const draft=(fact:Fact):Draft=>({...fact,topic:fact.topic??defaultTopic(fact.category),evidence:fact.evidence.slice(0,1),has_numbers:fact.has_numbers??null,number_value:fact.number_value??"",caliber:fact.caliber??"",boundary:fact.boundary??""});
 function issue(fact:Draft,sources:Source[],official:string[]) {
+  if(fact.is_atomic===false)return '请先把陈述拆分成一个独立产品主张。';
   if (!fact.text.trim()) return "请填写一条可以独立核验的陈述。";
   if (!fact.evidence.length) return "请选择来源并填写原文摘录。";
   for (const evidence of fact.evidence) {
@@ -53,7 +56,7 @@ function FactReview({store,brandId,onBack}:{store:ReturnType<typeof useProfile>;
   const current=edits[active],currentSource=sources.find(source=>source.id===current?.evidence[0]?.source_id);
   const currentIssue=current?issue(current,sources,official):"";
   const invalidSelected=selected.some(id=>!edits[id]||Boolean(issue(edits[id],sources,official)));
-  function change(values:Partial<Draft>) {setNotice("");setEdits(old=>({...old,[active]:{...old[active],...values}}));}
+  function change(values:Partial<Draft>) {setNotice("");setEdits(old=>({...old,[active]:{...old[active],...values,...(values.text!==undefined?{is_atomic:true}:{})}}));}
   async function saveCurrent() {
     if(!current)return;
     await store.act(async()=>{await store.mutate('revise',{facts:[current]});setNotice('本条草稿已保存');});
@@ -66,15 +69,14 @@ function FactReview({store,brandId,onBack}:{store:ReturnType<typeof useProfile>;
       window.location.assign('/knowledge?brand='+encodeURIComponent(brandId));
     });
   }
-  if(!facts.length)return <EmptyState title="还没有可编辑的事实候选" description="可以返回检索补充来源，已确认的事实仍保留在知识库。" actions={<Button label="返回检索" onClick={onBack}/>} />;
+  if(!facts.length)return <VStack gap={5}>{research?<ResearchFindings research={research}/>:null}<EmptyState title="还没有可编辑的事实候选" description="可以返回检索补充来源，已确认的事实仍保留在知识库。" actions={<Button label="返回检索" onClick={onBack}/>} /></VStack>;
   return <VStack gap={5}>
     <Text color="secondary">一条事实表达一个可独立核验的主张。核对出处与摘录，编辑后选择需要入库的事实。</Text>
     {research?.notices?.length?<VStack gap={2}>{research.notices.map((notice,index)=><Text key={index} type="supporting">{notice}</Text>)}</VStack>:null}
-    {research?.conflicts.length ? <VStack gap={2}><Text type="label">调查发现的冲突</Text>{research.conflicts.map((text,index)=><Text key={index}>{text}</Text>)}</VStack>:null}
-    {research?.unknowns.length ? <VStack gap={2}><Text type="label">待核实</Text>{research.unknowns.map((text,index)=><Text key={index} type="supporting">{text}</Text>)}</VStack>:null}
+    {research?<ResearchFindings research={research}/>:null}
     <Selector label="编辑事实块" value={active} onChange={id=>{setActive(id);setNotice("");}} options={facts.map((fact,index)=>({value:fact.id,label:`${index+1}. ${(edits[fact.id]?.text||fact.text||'待编辑事实').slice(0,45)}`}))}/>
     {current?<Card padding={5}><VStack gap={4}>
-      <Selector label="分类" value={current.category} onChange={category=>change({category})} options={Object.entries(categories).map(([value,label])=>({value,label}))} isDisabled={store.busy}/>
+      <Selector label="分类" value={current.topic??defaultTopic(current.category)} onChange={topic=>change({topic,category:topicCategory(topic)})} options={Object.entries(categories).map(([value,label])=>({value,label}))} isDisabled={store.busy}/>
       <TextArea label="陈述句" value={current.text} onChange={text=>change({text})} rows={3} maxLength={400} isDisabled={store.busy}/>
       <Selector label="事实来源" value={current.evidence[0]?.source_id??""} placeholder="选择实际取得的来源" options={sources.filter(source=>source.kind!=='search').map(source=>({value:source.id,label:source.title}))} onChange={source_id=>change({evidence:[{source_id,quote:""}]})} isDisabled={store.busy}/>
       <TextArea label="原文摘录" rows={3} maxLength={240} value={current.evidence[0]?.quote??""} onChange={quote=>change({evidence:[{source_id:current.evidence[0]?.source_id??"",quote}]})} description="复制能支持这条陈述的原文，不要改写摘录。" isDisabled={store.busy}/>
@@ -120,7 +122,7 @@ export function BrandSetupWizard({session,initialBrandId,creating,investigateOnL
     if(restored.current||!store.loaded||!store.data)return;
     restored.current=true;
     if(investigateOnLoad)setStep(1);
-    else if(store.data.profile?.research&&!store.data.research_stale&&store.data.profile.research.facts.length)setStep(2);
+    else if(store.data.profile?.research&&!store.data.research_stale&&(store.data.profile.research.facts.length||store.data.profile.research.findings?.length))setStep(2);
     else if(store.data.profile&&!store.data.knowledge.facts.length)setStep(1);
   },[store.loaded,store.data,investigateOnLoad]);
   function saved(id:string) {
@@ -134,11 +136,11 @@ export function BrandSetupWizard({session,initialBrandId,creating,investigateOnL
     try{
       let hasCandidates=false;
       const response=await fetch(`/api/tenants/${encodeURIComponent(session.tenant_id)}/brands/${encodeURIComponent(brandId)}/product-profile/investigate`,{method:'POST',headers:{'content-type':'application/json',accept:'text/event-stream','idempotency-key':crypto.randomUUID()},body:'{}',signal:abort.signal});
-      await readResearchEvents(response,(event:{type:string;activity?:Activity;data?:{run?:{error?:string};profile?:{research?:{facts:Fact[]}}}})=>{
+      await readResearchEvents(response,(event:{type:string;activity?:Activity;data?:{run?:{error?:string};profile?:{research?:{facts:Fact[];findings?:unknown[]}}}})=>{
         if(event.type==='activity'&&event.activity)setActivities(old=>[...old,event.activity!].slice(-60));
         if(event.type==='result') {
           if(event.data?.run?.error)setError(event.data.run.error);
-          else hasCandidates=Boolean(event.data?.profile?.research?.facts.length);
+          else hasCandidates=Boolean(event.data?.profile?.research?.facts.length||event.data?.profile?.research?.findings?.length);
         }
       });
       await store.refresh();

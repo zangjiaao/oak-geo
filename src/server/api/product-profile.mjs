@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { validation } from "./errors.mjs";
+import {factTopics,topicCategory,defaultTopic} from '../../lib/fact-topics.mjs';
 
 export const factCategories = ["price", "spec", "boundary", "service_promise"];
 export function publicProductUrl(value) {
@@ -121,17 +122,27 @@ export function prepareResearchDraft(value, sources) {
     if(items.length>8)notice(`${label}较多，当前显示前8项。`);
     return items.filter(item=>typeof item==='string'&&item.trim()).slice(0,8).map(item=>item.trim().slice(0,350));
   };
-  if(value.facts.length>12)notice(`本轮提取了${value.facts.length}条候选，当前保留前12条；其余可缩小资料范围后继续整理。`);
   const envelope = {
     summary: typeof value.summary==='string' ? value.summary.trim().slice(0,1000) : '',
     conflicts: list(value.conflicts,'口径冲突'),unknowns: list(value.unknowns,'待核实项'),
   };
+  const isFinding=raw=>(raw?.kind!=null&&raw.kind!=='product_fact')||raw?.has_unresolved_conflict===true;
+  const productFacts=value.facts.filter(raw=>!isFinding(raw));
+  if(productFacts.length>12)notice(`本轮提取了${productFacts.length}条候选，当前保留前12条；其余可缩小资料范围后继续整理。`);
+  const findings=[...(Array.isArray(value.findings)?value.findings:[]),...value.facts.filter(isFinding)].slice(0,16).map(raw=>({
+    id:randomUUID(),kind:raw?.has_unresolved_conflict?'source_conflict':['source_conflict','open_question','source_note'].includes(raw?.kind)?raw.kind:'open_question',
+    text:typeof raw?.text==='string'?raw.text.trim().slice(0,1200):'',
+    evidence:(Array.isArray(raw?.evidence)?raw.evidence:[]).slice(0,3).map(item=>({source_id:typeof item?.source_id==='string'?item.source_id.slice(0,160):'',quote:typeof item?.quote==='string'?item.quote.slice(0,240):''})),
+  })).filter(item=>item.text);
   return {
-    ...envelope, notices,
-    facts: value.facts.slice(0,12).map((raw) => {
+    ...envelope, notices,findings,
+    facts: productFacts.slice(0,12).map((raw) => {
       const issues = [];
-      const category = factCategories.includes(raw?.category) ? raw.category : "spec";
-      if (category !== raw?.category) issues.push("请选择正确的事实分类");
+      const hasTopic=typeof raw?.topic==='string'&&Object.hasOwn(factTopics,raw.topic);
+      const topic=hasTopic?raw.topic:defaultTopic(raw?.category);
+      const category=hasTopic?topicCategory(topic):factCategories.includes(raw?.category)?raw.category:'spec';
+      if (!raw?.topic&&!factCategories.includes(raw?.category)) issues.push("请选择正确的事实分类");
+      if(raw?.is_atomic===false)issues.push('包含多个独立主张，请拆分后确认');
       const statement = typeof raw?.text === "string" ? raw.text.trim() : "";
       if (statement.length > 400) issues.push("陈述超过400字，请拆分为独立事实");
       const evidence = (Array.isArray(raw?.evidence) ? raw.evidence : []).slice(0, 3).map((item) => ({
@@ -142,7 +153,7 @@ export function prepareResearchDraft(value, sources) {
       try { validateResearchOutput({ ...envelope, facts: [candidate] }, sources); }
       catch (error) { issues.push(error.code === "validation_failed" ? error.message : "该条事实需要人工修正"); }
       return {
-        id: randomUUID(), ...candidate, issues,
+        id: randomUUID(), ...candidate, issues,topic,kind:'product_fact',is_atomic:typeof raw?.is_atomic==='boolean'?raw.is_atomic:null,
         has_numbers: typeof raw?.has_numbers === "boolean" ? raw.has_numbers : null,
         number_value: typeof raw?.number_value === "string" ? raw.number_value.slice(0, 200) : "",
         caliber: typeof raw?.caliber === "string" ? raw.caliber.slice(0, 500) : "",

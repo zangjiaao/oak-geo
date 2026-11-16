@@ -11,6 +11,8 @@ import { Grid } from "@astryxdesign/core/Grid";
 import { Selector } from "@astryxdesign/core/Selector";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
+import {factTopics,defaultTopic} from '@/lib/fact-topics.mjs';
+import {ResearchFindings} from './ResearchFindings';
 import { InternationalizationProvider } from "@astryxdesign/core/i18n";
 import zhCN from "@astryxdesign/core/locales/zh-CN.generated.js";
 import type { WorkspaceSession } from "./WorkspaceShell";
@@ -42,7 +44,11 @@ export type Fact = {
   number_value?: string;
   caliber?: string;
   boundary?: string;
+  topic?: string;
+  kind?: string;
+  is_atomic?: boolean|null;
 };
+export type Finding={id:string;kind:string;text:string;evidence:Evidence[]};
 export type Source = {
   id: string;
   url: string | null;
@@ -53,6 +59,7 @@ export type Source = {
   collected_at: string;
 };
 export type Research = {
+  findings?: Finding[];
   notices?: string[];
   facts: Fact[];
   sources: Source[];
@@ -86,12 +93,7 @@ export const empty: Input = {
   audience: "",
   notes: "",
 };
-export const categories: Record<string, string> = {
-  price: "价格",
-  spec: "产品能力",
-  boundary: "适用边界",
-  service_promise: "服务承诺",
-};
+export const categories: Record<string, string> = factTopics;
 export function useProfile(session: WorkspaceSession, brandId: string | null) {
   const [data, setData] = useState<State | null>(null),
     [busy, setBusy] = useState(false),
@@ -398,7 +400,7 @@ export function BrandKnowledgePanel({ session, brandId }: {
   if (!session) return <EmptyState title="登录后查看品牌知识" actions={<Link href="/account">登录</Link>} />;
   if (!brandId) return <EmptyState title="请先选择品牌" />;
   const facts = store.data?.knowledge.facts ?? [];
-  const shown = facts.filter((fact) => category === "all" || fact.category === category);
+  const shown = facts.filter((fact) => category === "all" || (fact.topic??defaultTopic(fact.category)) === category);
   const href = "/welcome?brand=" + encodeURIComponent(brandId);
   return (
     <InternationalizationProvider locale="zh-CN" messages={{ "zh-CN": zhCN }}>
@@ -430,7 +432,7 @@ export function BrandKnowledgePanel({ session, brandId }: {
                 <Card key={fact.official_fact_id} padding={5}>
                   <VStack gap={4}>
                     <HStack hAlign="between" gap={3} wrap="wrap">
-                      <Text type="label">{categories[fact.category]}</Text>
+                      <Text type="label">{categories[fact.topic??defaultTopic(fact.category)]}</Text>
                       <Text type="supporting">{review?.status === "approved" ? "已放行" : review?.status === "retracted" ? "已撤回" : "用户已确认"}</Text>
                     </HStack>
                     <Text type="large">{fact.text}</Text>
@@ -457,6 +459,7 @@ export function BrandKnowledgePanel({ session, brandId }: {
             })}
           </Grid>
         ) : null}
+        {store.data?.profile?.research?<ResearchFindings research={store.data.profile.research}/>:null}
       </VStack>
     </InternationalizationProvider>
   );
