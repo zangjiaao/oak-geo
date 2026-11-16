@@ -82,6 +82,7 @@ export async function startRuntimeEnvironment(options = {}) {
         loadImportCsv: options.loadImportCsv,
         loadWeeklyPolicy: options.loadWeeklyPolicy,
         loadIndustryPopulation: options.loadIndustryPopulation,
+        fetchTrendSource: options.fetchTrendSource,
       });
       readyResolve(
         Object.freeze({

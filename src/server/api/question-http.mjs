@@ -1,7 +1,7 @@
 import { requestCredential } from "./seed-http.mjs";
 import { sameOriginRequest } from "./http-origin.mjs";
 import { ServiceError, validation, permission } from "./errors.mjs";
-// Only frozen HTTP paths. Collection/versions projections are internal SSR reads.
+// Frozen paths plus the owner-approved T41 draft-deletion amendment.
 export function createQuestionTransport(runtimeFactory) {
   return async (request) => {
     let runtime;
@@ -44,6 +44,10 @@ export function createQuestionTransport(runtimeFactory) {
         if (rest.length === 0) operation = "question_pool.create";
         else if (rest.length === 1 && rest[0] === "upgrade-anchor")
           operation = "question_pool.upgrade_anchor";
+        else if (rest.length === 2 && rest[1] === "delete") {
+          operation = "question_pool.delete";
+          params.id = decodeURIComponent(rest[0]);
+        }
         else if (rest.length === 2 && rest[1] === "revisions") {
           operation = "question_pool.revise";
           params.id = decodeURIComponent(rest[0]);

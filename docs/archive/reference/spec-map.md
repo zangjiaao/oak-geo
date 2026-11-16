@@ -101,4 +101,6 @@ flowchart LR
 | publish_registration | [状态/出边/终态](api/states.md#publish_registration) |
 | official_fact | [状态/出边/终态](api/states.md#official_fact) |
 
+[T41问句草稿删除补充草案](api/core-set.md#question_pooldelete)：行为已授权，接口细节待本PR人审，原契约冻结批准不扩大。
+
 [全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前按验证所需复用或补齐必要API，不要求全量实现。

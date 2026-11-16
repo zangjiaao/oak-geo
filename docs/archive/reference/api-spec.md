@@ -1,7 +1,10 @@
 # API 契约与状态机设计规格
 
+> 归档约束，当前执行方向见[文档入口](../../README.md)。仅按需查阅，不作为研究启动前置。
+
 > 状态：已冻结 · 版本 t02_api_v1 · 产品负责人已明确批准（2026-11-10）。规格变更须另提任务与PR人审。
-> 事实依据：[产品文档](../../GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定保留冻结契约的审批依据；当前方法论验证方向见[文档入口](../../README.md)，不把契约全量实现作为研究启动前置。
+> T41补充草案：负责人已批准“未冻结且未被引用的问句草稿允许删除”，新增接口及权限细节随本PR人审，尚未纳入上述冻结批准；见[核心示例](api/core-set.md#question_pooldelete)。
+> 事实依据：[产品文档](../../GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定覆盖早期模板及本稿旧版本的冲突描述；产品文档仅按授权修改 §18 和决策记录，其余原文保留。
 > 人审从[一页地图](spec-map.md)进入，再读[核心集](api/core-set.md)和[allow权限规范](../../api/permissions.csv)；[支撑端点](api/generated/endpoints.md)默认抽检。[结构化源](../../api/contracts.json)用于生成与机器校验，不要求人逐行审。
 
 ## 0. 冻结流程与审阅 checklist
@@ -25,7 +28,7 @@
 
 Web 会话 + per-user PAT，解析 `(user, role, tenant, actor_type)`；PAT scopes 与用户实时权限取交集，不能提升角色权限。服务端先校验租户，再校验品牌或关联任务，再查权限矩阵三键，最后执行端点前置条件。顺序中的任何deny或条件不满足均403 permission_denied；未知三键默认deny。URL中的tid/bid/对象ID不是授权凭证。所有写操作经 `src/server/api`，路由和jobs只调用该层，不直接修改数据库。
 
-九角色：owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin。actor_type 独立于角色：human/agent/system/external_agent；当前MVP从首轮使用受监督Agent分析，但不先建设通用Agent Runtime或MCP；这不扩张任何接口或权限。人类决策动作（放行、确认、升级问句、人工下线等）必须human，agent/external_agent无绿色通道。作者不等于状态属性。
+九角色：owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin。actor_type 独立于角色：human/agent/system/external_agent；首轮使用受监督Agent分析，不先建设通用Agent Runtime或MCP；不扩张接口权限。人类决策动作（放行、确认、升级问句、人工下线等）必须human，agent/external_agent无绿色通道。作者不等于状态属性。
 
 权限矩阵中allow是“该角色可在条件满足时执行”，不是无条件开放。每行conditions与以下规则共同强制，deny优先：
 
@@ -94,7 +97,7 @@ probe_result保留cited_urls[]完整URL与cited_domains[]物化域名。显式�
 
 ## 2. 资源清单
 
-R3阶段将API由31资源归并为28资源；v4补齐brand_lexicon与official_fact后，现有29张物理表、30个API资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`api/contracts.json.layout_migration`。31→28资源，112→105端点，41→39操作；权限230 = 246 − 问句分数5 − 证据条目7 − 探针读5 − 锚定合并1 + 批次任务投影2。这是R3阶段历史基数。v4增加7端点与15个allow，现为112端点、245个allow（CSV连规则与列头247行），操作名仍39种；裁定中的29→31为估计，本稿按实际28→30计算，不额外造第三个资源。
+R3阶段将API由31资源归并为28资源；v4补齐brand_lexicon与official_fact后，现有29张物理表、30个API资源。question_score内嵌cluster_score，evidence_item内嵌evidence_package，probe仅经probe_batch访问；另含四个既有业务投影。以下按API边界索引，完整归并记录见`api/contracts.json.layout_migration`。31→28资源，112→105端点，41→39操作；权限230 = 246 − 问句分数5 − 证据条目7 − 探针读5 − 锚定合并1 + 批次任务投影2。这是R3阶段历史基数。v4增加7端点与15个allow，现为112端点、245个allow（CSV连规则与列头247行），操作名仍39种；裁定中的29→31为估计，本稿按实际28→30计算，不额外造第三个资源。T41补充草案仅增加question_pool.delete：30资源不变，112→113端点、39→40操作、245→246个allow（CSV共248行）；历史基数不重写，原契约冻结范围不扩大。
 
 | API资源 | 契约位置 |
 |---|---|
@@ -227,7 +230,7 @@ job白名单结构化定义同时保存于 `api/contracts.json.jobs`；执行参
 | draft | 种子/问句/块/资产/证据/诊断草稿与新版本 | false |
 | proposal | opportunity_card.recommend | false；Owner确认独立write |
 | write | submit/approve/reject/withdraw/freeze/confirm/配置/导入/判定/排期/登记/调阅POST | false，受具体前置条件限制 |
-| write | retract/archive/retire/cancel/revoke/offboarding | true；不可借通用update绕过 |
+| write | retract/archive/retire/cancel/revoke/offboarding；T41补充delete（仅未冻结未引用问句草稿） | true；不可借通用update绕过 |
 
 ## 6. 阻塞问题关闭与人审说明
 

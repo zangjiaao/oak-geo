@@ -33,7 +33,7 @@ const emit = (original, value) => {
   const heading = value.indexOf('\n') + 1;
   value = value.slice(0, heading) + '\n' + boundary + value.slice(heading).replace(/^\n+/, '');
  }
- value=value.replaceAll('状态：草案，未冻结',`状态：${publication}`).replaceAll('未冻结',publication).replaceAll('权限候选：',d.status==='frozen'?'权限：':'权限候选：');
+ value=value.replaceAll('状态：草案，未冻结',`状态：${publication}`).replaceAll('> 未冻结。',`> ${publication}。`).replaceAll('权限候选：',d.status==='frozen'?'权限：':'权限候选：');
  outputs.add(path);
  if (process.argv.includes('--check')) {
   if (readFileSync(path, 'utf8') !== value) throw new Error(`${path} is stale; regenerate documentation`);
@@ -45,7 +45,7 @@ const conditions = (role,e) => {
  if(['owner','editor','viewer'].includes(role)){if(e.resource!=='user_member')rules.push('own_brand');rules.push('diagnosis_readonly_except_objection_create');}
  if(['content','evidence'].includes(role))rules.push('assigned_opportunity_cluster_source');
  if(e.method==='POST'&&['owner','editor','viewer'].includes(role)&&e.id!=='objection.create')rules.push('mode_full');
- if(['approve','grant','confirm','retire','upgrade_anchor','cleanup'].includes(e.operation))rules.push('human_decision');
+ if(['approve','grant','confirm','retire','upgrade_anchor','cleanup','delete'].includes(e.operation))rules.push('human_decision');
  if(['revise','submit','withdraw'].includes(e.operation))rules.push('author_self_when_object_authored');
  if(e.operation==='approve'&&['claim_block','evidence_package','diagnosis_report','review_queue','official_fact'].includes(e.resource))rules.push('not_author');
  if(e.resource==='backflow_ticket'&&e.operation==='complete')rules.push('assigned_user_self');
@@ -67,7 +67,7 @@ const conditions = (role,e) => {
 for(const e of d.endpoints)if(JSON.stringify(e.risk_tags)!==JSON.stringify(requiredReviewRisks(e)))throw new Error(`Risk routing stale: ${e.id}`);
 const rows=['# 未出现 (role, resource, operation) allow 行即 deny','role,resource,operation,effect,scope,basis,conditions'];
 for(const e of d.endpoints)for(const role of e.grants){
- rows.push([role,e.resource,e.operation,'allow',scope(role,e),('产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3'+(['brand_lexicon','official_fact'].includes(e.resource)?';裁定v4':'')),conditions(role,e)].join(','));
+ rows.push([role,e.resource,e.operation,'allow',scope(role,e),('产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3'+(['brand_lexicon','official_fact'].includes(e.resource)?';裁定v4':'')+(e.amendment_id?';裁定'+e.amendment_id+'草稿删除授权':'')),conditions(role,e)].join(','));
 }
 emit('docs/api/permissions.csv',rows.join('\n')+'\n');
 const pretty=x=>JSON.stringify(x,null,2);
@@ -75,9 +75,10 @@ const anchor=id=>id.toLowerCase().replace(/[^\w\u4e00-\u9fff-]/g,'');
 const link=(id,path='api/core-set.md')=>`[${id}](${path}#${anchor(id)})`;
 const intro='> 未冻结。所有POST携带Idempotency-Key（24h），响应含snapshot_id/data_as_of；完整权限依据allow规范与全局条件，未出现三键即deny。例子为虚构数据，不能直接执行模型调用。\n\n';
 function render(e){
+ const amendment=e.amendment_id?`> ${e.amendment_id}补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。\n\n`:'';
  const response={data:structuredClone(e.response),meta:{snapshot_id:e.response.snapshot_id??(['scoring_snapshot','cluster_score','cluster_platform_signal','probe_result','metric_snapshot','probe_batch','opportunity_card'].includes(e.resource)?'snp1':null),data_as_of:'2026-11-09T00:00:00Z'}};
  if(Array.isArray(response.data.items)&&Object.hasOwn(response.data,'next_cursor')){response.next_cursor=response.data.next_cursor;delete response.data.next_cursor;}
- return `### ${e.id}\n\n\`${e.method} ${e.path}\` · 语义 ${e.semantic} · destructive=${e.destructive} · 幂等=${e.idempotency_hours===null?'不适用':'24h'}\n\n权限候选：${e.grants.join(' / ')||'人类九角色全部deny'}；system：${e.system_job??'无'}。权限行：\`(role, ${e.resource}, ${e.operation})\`。审阅风险：${e.risk_tags.join(' / ')||'承重动作'}。\n\n校验：${e.validation}。\n\n审计：${e.audit??'普通只读无业务审计'}。副作用：${e.side_effects}。${e.method==='GET'?'GET不迁移业务对象状态。':''}\n\n请求${e.method==='GET'?'查询参数':'JSON（另带Idempotency-Key）'}：\n\n\`\`\`json\n${pretty(e.request)}\n\`\`\`\n\n响应JSON：\n\n\`\`\`json\n${pretty(response)}\n\`\`\`\n\n`;
+ return `### ${e.id}\n\n${amendment}\`${e.method} ${e.path}\` · 语义 ${e.semantic} · destructive=${e.destructive} · 幂等=${e.idempotency_hours===null?'不适用':'24h'}\n\n权限候选：${e.grants.join(' / ')||'人类九角色全部deny'}；system：${e.system_job??'无'}。权限行：\`(role, ${e.resource}, ${e.operation})\`。审阅风险：${e.risk_tags.join(' / ')||'承重动作'}。\n\n校验：${e.validation}。\n\n审计：${e.audit??'普通只读无业务审计'}。副作用：${e.side_effects}。${e.method==='GET'?'GET不迁移业务对象状态。':''}\n\n请求${e.method==='GET'?'查询参数':'JSON（另带Idempotency-Key）'}：\n\n\`\`\`json\n${pretty(e.request)}\n\`\`\`\n\n响应JSON：\n\n\`\`\`json\n${pretty(response)}\n\`\`\`\n\n`;
 }
 const errors='## 共享错误示例\n\n'+Object.entries({permission_denied:403,state_conflict:409,validation_failed:422,judgment_basis_missing:422,incomparable:422,quota_exceeded:429}).map(([code,http])=>`HTTP ${http}\n\n\`\`\`json\n${pretty({error:{code,message:code==='incomparable'?'采样配置或簇问句口径不一致':code==='judgment_basis_missing'?'品牌缺已封版词表或已生效官方口径':'请求未满足契约条件',details:code==='incomparable'?{baseline_snapshot_id:'snp1',retest_snapshot_id:'snp2'}:{}},meta:{snapshot_id:null,data_as_of:'2026-11-09T00:00:00Z'}})}\n\`\`\`\n`).join('\n');
 const coreSet=new Set(d.review.core_endpoint_ids);
@@ -101,6 +102,7 @@ map+='\n## 20个承重审阅项\n\n组合动作按负责人R4逐接口展开；�
 for(const g of d.review.core_groups)map+=`| ${g.number} | ${g.title} | ${g.endpoint_ids.map(id=>link(id)).join(' / ')} |\n`;
 map+='\n## 一个事实块的旅程\n\n```mermaid\nflowchart LR\n  C[claim_block.create] --> S[claim_block.submit]\n  S --> A[claim_block.approve]\n  A --> R[content_asset.transition 自动ready]\n  R --> P[publish_registration.register]\n  P --> B[probe_batch.start / execute]\n  B --> J[probe_result.judge 复测命中]\n  J --> M[cluster_score.compare 可比才出差值]\n```\n\n[修订](api/core-set.md#claim_blockrevise)、[撤回下线](api/core-set.md#claim_blockretract)及同事务链式回退不绕过独立审核。\n\n## 13个状态机索引\n\n| 对象 | 完整迁移表 |\n|---|---|\n';
 for(const name of Object.keys(d.states))map+=`| ${name} | [状态/出边/终态](api/states.md#${anchor(name)}) |\n`;
+map+='\n[T41问句草稿删除补充草案](api/core-set.md#question_pooldelete)：行为已授权，接口细节待本PR人审，原契约冻结批准不扩大。\n';
 map+='\n[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前按验证所需复用或补齐必要API，不要求全量实现。\n';
 map=map.replaceAll('20个',`${d.review.core_groups.length}个`).replace('归并后28个，原31个全部有归宿',`${d.resources.length}个；原资源归并并补v4判定输入`).replace('27张物理表不变','v4补齐后29张物理表').replaceAll('13个',`${Object.keys(d.states).length}个`);
 if(map.trimEnd().split('\n').length>120)throw new Error('spec-map exceeds 120 lines');
@@ -110,6 +112,7 @@ for(const [name,s]of Object.entries(d.states)){
  states+=`## ${name}\n\n状态：${s.states.map(x=>'`'+x+'`').join(' / ')}。终态：${s.terminal.join(' / ')||'无永久终态（按裁定修订新版本）'}。\n\n| 迁移 | 显式触发 | 执行者 | 前置条件 | 副作用 |\n|---|---|---|---|---|\n`;
  for(const t of s.transitions)states+=`| ${t.from} → ${t.to} | ${t.trigger} | ${t.actor} | ${t.condition} | ${t.effect} |\n`;
  states+='\n';
+ if(name==='question_pool')states+='T41补充草案：open中的单条问句未被引用时可经显式question_pool.delete移除；不新增deleted状态。frozen/archived及已锚定或被批次/评分引用的问句均不可删；不改变其他行的版本状态。接口细节待本PR人审。\n\n';
 }
 states+='## brand_lexicon版本审核（不新增状态枚举）\n\ncreate生成完整新version（不生效）；submit创建waiting队列；FactCheck非版本作者approve后该版本生效。rejected/withdrawn按既有队列规则退回未生效草稿，旧版本始终只读。词表表不增加status列，审核结果由review_queue承载。\n';
 emit('docs/api/states.md',states);

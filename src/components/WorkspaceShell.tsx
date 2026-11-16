@@ -24,7 +24,7 @@ export type WorkspaceSession = {
   role: string;
   mode: string;
   can_write: boolean;
-  brands: { id: string; name: string; industry: string }[];
+  brands: { id: string; name: string; industry: string; market?: string }[];
 } | null;
 type Selection = {
   valid: boolean;

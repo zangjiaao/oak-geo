@@ -17,6 +17,7 @@ import {
 } from "./domain-common.mjs";
 import { opportunityStatusToApi } from "./opportunity-status.mjs";
 import { permission, validation, ServiceError } from "./errors.mjs";
+import { readTrendSources } from "./trend-source-service.mjs";
 
 export function catalogHandlers() {
   const handlers = {};
@@ -189,6 +190,8 @@ export function catalogHandlers() {
     }),
   });
   handlers["keyword_raw.read"] = async (ctx) => {
+    if (["trends", "trend_points"].includes(ctx.query.view))
+      return readTrendSources(ctx);
     const values = [ctx.principal.tenant_id];
     let where = "tenant_id=$1";
     if (ctx.query.industry) { values.push(ctx.query.industry); where += " AND industry=$2"; }

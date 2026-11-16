@@ -464,7 +464,7 @@
 
 权限：editor / content；system：无。权限行：`(role, claim_block, submit)`。审阅风险：承重动作。
 
-校验：作者；draft；四问、L1/L2、整篇必配与自包含校验；judging-spec已冻结（t02_api_v1，产品负责人批准）不实现正则。
+校验：作者；draft；四问、L1/L2、整篇必配与自包含校验；judging-spec未冻结不实现正则。
 
 审计：claim_block.submit。副作用：创建waiting队列条目，通知FactCheck。
 
@@ -2192,6 +2192,43 @@
   "data": {
     "id": "f1",
     "status": "retracted"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### question_pool.delete
+
+> T41补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /tenants/{tid}/brands/{bid}/question-pools/{id}/delete` · 语义 write · destructive=true · 幂等=24h
+
+权限：strategist；system：无。权限行：`(role, question_pool, delete)`。审阅风险：C_data。
+
+校验：仅human Strategist；confirmed=true且版本与对象一致；整个品牌版本未冻结/未归档；簇未锚定该版本；无probe、question_score或probe_batch固定question_id引用；缺确认422，冻结/归档/引用或版本冲突409。
+
+审计：question_pool.delete。副作用：仅删除该未入测草稿；同事务审计保留tenant/brand/cluster/source/version标识，不含问句原文；幂等重放仍经过实时鉴权，其他问句、来源与历史版本不变。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "confirmed": true,
+  "question_pool_version": 1
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "q_draft_1",
+    "deleted": true,
+    "question_pool_version": 1
   },
   "meta": {
     "snapshot_id": null,
