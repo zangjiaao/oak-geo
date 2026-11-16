@@ -16,9 +16,9 @@ flowchart LR
   X -.-> V
 ```
 
-| 层 | API资源（30个；原资源归并并补v4判定输入） |
+| 层 | API资源（31个；原资源归并并补v4判定输入） |
 |---|---|
-| 需求层 | seed_list、keyword_raw、keyword_pool_snapshot、intent_cluster、question_pool、opportunity_card、scoring_snapshot、cluster_score（内含question_score）、cluster_platform_signal、industry_score、diagnosis_report、brand_lexicon、official_fact |
+| 需求层 | seed_list、keyword_raw、keyword_pool_snapshot、intent_cluster、question_pool、opportunity_card、scoring_snapshot、cluster_score（内含question_score）、cluster_platform_signal、industry_score、diagnosis_report、brand_lexicon、official_fact、product_profile |
 | 生产层 | content_asset、claim_block、review_queue、evidence_package（内含evidence_item）、publish_registration |
 | 验证层 | probe_batch（内含probe）、probe_result、metric_snapshot、objection、backflow_ticket |
 | 横切支撑 | tenant、brand、user_member、audit_log、api_token、offboarding、deletion_ledger |

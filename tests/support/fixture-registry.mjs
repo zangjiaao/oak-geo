@@ -804,6 +804,23 @@ export function createFixtureRegistry(
     return factories[name](options);
   }
   async function authorizedRequest(id) {
+    if (id.startsWith('product_profile.')) {
+      const f=await base(),params={tid:f.tenant_id,bid:f.brand_id};
+      const input={name:'虚构测试产品',website:'https://example.com/',description:'测试产品',audience:'开发者',notes:'',official_urls:[]};
+      if(id==='product_profile.read')return request(f.actors.owner,{},params);
+      if(id==='product_profile.save')return request(f.actors.owner,{input},params);
+      await invoke('product_profile.save',f.actors.owner,{input},params);
+      if(id==='product_profile.investigate')return request(f.actors.owner,{},params);
+      const run=await invoke('product_profile.investigate',f.actors.owner,{},params);
+      const actor=application.issueActor({user_id:'fixture-research-job',tenant_id:f.tenant_id,role:'system',actor_type:'system',job_name:'product_research',trigger_source:{event_id:run.id}});
+      if(id==='product_profile.claim')return request(actor,{run_id:run.id},params);
+      await invoke('product_profile.claim',actor,{run_id:run.id},params);
+      if(id==='product_profile.finish')return request(actor,{run_id:run.id,error:'fixture failure evidence'},params);
+      await invoke('product_profile.finish',actor,{run_id:run.id,result:{agent_run_id:run.id,prompt_version:'product_facts_v1',model:'fixture-research',sources:[{id:'s1',url:input.website,text:'测试产品提供接口',kind:'page',collected_at:new Date(clock.now()).toISOString()}],facts:[{category:'spec',text:'测试产品提供接口',evidence:[{source_id:'s1',quote:'测试产品提供接口'}]}],summary:'测试产品',conflicts:[],unknowns:[],trace:[],usage:{input_tokens:1,output_tokens:1}}},params);
+      const read=await invoke('product_profile.read',f.actors.owner,{},params);
+      return request(f.actors.owner,{facts:[{id:read.profile.research.facts[0].id,text:'测试产品提供接口'}]},params);
+    }
+
     const simple = new Set([
       "tenant.read",
       "brand.read",

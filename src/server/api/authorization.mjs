@@ -14,6 +14,9 @@ const installerOperations = new Set([
   "user_member.configure",
 ]);
 const humanDecisions = new Set([
+  "product_profile.save",
+  "product_profile.investigate",
+  "product_profile.confirm",
   "intent_cluster.archive",
   "claim_block.approve",
   "claim_block.reject",

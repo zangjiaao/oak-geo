@@ -44,3 +44,12 @@ test('当前阅读路径仅保留验证文档，历史详设物理归档', () =>
   assert.ok(read('docs/api-spec.md').split('\n').length < 25);
   for (const name of ['contracts.json', 'permissions.csv']) assert.ok(existsSync(`docs/api/${name}`));
 });
+
+test('根README只引导当前品牌事实验收，启动命令和登录去向与实现一致', () => {
+  const readme=read('README.md'),pkg=JSON.parse(read('package.json'));
+  for(const path of ['/welcome','/settings/brand','/knowledge']) assert.ok(readme.includes(path),path);
+  assert.doesNotMatch(readme,/自动登录并进入问句池|没有公开业务HTTP路由|首页是工作台，生成语法在/);
+  for(const [,script] of readme.matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) assert.ok(pkg.scripts[script],`未知命令 ${script}`);
+  const migrate=readme.indexOf('npm run db:migrate'),login=readme.indexOf('npm run dev:login');
+  assert.ok(migrate>=0&&migrate<login,'首次启动应先迁移再登录');
+});

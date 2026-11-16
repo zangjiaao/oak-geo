@@ -1,3 +1,4 @@
+import { BrandProfileForm, BrandKnowledgePanel } from "@/components/ProductOnboarding";
 import {
   QuestionPoolPanel,
   type QuestionWorkbench,
@@ -36,13 +37,17 @@ export default async function WorkspacePage({
   const { workspace = [] } = await params;
   const path = workspace.length ? "/" + workspace.join("/") : "/";
   const page = workspacePages.find((p) => p.path === path);
-  if (!page && !["/account", "/notifications"].includes(path)) notFound();
+  if (!page && !["/account", "/notifications", "/onboarding"].includes(path)) notFound();
   const requestHeaders = await headers();
   const localLogin = localSessionAllowed(requestHeaders);
   const session: WorkspaceSession = await readWorkbenchSession(requestHeaders);
   if (page && !pageVisible(page, session)) notFound();
   const selection = selectWorkspace(session, await searchParams);
   const href = (next: string) => workspaceHref(next, selection);
+  if(path==='/onboarding') redirect('/welcome'+(selection.brand?'?brand='+encodeURIComponent(selection.brand.id):''));
+  if(path==='/'&&session&&['owner','strategist'].includes(session.role)&&(session.role==='strategist'||session.mode!=='diagnosis')&&selection.brand&&!(selection.brand as {has_profile?:boolean}).has_profile) redirect('/welcome?brand='+encodeURIComponent(selection.brand.id));
+  const knowledgeVisible=!session||["owner","editor","viewer","strategist","factcheck"].includes(session.role);
+  const primaryHref=knowledgeVisible?href("/knowledge"):href(session?.role==="admin"?"/settings/members":"/diagnosis");
   let content;
   if (!selection.valid) {
     content = (
@@ -52,6 +57,10 @@ export default async function WorkspacePage({
         headingLevel={1}
       />
     );
+  } else if (path === "/knowledge") {
+    content = <BrandKnowledgePanel key={selection.brand?.id} session={session} brandId={selection.brand?.id ?? null} />;
+  } else if (path === "/settings/brand") {
+    content = <BrandProfileForm key={selection.brand?.id} session={session} brandId={selection.brand?.id ?? null} />;
   } else if (path === "/account") {
     content = (
       <VStack gap={4}>
@@ -129,7 +138,7 @@ export default async function WorkspacePage({
       <>
         <Heading level={1}>工作台</Heading>
         <EmptyState
-          title="先准备词库，再建立基线"
+          title="先建立准确的产品事实"
           headingLevel={2}
           actions={
             !session ||
@@ -142,10 +151,10 @@ export default async function WorkspacePage({
               "admin",
             ].includes(session.role) ? (
               <HStack gap={4} wrap="wrap">
-                <Link href={href("/library/seeds")}>种子表管理</Link>
+                <Link href={primaryHref}>{knowledgeVisible?"查看品牌知识库":"查看工作入口"}</Link>
               </HStack>
             ) : (
-              <Link href={href("/diagnosis")}>查看诊断</Link>
+              <Link href={primaryHref}>{knowledgeVisible?"查看品牌知识库":"查看工作入口"}</Link>
             )
           }
         />

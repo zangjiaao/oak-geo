@@ -31,7 +31,7 @@ test('全资源端点均有独立请求响应及语义和审计定义', () => {
  const d=data(); const product=read('docs/GEO产品文档.md').split('## 18. 表结构')[1].split('```')[1];
  const tables=[...product.matchAll(/^(\w+)\s{2,}/gm)].map(m=>m[1]);
  for(const table of tables) assert.ok(table==='w_pool_percentile'||d.resources.includes(table)||d.embedded_models?.[table],table); // R11 v2: machine projection, no new public endpoint/grant
- assert.equal(d.resources.length,30);
+ assert.equal(d.resources.length,31);
  const map=read('docs/archive/reference/spec-map.md');assert.ok(map.trimEnd().split('\n').length<=120);assert.equal(d.review.core_groups.length,21);
  const core=read('docs/archive/reference/api/core-set.md');for(const id of d.review.core_endpoint_ids)assert.ok(core.includes('### '+id),id);
  for(const e of d.endpoints){assert.deepEqual(e.risk_tags,requiredReviewRisks(e));if(e.risk_tags.length)assert.ok(d.review.core_endpoint_ids.includes(e.id),e.id);}

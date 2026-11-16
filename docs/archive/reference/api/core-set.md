@@ -2237,6 +2237,228 @@
 }
 ```
 
+### product_profile.read
+
+> T42补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`GET /tenants/{tid}/brands/{bid}/product-profile` · 语义 read-only · destructive=false · 幂等=不适用
+
+权限：owner / editor / viewer / strategist / factcheck；system：无。权限行：`(role, product_profile, read)`。审阅风险：承重动作。
+
+校验：读取本品牌最新产品档案、调查进度与审核状态；不返回完整来源正文、秘密或其他品牌资料。
+
+审计：普通只读无业务审计。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。GET不迁移业务对象状态。
+
+请求查询参数：
+
+```json
+{}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "profile": null,
+    "knowledge": {
+      "user_provided": null,
+      "facts": []
+    },
+    "research_stale": false,
+    "run": null,
+    "reviews": [],
+    "research_configured": false
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### product_profile.save
+
+> T42补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /tenants/{tid}/brands/{bid}/product-profile/save` · 语义 write · destructive=false · 幂等=24h
+
+权限：owner / strategist；system：无。权限行：`(role, product_profile, revise)`。审阅风险：承重动作。
+
+校验：human Owner(full/self)或Strategist；仅需品牌名称与描述，官网选填；直接维护同品牌唯一当前资料并同步品牌显示名称；不提供资料版本管理。
+
+审计：product_profile.save。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "input": {
+    "name": "示例产品",
+    "website": "https://example.com/",
+    "description": "产品介绍",
+    "audience": "开发者",
+    "official_urls": [],
+    "notes": ""
+  }
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "profile_or_run1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### product_profile.investigate
+
+> T42补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /tenants/{tid}/brands/{bid}/product-profile/investigate` · 语义 write · destructive=false · 幂等=24h
+
+权限：owner / strategist；system：无。权限行：`(role, product_profile, create)`。审阅风险：quota。
+
+校验：human Owner(full/self)或Strategist；已保存品牌资料并配置DeepSeek；预留drafting用量后才调用；每租户一个有效调查，每小时最多10次。
+
+审计：product_profile.investigate。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "profile_or_run1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### product_profile.claim
+
+> T42补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /internal/tenants/{tid}/brands/{bid}/product-profile/claim` · 语义 write · destructive=false · 幂等=24h
+
+权限：人类九角色全部deny；system：product_research。权限行：`(role, product_profile, execute)`。审阅风险：quota。
+
+校验：仅product_research受控job；event_id绑定run_id及品牌；同一运行只能领取一次，过期不可执行；领取后才允许调用外部API。
+
+审计：product_profile.claim。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "run_id": "run1"
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "profile_or_run1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### product_profile.finish
+
+> T42补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /internal/tenants/{tid}/brands/{bid}/product-profile/finish` · 语义 write · destructive=false · 幂等=24h
+
+权限：人类九角色全部deny；system：product_research。权限行：`(role, product_profile, complete)`。审阅风险：quota。
+
+校验：仅product_research受控job；完成后不可改；实际来源逐条核验；当前资料已改变则记失败而不覆盖；无法取得用量时记unknown。
+
+审计：product_profile.finish。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "run_id": "run1",
+  "error": "调查失败，未生成事实"
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "profile_or_run1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
+### product_profile.confirm
+
+> T42补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /tenants/{tid}/brands/{bid}/product-profile/confirm` · 语义 proposal · destructive=false · 幂等=24h
+
+权限：owner / strategist；system：无。权限行：`(role, product_profile, confirm)`。审阅风险：judge_input。
+
+校验：human Owner(full/self)或Strategist；仅确认当前调查中的真实事实候选；用户声明或官方原文可创建draft官方事实及waiting审核；第三方描述不可冒充L1；FactCheck独立放行。
+
+审计：product_profile.confirm。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "facts": [
+    {
+      "id": "candidate1",
+      "text": "待人工确认的事实"
+    }
+  ],
+  "official_source_ids": []
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "profile_or_run1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
 ## 共享错误示例
 
 HTTP 403

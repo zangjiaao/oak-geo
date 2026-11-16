@@ -4,6 +4,7 @@
 
 | 归档 | 用途 |
 |---|---|
+| [旧项目 README](reference/project-readme-before-cleanup.md) | 旧入口、任务详解与当时状态，保留背景但不作为当前启动指令 |
 | [产品 v3.5 快照](GEO产品文档-v3.5.md) | 原详设全文，保留旧页面、数据模型、评分假设与决策上下文 |
 | [API 规格](reference/api-spec.md)与[审阅地图](reference/spec-map.md) | 既有冻结调用约束；仅实现相关功能时查阅 |
 | [核心端点](reference/api/core-set.md)、[状态机](reference/api/states.md)、[支撑端点](reference/api/generated/endpoints.md) | 从未改变的机器契约生成的详细视图 |

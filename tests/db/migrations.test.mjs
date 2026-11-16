@@ -166,7 +166,7 @@ test("T04真实Postgres：迁移可重复、fixture经服务层入库、回滚�
                 .filter((c) => !helpers.includes(c.table_name))
                 .map((c) => c.table_name),
             ).size,
-            30,
+            32, // T42 adds product_profile and product_research_run.
           );
           for (const table of new Set(cols.map((c) => c.table_name)))
             if (

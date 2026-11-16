@@ -41,6 +41,10 @@ export async function resourceScope(client, endpoint, request, principal) {
       { actor: request.actor, params: { id: b.object_id } },
       principal,
     );
+  if (resource === 'product_profile') {
+    if (!brand_id) throw permission('brand required');
+    await read('SELECT id FROM brand WHERE tenant_id=$1 AND id=$2', [tid,brand_id]);
+  }
   if (id && simple[resource]) {
     const row = await read(
       `SELECT * FROM ${simple[resource]} WHERE tenant_id=$1 AND id=$2`,
