@@ -3,6 +3,7 @@ import { connectDatabase } from "./database.mjs";
 import { createIdentityAuthority } from "./identity.mjs";
 import { requestCredential } from "./seed-http.mjs";
 import { readWorkspaceContext } from "./workspace-context.mjs";
+import { productionModelCapabilities } from "./probe-model-candidates.mjs";
 
 async function bindings() {
   let cf = {};
@@ -32,6 +33,7 @@ export async function createWorkerRuntime(credential) {
       client,
       secret: env.GEO_SESSION_SECRET,
       publicRootCatalog,
+      modelCapabilities: productionModelCapabilities,
       loadWeeklyPolicy: async () => JSON.parse(env.GEO_WEEKLY_POLICY_RECORD || "null"),
       loadIndustryPopulation: async ({ industry, window }) =>
         JSON.parse(env.GEO_INDUSTRY_POPULATIONS || "[]").find((record) =>
