@@ -14,3 +14,5 @@ GEO_C_IMPORT_AUTHORIZATIONS=[]
 GEO_WEEKLY_POLICY_RECORD=null
 # Trusted public numeric receipts only, never tenant CSV or C-class original text.
 GEO_INDUSTRY_POPULATIONS=[]
+# Google Trends via SerpAPI. Server-only; never expose as NEXT_PUBLIC_*.
+SERPAPI_API_KEY=

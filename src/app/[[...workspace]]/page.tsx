@@ -19,6 +19,7 @@ import {
 } from "@/components/WorkspaceShell";
 import { GenerationPanel } from "@/components/GenerationPanel";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
+import { TrendSourcePanel } from "@/components/TrendSourcePanel";
 import {
   pageVisible,
   selectWorkspace,
@@ -106,6 +107,13 @@ export default async function WorkspacePage({
         />
       </>
     );
+  } else if (path === "/library/trends") {
+    content = (
+      <>
+        <PageHeading title="来源分析" description="Google Trends 与百度指数按地域、时间和口径分别查看。" />
+        <TrendSourcePanel key={selection.industry} session={session} industryContext={selection.industry} />
+      </>
+    );
   } else if (path === "/library/import") {
     content = (
       <>
@@ -140,6 +148,7 @@ export default async function WorkspacePage({
               <HStack gap={4} wrap="wrap">
                 <Link href={href("/library/generation")}>生成语法</Link>
                 <Link href={href("/library/import")}>CSV 导入</Link>
+                <Link href={href("/library/trends")}>来源分析</Link>
               </HStack>
             ) : (
               <Link href={href("/diagnosis")}>查看诊断</Link>

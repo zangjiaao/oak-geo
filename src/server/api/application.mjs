@@ -47,6 +47,9 @@ export async function createApplication({
   loadImportCsv = async () => null,
   loadWeeklyPolicy = async () => null,
   loadIndustryPopulation = async () => null,
+  fetchTrendSource = async () => {
+    throw new ServiceError(422, "validation_failed", "来源接口尚未配置");
+  },
 }) {
   await assertRuntimeConnection(client);
   const identity = createIdentityAuthority({ secret, now });
@@ -142,6 +145,7 @@ export async function createApplication({
       loadImportCsv,
       loadWeeklyPolicy,
       loadIndustryPopulation,
+      fetchTrendSource,
     };
   }
   function attachUnit(ctx, units) {
