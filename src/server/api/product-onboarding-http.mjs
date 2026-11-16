@@ -1,6 +1,7 @@
 import { ServiceError, permission, validation } from "./errors.mjs";
 import { requestCredential } from "./seed-http.mjs";
 import { sameOriginRequest } from "./http-origin.mjs";
+import { describeResearchFailure, researchFailure } from "./product-research-errors.mjs";
 
 export async function executeProductResearch(runtime, actor, params, runId) {
   const application = runtime.application;
@@ -26,12 +27,12 @@ export async function executeProductResearch(runtime, actor, params, runId) {
   if (!claim.data.claimed) return;
   let result, error;
   try {
-    if (claim.data.input_changed) throw new Error("input_changed");
+    if (claim.data.input_changed) throw researchFailure("input_changed", "evidence");
     result = await runtime.productResearchAgent.run(claim.data.input, {
       runId,
     });
-  } catch {
-    error = "调查失败或超时，请检查服务配置后重试。已保存原资料，不生成事实。";
+  } catch (cause) {
+    error = describeResearchFailure(cause);
   }
   const finished = await application.call(
     "product_profile.finish",
@@ -49,7 +50,12 @@ export async function executeProductResearch(runtime, actor, params, runId) {
       {
         actor: job,
         params,
-        body: { run_id: runId, error: "调查结果未通过来源校验，请重新调查。" },
+        body: {
+          run_id: runId,
+          error: describeResearchFailure(researchFailure(
+            finished.status === 422 ? "result_rejected" : "save", "save",
+          )),
+        },
       },
       { idempotencyKey: "failed-" + runId },
     );
