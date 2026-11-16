@@ -1,57 +1,12 @@
 # oak-geo
 
-> **让 AI 抄你，且抄得对。**
-> Full-stack GEO (Generative Engine Optimization) platform — measure, fix, and verify how AI answers about your brand: demand pipeline → claim-block production → probe-based verification, one closed loop.
+GEO 方法论验证 MVP：从产品事实与真实用户任务出发，通过 API 获取模型回答，由 Agent 分析、人复核，执行内容动作后同口径复测。
 
-AI 时代用户不再搜索，而是提问。oak-geo 让品牌在模型回答里"被提到、被说对、被引到正确的场景"：
+当前从 [docs/README.md](docs/README.md) 开始，只按[产品文档](docs/GEO产品文档.md)与[backlog](docs/backlog.md)推进。先跑 okdata，再用 OKSocial 复现；尚未验证方法有效，不承诺增长。
 
-- **需求层**：从检索趋势与真实问句里找机会——热度档 + 结果页真空度双筛，词池周更、评分月批、事件复测三条时钟咬合；
-- **生产层**：把内容切成模型愿意原样摘抄的**事实块**（Claim Block）——可引用四问校验、来源三级灯（L3 拦截）、意图必配闸门、独立 FactCheck 放行；
-- **验证层**：冻结问句池 + 多模型探针复测——检索轨 / 记忆轨双口径，引用判定四步管道（指纹 + 显式链接），SOV 与事实准确率的可复核差值。
+旧详设、接口模板、审批与阶段报告已移到[归档](docs/archive/README.md)，不作为启动研究的前置清单。需要修改具体服务时，按需查[API约束索引](docs/api-spec.md)。`docs/api/contracts.json` 与权限CSV继续供现有代码／测试使用。
 
-不代写代发、不承诺排名——只承诺**每条结论可回溯 `probe_id`，每次复测可比**。别人往模型里灌口径，我们做答案侧的测量与事实纪律。
-
-```
-┌────────────┐   机会卡    ┌────────────┐   内容资产   ┌────────────┐
-│ 需求层      │ ─────────► │ 生产层      │ ─────────► │ 验证层      │
-│ 找机会      │            │ 做内容      │            │ 测效果      │
-└────────────┘ ◄───────── └────────────┘ ◄───────── └────────────┘
-                缺口回流：弃簇重算 / 改稿补来源
-```
-
-## 文档导航
-
-| 文件 | 内容 | 状态 |
-|---|---|---|
-| [`AGENTS.md`](./AGENTS.md) | 开发宪法：技术栈（已拍板）、行为铁律、架构硬约束、astryx UI 工作流 | v1.1 |
-| [`docs/GEO产品文档.md`](./docs/GEO产品文档.md) | 产品唯一事实源：方法论 / 产品设计（含界面与用户旅程）/ 数据建模 / 决策记录 | v3.5 |
-| [`docs/backlog.md`](./docs/backlog.md) | okdata / OKSocial真实试跑路线，V1–V4验收与T01–T40追踪 | v2.0 规划待人审 |
-| [`docs/api-spec-template.md`](./docs/api-spec-template.md) | API 契约与状态机设计模板（任务 T02 的输入） | 模板就绪 |
-
-API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集、权限、状态机和抽检附录集中在 `docs/api/`。历史验证记录放在 `docs/archive/`。
-
-## 开发方式
-
-本项目采用 **Agent 开发 + 人工关卡**：所有编码会话以 `AGENTS.md` 为第一读取物（含"歧义即停"清单与测试先红后绿纪律），任务从 `docs/backlog.md` 认领，**合并权在人**。MVP 不做清单与 13 条架构预留（Agent / MCP 预留）见 AGENTS.md §7 与产品文档 §15–16。
-
-## 状态
-
-按 [backlog v2.0](./docs/backlog.md) 先跑通 okdata 的真实模型回答，再用 OKSocial 复现，随后验证发布后的变化。当前尚无真实行业闭环；T10规则、T14模型清单仍待审（T14工程实现PR #18已合并），真实探针未启用。
-
-- ✅ 产品设计定稿（v3.5）
-- ✅ 技术栈拍板：Next.js（App Router）+ astryx + Cloudflare Workers + Neon Postgres
-- ✅ T01 脚手架、T02 API 规格（t02_api_v1，人审冻结）、T03 测试红灯基线已合并
-- ✅ T04 数据库迁移与服务层开发 fixture 已合并（PR #6）
-- ✅ T05 权限/RLS/审计已合并（PR #7）；T06 审计由 T05 吸收完成
-- ✅ T07 种子表服务层 CRUD 与行业共享路径已合并（PR #8）
-- ✅ T08 生成语法面板已按负责人授权合并（PR #9）
-- ✅ T09 CSV 导入与模板下载已合并（PR #10）
-- ✅ T10 词池周批代码已合并（PR #11）；规则草案尚未冻结，真实周批默认关闭
-- ✅ T11 飙升信号与策略站内通知已合并（PR #12）；首轮真实试跑目标为工作室自营工具/产品。提供开发机本地演示登录，正式身份提供方接入仍待交付
-
-- ✅ T12 问句池管理已合并（PR #14），入口：`/library/questions`；本地Compose配置（PR #15）与词库弹窗布局（PR #16）已合并。
-- ✅ T13排期已合并（PR #17）；真实模型执行与结果页面仍待V1交付，不代表后台已经自动采样。
-- ✅ T37 全局应用框架已合并（PR #13）：顶栏、八组导航、独立路由和角色/品牌上下文；生成与导入已归词库。
+开发前读 [AGENTS.md](AGENTS.md)，复用既有服务与权限、审计、数据隔离；不直接写库，不自行合并。完整后台、固定机会评分和通用 Agent Runtime 后置。
 
 ## Setup
 
@@ -88,7 +43,7 @@ npm run doctor
 
 测试采用 Node 内置测试运行器；隔离关闭以适应本地受限环境。checks与product分开报告，只有两者全部通过才满足任务测试完成条件。
 
-T03 已建立真实服务层验收的红灯基线：`npm run test:checks`验证当前规格和静态架构守卫，`npm run test:product`运行产品硬规则及运行时鉴权检查，`npm test`包含两者。T05的 `tests/support/runtime-driver.mjs` 已连接真实服务操作，fixture通过同一普通连接与服务入口准备；用例与负责任务的映射见 `tests/rules/product-rule-cases.mjs`。R11按裁定读取机器周批分位，缺行/stale=data_pending且不得归档；审阅入口见 [T05 review](docs/t05-review.md)。
+测试通过只证明工程约束，不证明方法论有效。真实联调、Agent分析质量和发布后的效果分别留证；历史接线与测试背景按需从[归档](docs/archive/README.md)查阅。
 
 ## 数据库（T04）
 

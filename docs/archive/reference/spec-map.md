@@ -1,8 +1,8 @@
 # API 规格审阅地图
 
-> 当前方法论验证方向见[文档入口](README.md)。本文件是既有契约视图，不是研究启动前须全量实现的清单；本轮不变更冻结权限、状态机与采样口径。
+> 归档契约视图：当前工作从[文档入口](../../README.md)开始。本文件仅按需查阅，不是研究启动前须全量实现的清单；冻结权限、状态机与采样口径仍有效。
 
-> 状态：已冻结（t02_api_v1，产品负责人批准）。先审本页→[核心集](api/core-set.md)→[allow权限](api/permissions.csv)；[支撑件](api/generated/endpoints.md)默认抽检。
+> 状态：已冻结（t02_api_v1，产品负责人批准）。先审本页→[核心集](api/core-set.md)→[allow权限](../../api/permissions.csv)；[支撑件](api/generated/endpoints.md)默认抽检。
 
 ## 三层架构与资源归属
 

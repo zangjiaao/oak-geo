@@ -1,6 +1,6 @@
 # T05 人审入口
 
-> 历史依据／模板：原审批与当时状态保留，当前方向和排期见[文档入口](README.md)。本文件不要求先补齐旧详设；已批准的权限、状态与数据约束仍有效。
+> 历史依据／模板：原审批与当时状态保留，当前方向和排期见[文档入口](../../README.md)。本文件不要求先补齐旧详设；已批准的权限、状态与数据约束仍有效。
 
 状态：待负责人抽验，未合并。PR #7 堆叠于未合并的 PR #6；接线依据见 [t05-wiring.md](t05-wiring.md)，负责人原文见 [t02-decisions.md](t02-decisions.md)。请先抽查下表埋点与敏感读顺序，再看测试证据。
 
@@ -8,19 +8,19 @@
 
 | 埋点位置 | 行为与事务边界 | 对应硬约束 | 抽验入口 |
 |---|---|---|---|
-| `application.execute/authorizeRequest` | 每次调用固定六层：认证→租户→品牌/任务→allow→凭证/人工/合同档→业务；未知三键deny；写与审计同事务 | §4.1、§4.2 | [application](../src/server/api/application.mjs)、[authorization](../src/server/api/authorization.mjs)；A02逐注册操作正/负例 |
-| `audit-transaction.commitEvents` | 每个事件显式写actor_type/agent_run_id/prompt_version；只追加；异常回滚业务，commit后才交付 | §4.3 | [审计事务](../src/server/api/audit-transaction.mjs)；故障注入验证写入回滚及敏感读无数据返回 |
-| `question_pool/scoring_snapshot/probe_batch`服务 | 五溯源、冻结及批次写入均进统一审计；judge_version必填；批次固定词表与模型版本；原始回答只当数据 | §4.2、§4.3、§4.4 | [catalog](../src/server/api/catalog-handlers.mjs)、[sampling](../src/server/api/sampling-handlers.mjs)；R01/R14/R15/R19 |
-| `claim_block/decideQueue/queueObject` | 作者、对象、队列分别留痕；5种通用审核对象；同作者即使换成FactCheck也不得放自己的版本 | §4.2、§4.3、§4.5 | [content](../src/server/api/content-handlers.mjs)、[domain-common](../src/server/api/domain-common.mjs)；R08/R09/R16/R18及词表/口径驳回重提回归 |
-| `ctx.runJob/reconcileAsset` | 控制因果图只准注册子job，重新六层鉴权；system记job/触发事件，探针job带batch；状态逐跳记同cause，与父操作同事务 | §4.1、§4.2、§4.3 | [application](../src/server/api/application.mjs)、[domain-common](../src/server/api/domain-common.mjs)；不以job身份绕过权限 |
-| `probe_result.read_raw/access` | 先查询范围过滤，再读单条原文；Admin仅access且理由必填；审计提交成功后交付；普通read不投影raw_answer | §4.1、§4.3 | [sampling](../src/server/api/sampling-handlers.mjs)；敏感读故障注入、持有效无权凭证、来源/卡分派回归 |
-| `keyword_raw.read/read_raw` | C类摘要/原文访问逐对象审计；本轮C类导入关闭，等待T09脱敏管道 | §4.1、§4.3 | [catalog](../src/server/api/catalog-handlers.mjs)；禁止未脱敏数据借fixture入库 |
-| `operation_usage`与PAT元数据 | probe/judge/drafting独立计量，与业务同事务；按token限流；last_used_at用受控audit_middleware留痕 | §4.3、§4.6、§4.8 | [application](../src/server/api/application.mjs)；配额429、PAT限scope/撤销/限流回归 |
+| `application.execute/authorizeRequest` | 每次调用固定六层：认证→租户→品牌/任务→allow→凭证/人工/合同档→业务；未知三键deny；写与审计同事务 | §4.1、§4.2 | [application](../../../src/server/api/application.mjs)、[authorization](../../../src/server/api/authorization.mjs)；A02逐注册操作正/负例 |
+| `audit-transaction.commitEvents` | 每个事件显式写actor_type/agent_run_id/prompt_version；只追加；异常回滚业务，commit后才交付 | §4.3 | [审计事务](../../../src/server/api/audit-transaction.mjs)；故障注入验证写入回滚及敏感读无数据返回 |
+| `question_pool/scoring_snapshot/probe_batch`服务 | 五溯源、冻结及批次写入均进统一审计；judge_version必填；批次固定词表与模型版本；原始回答只当数据 | §4.2、§4.3、§4.4 | [catalog](../../../src/server/api/catalog-handlers.mjs)、[sampling](../../../src/server/api/sampling-handlers.mjs)；R01/R14/R15/R19 |
+| `claim_block/decideQueue/queueObject` | 作者、对象、队列分别留痕；5种通用审核对象；同作者即使换成FactCheck也不得放自己的版本 | §4.2、§4.3、§4.5 | [content](../../../src/server/api/content-handlers.mjs)、[domain-common](../../../src/server/api/domain-common.mjs)；R08/R09/R16/R18及词表/口径驳回重提回归 |
+| `ctx.runJob/reconcileAsset` | 控制因果图只准注册子job，重新六层鉴权；system记job/触发事件，探针job带batch；状态逐跳记同cause，与父操作同事务 | §4.1、§4.2、§4.3 | [application](../../../src/server/api/application.mjs)、[domain-common](../../../src/server/api/domain-common.mjs)；不以job身份绕过权限 |
+| `probe_result.read_raw/access` | 先查询范围过滤，再读单条原文；Admin仅access且理由必填；审计提交成功后交付；普通read不投影raw_answer | §4.1、§4.3 | [sampling](../../../src/server/api/sampling-handlers.mjs)；敏感读故障注入、持有效无权凭证、来源/卡分派回归 |
+| `keyword_raw.read/read_raw` | C类摘要/原文访问逐对象审计；本轮C类导入关闭，等待T09脱敏管道 | §4.1、§4.3 | [catalog](../../../src/server/api/catalog-handlers.mjs)；禁止未脱敏数据借fixture入库 |
+| `operation_usage`与PAT元数据 | probe/judge/drafting独立计量，与业务同事务；按token限流；last_used_at用受控audit_middleware留痕 | §4.3、§4.6、§4.8 | [application](../../../src/server/api/application.mjs)；配额429、PAT限scope/撤销/限流回归 |
 | `idempotency_record` | 24h同主体/操作/目标/键同载荷重放原响应；不再计业务配额/业务审计；变更载荷409；缓存AES-GCM加密，不存PAT明文 | §4.3、§4.6、§4.8 | 同上；额度用尽后原键重放仍成功，对象/计量/业务日志均一次 |
-| `cluster_score/metric_snapshot`及响应封装 | 分数只追加；样本不足null；每个响应含snapshot_id/data_as_of；不同快照/锚/问句ID集合返回422 incomparable且无delta | §4.4、§4.7 | [sampling](../src/server/api/sampling-handlers.mjs)；R02–R05/R10/R17 |
-| `api_token.create/revoke` | 只保存hash；Web/PAT同策略；请求不能自报角色或绕过标记；原文权限不因Admin/PAT升级 | §4.1、§4.3、§4.8 | [identity](../src/server/api/identity.mjs)、[content](../src/server/api/content-handlers.mjs)；真实PAT回归 |
-| `archive/appendMachinePercentiles` | 人工最终归档及证据、机器建议、机器分位各对象审计；Strategist不能写分位；缺行/stale观察、不归档 | §4.1、§4.2、§4.3 | [archive](../src/server/api/archive-handlers.mjs)、[机器投影](../src/server/api/industry-percentiles.mjs)；R11与新增data_pending负例 |
-| 安装/迁移、开发fixture | 仅schema/安装目录使用管理连接；fixture与call普通geo_app；安装身份仅配置入口，无原文万能权限 | §4.1、§4.3、§4.8 | [runtime环境](../tests/support/runtime-environment.mjs)、[开发fixture](../src/server/api/fixture-service.mjs)；RLS架构测试及T04集成 |
+| `cluster_score/metric_snapshot`及响应封装 | 分数只追加；样本不足null；每个响应含snapshot_id/data_as_of；不同快照/锚/问句ID集合返回422 incomparable且无delta | §4.4、§4.7 | [sampling](../../../src/server/api/sampling-handlers.mjs)；R02–R05/R10/R17 |
+| `api_token.create/revoke` | 只保存hash；Web/PAT同策略；请求不能自报角色或绕过标记；原文权限不因Admin/PAT升级 | §4.1、§4.3、§4.8 | [identity](../../../src/server/api/identity.mjs)、[content](../../../src/server/api/content-handlers.mjs)；真实PAT回归 |
+| `archive/appendMachinePercentiles` | 人工最终归档及证据、机器建议、机器分位各对象审计；Strategist不能写分位；缺行/stale观察、不归档 | §4.1、§4.2、§4.3 | [archive](../../../src/server/api/archive-handlers.mjs)、[机器投影](../../../src/server/api/industry-percentiles.mjs)；R11与新增data_pending负例 |
+| 安装/迁移、开发fixture | 仅schema/安装目录使用管理连接；fixture与call普通geo_app；安装身份仅配置入口，无原文万能权限 | §4.1、§4.3、§4.8 | [runtime环境](../../../tests/support/runtime-environment.mjs)、[开发fixture](../../../src/server/api/fixture-service.mjs)；RLS架构测试及T04集成 |
 
 ## RLS 与权限抽验
 

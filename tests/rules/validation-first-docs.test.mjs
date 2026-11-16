@@ -16,7 +16,7 @@ test('验证入口覆盖证据链、Agent分工和未批准参数的边界', () 
 
 test('所有文档入口明确当前方向或历史边界，本地文件链接有效', () => {
   const walk = dir => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]);
-  for (const file of walk('docs').filter(p => p.endsWith('.md') && p !== 'docs/archive/GEO产品文档-v3.5.md')) {
+  for (const file of ['README.md', ...walk('docs').filter(p => p.endsWith('.md') && p !== 'docs/archive/GEO产品文档-v3.5.md')]) {
     const content = read(file);
     if (file !== 'docs/README.md') assert.match(content.slice(0, 1600), /README\.md/, file);
     for (const [, link] of content.replace(/```[\s\S]*?```/g, '').matchAll(/\[[^\]]*\]\(([^\s)]+)\)/g)) {
@@ -33,4 +33,14 @@ test('方法论重排保留全部既有数据模型与硬规则，不解除正�
   const dataAndRules = text => text.split('## 18. 表结构')[1].split('# 决策记录与待定')[0];
   assert.equal(dataAndRules(current), dataAndRules(legacy));
   for (const text of ['每簇 3 问句 × 4 模型 × 温度 0/0.7 × 3 轮', 'demand_tier', 'demand_source', 'approved official_fact', '不通过研究标签绕过服务校验']) assert.ok(current.includes(text), text);
+});
+
+test('当前阅读路径仅保留验证文档，历史详设物理归档', () => {
+  const active = readdirSync('docs').filter(p => p.endsWith('.md')).sort();
+  assert.deepEqual(active, ['GEO产品文档.md', 'README.md', 'api-spec.md', 'backlog.md'].sort());
+  for (const name of ['api-spec-template.md', 'spec-map.md', 't02-decisions.md', 't05-wiring.md', 't05-review.md', 't07-review.md', 'api/core-set.md', 'api/states.md', 'api/generated/endpoints.md']) {
+    assert.ok(existsSync(`docs/archive/reference/${name}`), name);
+  }
+  assert.ok(read('docs/api-spec.md').split('\n').length < 25);
+  for (const name of ['contracts.json', 'permissions.csv']) assert.ok(existsSync(`docs/api/${name}`));
 });

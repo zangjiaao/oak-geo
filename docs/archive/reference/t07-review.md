@@ -1,6 +1,6 @@
 # T07 简报
 
-> 历史依据／模板：原审批与当时状态保留，当前方向和排期见[文档入口](README.md)。本文件不要求先补齐旧详设；已批准的权限、状态与数据约束仍有效。
+> 历史依据／模板：原审批与当时状态保留，当前方向和排期见[文档入口](../../README.md)。本文件不要求先补齐旧详设；已批准的权限、状态与数据约束仍有效。
 
 状态：待人审，PR #8未合并。基于已合并PR #6/#7的main，新分支task/t07-seed-management；T06已按负责人确认记done，产品决策记录仅追加指定一行。
 
@@ -14,10 +14,10 @@
 
 | 文件组 | 改动 |
 |---|---|
-| [seed-handlers](../src/server/api/seed-handlers.mjs)、catalog/domain/provisioning | 三个种子操作集中实现，删除T04/T05旧种子写路径；复用固定六层权限、事务审计、幂等与分页 |
-| [0009迁移](../migrations/0009_seed_lifecycle.sql) | NULL→active逐行审计、非空默认/CHECK；logical_id/previous_id版本链；旧记录按行业/类型/公共词根串联；数据库禁止改删历史 |
-| [功能测试](../tests/rules/t07-seeds.test.mjs)、[迁移回放](../tests/db/seed-lifecycle.test.mjs) | CRUD/校验/跨租户共享权限与隐私、旧NULL迁移及数据库不可变回归 |
-| [共享投影](../src/server/api/shared-industry.mjs) | 聚合平面保持原有公共词根/数值白名单，不携带维护人；管理字段只在鉴权种子管理接口返回，并拦截夹带已知客户标识 |
+| [seed-handlers](../../../src/server/api/seed-handlers.mjs)、catalog/domain/provisioning | 三个种子操作集中实现，删除T04/T05旧种子写路径；复用固定六层权限、事务审计、幂等与分页 |
+| [0009迁移](../../../migrations/0009_seed_lifecycle.sql) | NULL→active逐行审计、非空默认/CHECK；logical_id/previous_id版本链；旧记录按行业/类型/公共词根串联；数据库禁止改删历史 |
+| [功能测试](../../../tests/rules/t07-seeds.test.mjs)、[迁移回放](../../../tests/db/seed-lifecycle.test.mjs) | CRUD/校验/跨租户共享权限与隐私、旧NULL迁移及数据库不可变回归 |
+| [共享投影](../../../src/server/api/shared-industry.mjs) | 聚合平面保持原有公共词根/数值白名单，不携带维护人；管理字段只在鉴权种子管理接口返回，并拦截夹带已知客户标识 |
 | tests/support/fixture-registry.mjs | fixture消费服务返回的版本；A02为新增实现的既有revise端点准备真实合法请求，协议/断言不改 |
 | 原T04/T05/T02测试 | T04过渡NULL/禁止状态输入预期由新默认及未知状态拒绝接管；产品字节守卫只豁免负责人指定T06决策行；docs只为授权的本简报扩容 |
 | backlog、t02-decisions、产品文末记录 | T06 done、合并记录、T07范围/状态草案；产品其余字节不改 |
