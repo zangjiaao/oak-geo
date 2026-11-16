@@ -45,14 +45,14 @@ export default async function WorkspacePage({
   const selection = selectWorkspace(session, await searchParams);
   const href = (next: string) => workspaceHref(next, selection);
   if(path==='/onboarding') redirect('/welcome'+(selection.brand?'?brand='+encodeURIComponent(selection.brand.id):''));
-  if(path==='/'&&session&&['owner','strategist'].includes(session.role)&&(session.role==='strategist'||session.mode!=='diagnosis')&&selection.brand&&!(selection.brand as {has_profile?:boolean}).has_profile) redirect('/welcome?brand='+encodeURIComponent(selection.brand.id));
+  if(path==='/'&&session&&['owner','strategist'].includes(session.role)&&(session.role==='strategist'||session.mode!=='diagnosis')&&selection.brand&&!(selection.brand as {setup_complete?:boolean}).setup_complete) redirect('/welcome?brand='+encodeURIComponent(selection.brand.id));
   const knowledgeVisible=!session||["owner","editor","viewer","strategist","factcheck"].includes(session.role);
   const primaryHref=knowledgeVisible?href("/knowledge"):href(session?.role==="admin"?"/settings/members":"/diagnosis");
   let content;
   if (!selection.valid) {
     content = (
       <EmptyState
-        title="该品牌或行业不在当前可见范围"
+        title="该品牌不在当前可见范围"
         actions={<Link href={path}>清除筛选</Link>}
         headingLevel={1}
       />

@@ -79,7 +79,7 @@ test('T43 新增品牌HTTP保持登录、同源、幂等、请求大小和单次
   assert.equal((await send(undefined,{origin:'https://other.test'})).status,403);
   assert.equal((await send(undefined,{'idempotency-key':''})).status,422);
   assert.equal((await send(undefined,{},'{')).status,422);
-  assert.equal((await send(undefined,{},'x'.repeat(33000))).status,422);
+  assert.equal((await send(undefined,{},'x'.repeat(131073))).status,422);
   const first=await send();assert.equal(first.status,200);const created=(await first.json()).data;
   assert.equal((await (await send()).json()).data.id,created.id);
   ok(await profile(app,f.actors.owner,f.tenant_id,created.id));

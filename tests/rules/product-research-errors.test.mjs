@@ -51,5 +51,6 @@ test('公开工具失败与JSON/引用校验错误可以区分，错误正文不
   await options.tools.search_sources.execute({query:'测试'});await options.tools.read_page.execute({url:input.website});
   return {text:JSON.stringify({summary:'测试',facts:[{category:'spec',text:'不支持的陈述',evidence:[{source_id:'source-1',quote:'不存在的摘录'}]}],conflicts:[],unknowns:[]}),response:{},totalUsage:{}};
  };
- await assert.rejects(()=>createProductResearchAgent({apiKey:'test-only',generate:badQuote,fetch}).run(input),error=>{assert.match(describeResearchFailure(error),/来源.*校验/);return true;});
+ const draft=await createProductResearchAgent({apiKey:'test-only',generate:badQuote,fetch}).run(input);
+ assert.match(draft.facts[0].issues.join(' '),/来源或摘录/);
 });

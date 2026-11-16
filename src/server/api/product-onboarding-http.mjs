@@ -2,8 +2,9 @@ import { ServiceError, permission, validation } from "./errors.mjs";
 import { requestCredential } from "./seed-http.mjs";
 import { sameOriginRequest } from "./http-origin.mjs";
 import { describeResearchFailure, researchFailure } from "./product-research-errors.mjs";
+import { publicProductUrl } from "./product-profile.mjs";
 
-export async function executeProductResearch(runtime, actor, params, runId) {
+export async function executeProductResearch(runtime, actor, params, runId, options = {}) {
   const application = runtime.application;
   const job = application.issueActor({
     user_id: "job-product-research",
@@ -30,6 +31,8 @@ export async function executeProductResearch(runtime, actor, params, runId) {
     if (claim.data.input_changed) throw researchFailure("input_changed", "evidence");
     result = await runtime.productResearchAgent.run(claim.data.input, {
       runId,
+      signal: options.signal,
+      onProgress: options.onProgress,
     });
   } catch (cause) {
     error = describeResearchFailure(cause);
@@ -67,6 +70,56 @@ export async function executeProductResearch(runtime, actor, params, runId) {
       );
   }
 }
+function researchEvents(runtime, actor, params, runId, requestSignal, meta) {
+  const encoder = new TextEncoder(), abort = new AbortController();
+  let closed = false;
+  const cancel = () => abort.abort(new DOMException("调查已停止", "AbortError"));
+  requestSignal.addEventListener("abort", cancel, { once: true });
+  if (requestSignal.aborted) cancel();
+  const body = new ReadableStream({
+    async start(controller) {
+      const send = (event) => {
+        if (closed) return;
+        try { controller.enqueue(encoder.encode("data:" + JSON.stringify({ ...event, meta: event.meta ?? meta }) + "\n\n")); }
+        catch { closed = true; cancel(); }
+      };
+      try {
+        send({ type: "started", run_id: runId });
+        await executeProductResearch(runtime, actor, params, runId, {
+          signal: abort.signal,
+          onProgress(event) {
+            if (!['model', 'search', 'fetch'].includes(event?.kind) ||
+                !['started', 'completed', 'failed'].includes(event?.phase)) return;
+            const activity = { kind: event.kind, phase: event.phase, at: event.at };
+            if (typeof event.query === 'string') activity.query = event.query.slice(0, 128);
+            if (typeof event.url === 'string') {
+              try { activity.url = publicProductUrl(event.url); } catch {}
+            }
+            if (Number.isInteger(event.count) && event.count >= 0 && event.count <= 50) activity.count = event.count;
+            if (typeof event.message === 'string') activity.message = event.message.slice(0, 250);
+            send({ type: "activity", activity });
+          },
+        });
+        const result = await runtime.application.call("product_profile.read", { actor, params });
+        if (result.status !== 200) throw new Error("result_unavailable");
+        send({ type: "result", data: result.data, meta: result.meta });
+      } catch {
+        send({ type: "error", message: "调查连接未能完成，请刷新查看已保存的进度。" });
+      } finally {
+        requestSignal.removeEventListener("abort", cancel);
+        try { await runtime.close(); }
+        finally {
+          if (!closed) { closed = true; controller.close(); }
+        }
+      }
+    },
+    cancel() { closed = true; cancel(); },
+  });
+  return new Response(body, { headers: {
+    "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store, no-transform",
+    "x-accel-buffering": "no",
+  } });
+}
 export function createProductOnboardingTransport(runtimeFactory) {
   return async (request) => {
     let runtime;
@@ -75,7 +128,7 @@ export function createProductOnboardingTransport(runtimeFactory) {
       const url = new URL(request.url);
       const create = url.pathname.match(/^\/api\/tenants\/([^/]+)\/brands\/create$/);
       const match = create ? [create[0], create[1], undefined, "create"] : url.pathname.match(
-        /^\/api\/tenants\/([^/]+)\/brands\/([^/]+)\/product-profile(?:\/(save|investigate|confirm)|\/facts\/([^/]+)\/approve)?$/,
+        /^\/api\/tenants\/([^/]+)\/brands\/([^/]+)\/product-profile(?:\/(save|investigate|confirm|revise)|\/facts\/([^/]+)\/approve)?$/,
       );
       if (
         !match ||
@@ -99,7 +152,7 @@ export function createProductOnboardingTransport(runtimeFactory) {
         if (!request.headers.get("idempotency-key"))
           throw validation("提交需要幂等标识");
         const bytes = await request.text();
-        if (Buffer.byteLength(bytes) > 32768) throw validation("产品资料过大");
+        if (Buffer.byteLength(bytes) > 131072) throw validation("产品资料过大");
         try {
           body = JSON.parse(bytes);
         } catch {
@@ -134,6 +187,11 @@ export function createProductOnboardingTransport(runtimeFactory) {
         operation === "product_profile.investigate" &&
         response.status === 200
       ) {
+        if (request.headers.get("accept")?.includes("text/event-stream")) {
+          const owner = runtime;
+          runtime = null;
+          return researchEvents(owner, actor, params, response.data.id, request.signal, response.meta);
+        }
         await executeProductResearch(runtime, actor, params, response.data.id);
         response = await runtime.application.call("product_profile.read", {
           actor,

@@ -45,7 +45,7 @@ const conditions = (role,e) => {
  if(['owner','editor','viewer'].includes(role)){if(e.id==='brand.create')rules.push('self_owner_assignment_only');else if(e.resource!=='user_member')rules.push('own_brand');rules.push('diagnosis_readonly_except_objection_create');}
  if(['content','evidence'].includes(role))rules.push('assigned_opportunity_cluster_source');
  if(e.method==='POST'&&['owner','editor','viewer'].includes(role)&&e.id!=='objection.create')rules.push(e.id==='brand.create'?'mode_not_diagnosis':'mode_full');
- if(['approve','grant','confirm','retire','upgrade_anchor','cleanup','delete'].includes(e.operation)||['brand.create','product_profile.save','product_profile.investigate'].includes(e.id))rules.push('human_decision');
+ if(['approve','grant','confirm','retire','upgrade_anchor','cleanup','delete'].includes(e.operation)||['brand.create','product_profile.save','product_profile.revise','product_profile.investigate'].includes(e.id))rules.push('human_decision');
  if(e.resource!=='product_profile'&&['revise','submit','withdraw'].includes(e.operation))rules.push('author_self_when_object_authored');
  if(e.operation==='approve'&&['claim_block','evidence_package','diagnosis_report','review_queue','official_fact'].includes(e.resource))rules.push('not_author');
  if(e.resource==='backflow_ticket'&&e.operation==='complete')rules.push('assigned_user_self');
@@ -66,7 +66,14 @@ const conditions = (role,e) => {
 };
 for(const e of d.endpoints)if(JSON.stringify(e.risk_tags)!==JSON.stringify(requiredReviewRisks(e)))throw new Error(`Risk routing stale: ${e.id}`);
 const rows=['# 未出现 (role, resource, operation) allow 行即 deny','role,resource,operation,effect,scope,basis,conditions'];
+const permissionTriples=new Map();
 for(const e of d.endpoints)for(const role of e.grants){
+ const triple=[role,e.resource,e.operation].join(':'), policy=[scope(role,e),conditions(role,e)].join(':');
+ if(permissionTriples.has(triple)){
+  if(permissionTriples.get(triple)!==policy)throw new Error(`Conflicting endpoint policies: ${triple}`);
+  continue;
+ }
+ permissionTriples.set(triple,policy);
  rows.push([role,e.resource,e.operation,'allow',scope(role,e),('产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3'+(['brand_lexicon','official_fact'].includes(e.resource)?';裁定v4':'')+(e.amendment_id?';裁定'+e.amendment_id+(e.amendment_id==='T41'?'草稿删除授权':'功能授权'):'')),conditions(role,e)].join(','));
 }
 emit('docs/api/permissions.csv',rows.join('\n')+'\n');

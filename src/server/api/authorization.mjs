@@ -22,6 +22,7 @@ export const ownerWorkspaceCredential = (principal) =>
 const humanDecisions = new Set([
   "brand.create",
   "product_profile.save",
+  "product_profile.revise",
   "product_profile.investigate",
   "product_profile.confirm",
   "intent_cluster.archive",
