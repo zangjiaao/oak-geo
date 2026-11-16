@@ -4,6 +4,7 @@ import { createIdentityAuthority } from "./identity.mjs";
 import { requestCredential } from "./seed-http.mjs";
 import { readWorkspaceContext } from "./workspace-context.mjs";
 import { productionModelCapabilities } from "./probe-model-candidates.mjs";
+import { createTrendSourceClient } from "./trend-source-client.mjs";
 
 async function bindings() {
   let cf = {};
@@ -34,6 +35,7 @@ export async function createWorkerRuntime(credential) {
       secret: env.GEO_SESSION_SECRET,
       publicRootCatalog,
       modelCapabilities: productionModelCapabilities,
+      fetchTrendSource: createTrendSourceClient({ apiKey: env.SERPAPI_API_KEY }),
       loadWeeklyPolicy: async () => JSON.parse(env.GEO_WEEKLY_POLICY_RECORD || "null"),
       loadIndustryPopulation: async ({ industry, window }) =>
         JSON.parse(env.GEO_INDUSTRY_POPULATIONS || "[]").find((record) =>

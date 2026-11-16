@@ -979,11 +979,13 @@ export function createFixtureRegistry(
       }
       const f = await base(),
         c = await cluster(f, {
-          freeze: id !== "question_pool.freeze",
+          freeze: !["question_pool.freeze", "question_pool.delete"].includes(id),
           anchor: false,
         });
       if (id === "question_pool.read")
         return request(f.actors.strategist, {}, { id: c.questionIds[0] });
+      if (id === "question_pool.delete")
+        return request(f.actors.strategist, {confirmed:true,question_pool_version:c.version}, {id:c.questionIds[0]});
       if (id === "question_pool.archive")
         return request(f.actors.strategist, {cluster_id:c.id,question_pool_version:c.version,reason:"版本退役"});
       if (id === "question_pool.revise")

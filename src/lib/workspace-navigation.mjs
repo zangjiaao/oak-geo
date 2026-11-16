@@ -132,7 +132,8 @@ export function pageVisible(page, session) {
 export function navigationFor(session) {
   /** @type {{label: string, items: (typeof workspacePages)[number][]}[]} */
   const groups = [];
-  for (const page of workspacePages.filter((p) => pageVisible(p, session))) {
+  for (const page of workspacePages.filter((p) =>
+    !["/library/generation", "/library/import"].includes(p.path) && pageVisible(p, session))) {
     let group = groups.find((g) => g.label === page.group);
     if (!group) groups.push((group = { label: page.group, items: [] }));
     group.items.push(page);

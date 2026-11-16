@@ -58,6 +58,7 @@
     "configure",
     "confirm",
     "create",
+    "delete",
     "excerpt",
     "execute",
     "expire",
@@ -3549,6 +3550,37 @@
       "risk_tags": [
         "judge_input"
       ]
+    },
+    {
+      "id": "question_pool.delete",
+      "resource": "question_pool",
+      "operation": "delete",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/{bid}/question-pools/{id}/delete",
+      "semantic": "write",
+      "destructive": true,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "question_pool.delete",
+      "request": {
+        "confirmed": true,
+        "question_pool_version": 1
+      },
+      "response": {
+        "id": "q_draft_1",
+        "deleted": true,
+        "question_pool_version": 1
+      },
+      "validation": "仅human Strategist；confirmed=true且版本与对象一致；整个品牌版本未冻结/未归档；簇未锚定该版本；无probe、question_score或probe_batch固定question_id引用；缺确认422，冻结/归档/引用或版本冲突409",
+      "side_effects": "仅删除该未入测草稿；同事务审计保留tenant/brand/cluster/source/version标识，不含问句原文；幂等重放仍经过实时鉴权，其他问句、来源与历史版本不变",
+      "grants": [
+        "strategist"
+      ],
+      "system_job": null,
+      "risk_tags": [
+        "C_data"
+      ],
+      "amendment_id": "T41"
     }
   ],
   "states": {
@@ -4565,7 +4597,8 @@
       "brand_lexicon.submit",
       "official_fact.create",
       "official_fact.approve",
-      "official_fact.retract"
+      "official_fact.retract",
+      "question_pool.delete"
     ],
     "resource_layers": {
       "需求层": [
@@ -4789,5 +4822,19 @@
     "source_commit": "a9464b5d93e514edd1b10a2988fc7dee995d0158",
     "recorded_at": "2026-11-10T08:07:03.154Z",
     "content_sha256": "a79a9ad183ea78a7a15655830681826afa7005cd2c72165cb622883a595303d1"
-  }
+  },
+  "amendments": [
+    {
+      "id": "T41",
+      "status": "pending_review",
+      "authorization": "负责人批准：未冻结且未被引用的问句草稿允许删除；种子默认仅显示启用项（2026-11-16）",
+      "endpoint_ids": [
+        "question_pool.delete"
+      ],
+      "added_operations": [
+        "delete"
+      ],
+      "added_allow_rows": 1
+    }
+  ]
 }

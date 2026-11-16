@@ -104,6 +104,8 @@
 | open → frozen | freeze | strategist | 五字段完整 | 审计并执行关联副作用 |
 | frozen → archived | archive | strategist | 仍保留只读原文/历史锚定；停止新锚定 | 审计并执行关联副作用 |
 
+T41补充草案：open中的单条问句未被引用时可经显式question_pool.delete移除；不新增deleted状态。frozen/archived及已锚定或被批次/评分引用的问句均不可删；不改变其他行的版本状态。接口细节待本PR人审。
+
 ## scoring_snapshot
 
 状态：`open` / `frozen`。终态：frozen。

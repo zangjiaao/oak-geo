@@ -245,3 +245,4 @@ evidence,official_fact,read,allow,assigned_object,产品文档§9.3;裁定一轮
 strategist,official_fact,create,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定v4,tenant_match;pat_intersection;actor_role_policy;endpoint_validation
 factcheck,official_fact,approve,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定v4,tenant_match;pat_intersection;actor_role_policy;human_decision;not_author;endpoint_validation
 factcheck,official_fact,retract,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定v4,tenant_match;pat_intersection;actor_role_policy;endpoint_validation
+strategist,question_pool,delete,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定T41草稿删除授权,tenant_match;pat_intersection;actor_role_policy;human_decision;endpoint_validation

@@ -5,6 +5,7 @@ import { importAuthorization, redactImportText } from "./import-redaction.mjs";
 import { required, event } from "./domain-common.mjs";
 import { validation, permission } from "./errors.mjs";
 import { canonicalJson } from "./canonical-json.mjs";
+import { prepareTrendImport } from "./trend-source-service.mjs";
 
 const aliases = {
   关键词: "keyword",
@@ -49,6 +50,7 @@ function payload(value) {
 }
 async function records(ctx) {
   const b = ctx.body;
+  if (b.source_query || b.trend_import) return prepareTrendImport(ctx);
   if (b.csv != null && b.csv_ref != null)
     throw validation("CSV内容与引用只能选择一种");
   if (b.csv == null && b.csv_ref == null) {
@@ -86,7 +88,7 @@ async function records(ctx) {
     ),
   };
 }
-function prepare(ctx, row, auth) {
+function prepare(ctx, row, auth, trendSource = false) {
   const b = ctx.body;
   if (row.invalid) throw validation("CSV列数不匹配");
   if (row.channel && row.channel.trim() !== b.channel)
@@ -96,6 +98,8 @@ function prepare(ctx, row, auth) {
   required(row, ["keyword"]);
   if (typeof row.keyword !== "string") throw validation("关键词必须为文本");
   const raw = payload(row.raw_payload);
+  if (raw.trend_source && !trendSource)
+    throw validation("趋势来源字段必须经来源导入入口校验");
   const policy = auth?.redaction_policy;
   let sourceId;
   if (!policy) {
@@ -325,7 +329,7 @@ export function keywordImportHandlers() {
         try {
           prepared.push({
             number: i + 2,
-            record: prepare(ctx, source.rows[i], auth),
+            record: prepare(ctx, source.rows[i], auth, Boolean(source.summary)),
           });
         } catch (error) {
           if (source.single) throw error;
@@ -383,6 +387,7 @@ export function keywordImportHandlers() {
         record_results,
         truncated: prepared.length > 20,
         normalization_version: normalizationVersion,
+        ...(source.summary ? { source_summary: source.summary } : {}),
       };
       return {
         data,

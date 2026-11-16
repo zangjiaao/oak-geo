@@ -84,6 +84,7 @@ export async function readWorkspaceContext({
       id: result.data.id,
       name: result.data.name,
       industry: result.data.industry,
+      market: result.data.market,
     });
   }
   return {
