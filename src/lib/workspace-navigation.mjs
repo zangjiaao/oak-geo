@@ -51,7 +51,6 @@ export const workspacePages = Object.freeze([
     label: "CSV 导入",
   },
   { path: "/library/questions", group: "词库", label: "问句池" },
-  { path: "/library/trends", group: "词库", label: "来源分析" },
   {
     path: "/library/snapshots",
     group: "词库",
@@ -117,8 +116,6 @@ export function pageVisible(page, session) {
     return ["strategist", "factcheck", "cs", "content", "evidence"].includes(
       session.role,
     );
-  if (page.path === "/library/trends")
-    return ["strategist", "factcheck", "cs"].includes(session.role);
   if (page.group === "设置") return session.role === "admin";
   if (page.group === "词库") return staff;
   if (page.path === "/content/reviews") return session.role === "factcheck";
@@ -135,7 +132,8 @@ export function pageVisible(page, session) {
 export function navigationFor(session) {
   /** @type {{label: string, items: (typeof workspacePages)[number][]}[]} */
   const groups = [];
-  for (const page of workspacePages.filter((p) => pageVisible(p, session))) {
+  for (const page of workspacePages.filter((p) =>
+    !["/library/generation", "/library/import"].includes(p.path) && pageVisible(p, session))) {
     let group = groups.find((g) => g.label === page.group);
     if (!group) groups.push((group = { label: page.group, items: [] }));
     group.items.push(page);

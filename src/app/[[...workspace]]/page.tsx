@@ -4,7 +4,7 @@ import {
 } from "@/components/QuestionPoolPanel";
 import { readQuestionWorkbench } from "@/server/api/question-workbench.mjs";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -17,9 +17,8 @@ import {
   WorkspaceShell,
   type WorkspaceSession,
 } from "@/components/WorkspaceShell";
-import { GenerationPanel } from "@/components/GenerationPanel";
+import { SeedWorkbench } from "@/components/SeedWorkbench";
 import { CsvImportPanel } from "@/components/CsvImportPanel";
-import { TrendSourcePanel } from "@/components/TrendSourcePanel";
 import {
   pageVisible,
   selectWorkspace,
@@ -94,24 +93,21 @@ export default async function WorkspacePage({
       </>
     );
   } else if (path === "/library/generation") {
+    redirect(href("/library/seeds"));
+  } else if (path === "/library/seeds") {
     content = (
       <>
         <PageHeading
-          title="生成语法"
-          description="按模板组合候选词，仅许可公共词根可入库。"
+          title="种子表管理"
+          description="维护行业词根，扩展检索词并采集需求信号。"
         />
-        <GenerationPanel
+        <SeedWorkbench
           key={selection.industry}
           session={session}
           industry={selection.industry}
+          market={session?.brands.find(b => b.id === selection.brand?.id)?.market ?? "CN"}
+          importHref={href("/library/import")}
         />
-      </>
-    );
-  } else if (path === "/library/trends") {
-    content = (
-      <>
-        <PageHeading title="来源分析" description="Google Trends 与百度指数按地域、时间和口径分别查看。" />
-        <TrendSourcePanel key={selection.industry} session={session} industryContext={selection.industry} />
       </>
     );
   } else if (path === "/library/import") {
@@ -146,9 +142,7 @@ export default async function WorkspacePage({
               "admin",
             ].includes(session.role) ? (
               <HStack gap={4} wrap="wrap">
-                <Link href={href("/library/generation")}>生成语法</Link>
-                <Link href={href("/library/import")}>CSV 导入</Link>
-                <Link href={href("/library/trends")}>来源分析</Link>
+                <Link href={href("/library/seeds")}>种子表管理</Link>
               </HStack>
             ) : (
               <Link href={href("/diagnosis")}>查看诊断</Link>

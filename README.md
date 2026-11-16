@@ -233,13 +233,13 @@ await application.call("probe_batch.create", {
 
 Web/PAT薄HTTP已接 `POST /api/tenants/{tid}/probe-batches`、`GET /api/tenants/{tid}/probe-batches/{id}`、`POST /api/tenants/{tid}/probe-batches/{id}/cancel`；不开放集合、内部队列或原始回答。Web写同源，角色与PAT scopes由原服务校验。`src/server/jobs/probe-scheduler.mjs`接受已签名event_schedule身份和准备好的请求，只调用服务；启用前须配置持久dead-letter与告警接收器，5xx整单指数退避≤3次，4xx不重试。
 
-## V1 来源分析（T38，待人审）
+## V1 行业种子与采集流程（T38，待人审）
 
-入口：`/library/trends`（词库 → 来源分析）。可先不登录，上传 Google Trends / 百度指数 CSV 查看各关键词走势、最新可用指数及最低/最高值；保存与实时取数需 `npm run dev:login` 登录策略账号并选择行业。已保存序列刷新后仍可查询。当前不生成需求档位、意图结论或 GEO 分数。
+入口：`/library/seeds`（词库 → 种子表管理）。登录并选择品牌后，自动加载该品牌行业已配置的公共种子。策略可添加/修订词根、查看版本，点行内“扩词”预览模板结果，勾选后“采集所选词”；也可直接采集种子。扩出的检索词可进入本租户私有采集；只有许可词可另存行业共享种子，二者互不混用。行业没有种子时明确提示，不用虚构词补齐。独立“来源分析”页面已删除，生成语法与CSV不再各占主菜单。
 
-Google 实时取数：在服务端 `.dev.vars` 配置 `SERPAPI_API_KEY`，重启 `npm run dev`；点击“获取 Google Trends”，填1–5个关键词、地域、起止日期，再“获取并保存”。一次操作调用一次 SerpAPI（可能计费），失败不自动重试；成功请求的相同 Idempotency-Key 重放不重复取数。密钥不进浏览器或来源链接。本次仅验证协议与模拟传输，尚未使用真实凭证联调。
+Google 实时取数：在服务端 `.dev.vars` 配置 `SERPAPI_API_KEY`，重启 `npm run dev`；在种子行点“采集”，或从扩词预览点“采集所选词”，确认地域、起止日期后“开始采集”。每次1–5词，检索词由服务端按所选种子/扩词重新计算，客户端无需重填。一次操作调用一次 SerpAPI（可能计费），失败不自动重试；成功请求的相同 Idempotency-Key 重放不重复取数。密钥不进浏览器或来源链接。本次仅验证协议与模拟传输，尚未使用真实凭证联调。
 
-文件无需改成 T09 模板，支持 UTF-8 / 带 BOM 的 UTF-16 CSV：
+取数失败或暂未配置接口时，在同一采集弹窗切换“CSV 补录”。文件必须匹配本次所选词，服务端校验后经T09入库；不必重排T09模板。支持 UTF-8 / 带 BOM 的 UTF-16 CSV：
 
 - Google Trends：可带类别等前置说明；表头 `Day/Week/Month` 或 `日期/周/月份`，后接 `关键词: (地域)`；日期支持 `YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY-MM`、`YYYY-MM-DD - YYYY-MM-DD`。
 - 百度指数：`日期,关键词,整体搜索指数,PC搜索指数,移动搜索指数`，按所选口径取列；或 `日期,词A,词B` 宽表。只有 `日期,搜索指数` 时另填关键词。未知导出结构明确报错，待实际文件补映射。
@@ -247,3 +247,7 @@ Google 实时取数：在服务端 `.dev.vars` 配置 `SERPAPI_API_KEY`，重启
 来源、地域、比较词组、请求窗口及指数口径分别保留；Google的相对热度不跨查询直接比较，不与百度指数混算。`<1`与缺失保留为null并保留原显示值，真实0保留0；来源标出的未完整周期不参与描述统计。`statistics_window`是已返回时间点的起止锚点，周/月原始周期标签另保留在每点 `period_label`。每次采集每词写一条A类观测，完整历史曲线留在其 `raw_payload.trend_source`，不冒充逐日采集或真实用户问句。
 
 实时路径按 [SerpAPI 官方 Timeseries 文档](https://serpapi.com/google-trends-interest-over-time)接入；[Google 官方 Trends API](https://developers.google.com/search/apis/trends)仍为申请制 alpha。百度指数实时接入等待负责人提供所购服务的具体授权接口文档；当前不猜5118地址，也不使用登录cookie或自建爬虫。
+
+保存后可在种子行“更多 → 采集记录”查看时间序列与来源种子版本；“采集记录”可查该行业历史，刷新和种子修订均保留证据。扩词、采集、编辑与版本历史均由弹窗承载；审核/CS只读。旧 `/library/generation` 地址保留上下文跳转种子表，通用CSV作为“其他来源补录”保留。
+
+本次只接通行业种子→扩词→采集→证据回看。T10分档规则尚未冻结，真实周批仍关闭；SERP取证与真实问句确认继续由T19/T39接通，本轮不把扩词或趋势词自动当测量问句，不生成需求档位、意图结论或GEO分数。

@@ -425,3 +425,11 @@ T11按现有14天/两周条件落地来源趋势证据、候选预筛、策略�
 > 已有账号，稍后配置凭证或提供接口文档地址
 
 T38实现草案随PR人审：复用 `keyword_raw.import` 的 `source_query`（SerpAPI查询）或 `trend_import`（原始CSV及来源/地域/指数口径/采集时间）互斥输入，仅A类；复用 `keyword_raw.read` 的 `view=trends/trend_points` 游标投影。不增加端点、角色、状态或表；原权限与审计不变。每词每次采集一行，`raw_payload.trend_source` 保留 provider/geo/metric/acquisition/comparison_keywords/request_window/statistics_window/points/summary，source_id 纳入来源与归一化上下文，避免跨来源、地域、比较词组和窗口混算。该草案不自行冻结契约，也不启用T10真实周批或T14真实探针；百度实时API待具体文档，测试传输不算真实联调。
+
+## T38 行业管道入口纠偏（2026-11-16）
+
+负责人指出独立“来源分析”页面突兀，要求融入“行业种子→哥飞词根法扩词→趋势采集/分析→搜索取证→真实提问→问句确认”的业务流程，并明确答复“是的，你分析的没错，开始改吧”。据此撤去独立来源页，扩词与补录收回④种子表管理，以行内动作和弹窗承载；不将后台技术步骤逐个变成菜单。
+
+实现草案续补：现有source_query/trend_import可带seed_context（seed_ids，或generation配置与selected_keywords）；服务端校验同一行业、公共许可、当前active版本及扩词集合后派生检索词，保存种子id/logical_id/seed_version与模板溯源。read趋势视图可按seed_id/seed_logical_id过滤，历史记录不因种子修订消失。品牌market沿用已授权brand.read结果，仅作采集地域的可编辑默认值。接口、角色、状态与冻结文件不变；T10真实周批、T19搜索证据、T39真实问句和真实模型批准仍按原边界推进，不将本次入口调整记作整个V1完成。
+
+边界说明：公共词根许可约束共享seed_list写入；从合法种子模板扩出的词可走既有Strategist keyword_raw.import权限做本租户私有采集，无需逐词扩充共享目录。共享种子的T08准入与人审确认逻辑保持不变。
