@@ -1,6 +1,8 @@
 # API 规格审阅地图
 
-> 状态：已冻结（t02_api_v1，产品负责人批准）。先审本页→[核心集](api/core-set.md)→[allow权限](api/permissions.csv)；[支撑件](api/generated/endpoints.md)默认抽检。
+> 归档契约视图：当前工作从[文档入口](../../README.md)开始。本文件仅按需查阅，不是研究启动前须全量实现的清单；冻结权限、状态机与采样口径仍有效。
+
+> 状态：已冻结（t02_api_v1，产品负责人批准）。先审本页→[核心集](api/core-set.md)→[allow权限](../../api/permissions.csv)；[支撑件](api/generated/endpoints.md)默认抽检。
 
 ## 三层架构与资源归属
 
@@ -101,4 +103,4 @@ flowchart LR
 
 [T41问句草稿删除补充草案](api/core-set.md#question_pooldelete)：行为已授权，接口细节待本PR人审，原契约冻结批准不扩大。
 
-[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前不实现API。
+[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前按验证所需复用或补齐必要API，不要求全量实现。

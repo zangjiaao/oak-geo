@@ -1,10 +1,44 @@
 // Documentation artifacts only; no database access or product runtime policy.
 import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { requiredReviewRisks } from './t02-review-policy.mjs';
 const outputs = new Set();
 const d = JSON.parse(readFileSync('docs/api/contracts.json', 'utf8'));
 const publication = d.status==='frozen' ? `已冻结（${d.freeze.version}，产品负责人批准）` : '未冻结';
-const emit = (path, value) => { value=value.replaceAll('状态：草案，未冻结',`状态：${publication}`).replaceAll('> 未冻结。',`> ${publication}。`).replaceAll('权限候选：',d.status==='frozen'?'权限：':'权限候选：'); outputs.add(path); if (process.argv.includes('--check')) { if (readFileSync(path, 'utf8') !== value) throw new Error(`${path} is stale; regenerate documentation`); } else writeFileSync(path, value); };
+const archivedDocs = new Map(Object.entries({
+  "docs/api-spec-template.md": "docs/archive/reference/api-spec-template.md",
+  "docs/api-spec.md": "docs/archive/reference/api-spec.md",
+  "docs/spec-map.md": "docs/archive/reference/spec-map.md",
+  "docs/t02-decisions.md": "docs/archive/reference/t02-decisions.md",
+  "docs/t05-wiring.md": "docs/archive/reference/t05-wiring.md",
+  "docs/t05-review.md": "docs/archive/reference/t05-review.md",
+  "docs/t07-review.md": "docs/archive/reference/t07-review.md",
+  "docs/api/core-set.md": "docs/archive/reference/api/core-set.md",
+  "docs/api/states.md": "docs/archive/reference/api/states.md",
+  "docs/api/generated/endpoints.md": "docs/archive/reference/api/generated/endpoints.md"
+}));
+const relocateLinks = (value, original, destination) => value.replace(/(\[[^\]]*\]\()([^\s)]+)\)/g, (match, prefix, target) => {
+ if (/^(https?:|mailto:|\/|#)/.test(target)) return match;
+ const [file, ...fragment] = target.split('#');
+ const resolved = relative(process.cwd(), resolve(dirname(original), file));
+ const moved = archivedDocs.get(resolved) ?? resolved;
+ return prefix + relative(dirname(destination), moved) + (fragment.length ? '#' + fragment.join('#') : '') + ')';
+});
+const emit = (original, value) => {
+ const path = archivedDocs.get(original) ?? original;
+ if (path.endsWith('.md')) {
+  const entry = relative(dirname(path), 'docs/README.md');
+  const boundary = `> 归档契约视图：当前工作从[文档入口](${entry})开始。本文件仅按需查阅，不是研究启动前须全量实现的清单；冻结权限、状态机与采样口径仍有效。\n\n`;
+  value = relocateLinks(value, original, path);
+  const heading = value.indexOf('\n') + 1;
+  value = value.slice(0, heading) + '\n' + boundary + value.slice(heading).replace(/^\n+/, '');
+ }
+ value=value.replaceAll('状态：草案，未冻结',`状态：${publication}`).replaceAll('> 未冻结。',`> ${publication}。`).replaceAll('权限候选：',d.status==='frozen'?'权限：':'权限候选：');
+ outputs.add(path);
+ if (process.argv.includes('--check')) {
+  if (readFileSync(path, 'utf8') !== value) throw new Error(`${path} is stale; regenerate documentation`);
+ } else writeFileSync(path, value);
+};
 const scope = (role, e) => role==='owner' && e.resource==='user_member' ? 'tenant' : ['owner','editor','viewer'].includes(role) ? 'brand' : ['content','evidence'].includes(role) ? 'assigned_object' : 'tenant';
 const conditions = (role,e) => {
  const rules=['tenant_match','pat_intersection','actor_role_policy'];
@@ -52,7 +86,7 @@ let core='# 核心审阅集\n\n'+intro+'从[一页地图](../spec-map.md)进入�
 for(const g of d.review.core_groups)core+=`| ${g.number} | ${g.title} | ${g.endpoint_ids.map(id=>link(id,'core-set.md')).join(' / ')} |\n`;
 core+='\n';for(const id of d.review.core_endpoint_ids){const e=d.endpoints.find(e=>e.id===id);if(!e)throw new Error(`Missing core ${id}`);core+=render(e);}
 core+=errors;core=core.replaceAll('20个',`${d.review.core_groups.length}个`);emit('docs/api/core-set.md',core);
-if(!process.argv.includes('--check'))mkdirSync('docs/api/generated',{recursive:true});
+if(!process.argv.includes('--check'))mkdirSync('docs/archive/reference/api/generated',{recursive:true});
 let supporting='# 支撑端点抽检附录\n\n'+intro+'[返回主入口](../../spec-map.md)。本文件只含非核心端点，默认抽检；涉及原文/C类/配额的端点不得下沉。\n\n';
 for(const resource of d.resources){
  const endpoints=d.endpoints.filter(e=>e.resource===resource&&!coreSet.has(e.id));
@@ -69,7 +103,7 @@ for(const g of d.review.core_groups)map+=`| ${g.number} | ${g.title} | ${g.endpo
 map+='\n## 一个事实块的旅程\n\n```mermaid\nflowchart LR\n  C[claim_block.create] --> S[claim_block.submit]\n  S --> A[claim_block.approve]\n  A --> R[content_asset.transition 自动ready]\n  R --> P[publish_registration.register]\n  P --> B[probe_batch.start / execute]\n  B --> J[probe_result.judge 复测命中]\n  J --> M[cluster_score.compare 可比才出差值]\n```\n\n[修订](api/core-set.md#claim_blockrevise)、[撤回下线](api/core-set.md#claim_blockretract)及同事务链式回退不绕过独立审核。\n\n## 13个状态机索引\n\n| 对象 | 完整迁移表 |\n|---|---|\n';
 for(const name of Object.keys(d.states))map+=`| ${name} | [状态/出边/终态](api/states.md#${anchor(name)}) |\n`;
 map+='\n[T41问句草稿删除补充草案](api/core-set.md#question_pooldelete)：行为已授权，接口细节待本PR人审，原契约冻结批准不扩大。\n';
-map+='\n[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前不实现API。\n';
+map+='\n[全局约定](api-spec.md) · [裁定原文](t02-decisions.md) · [归并/行数说明](api-spec.md#2-资源清单)；规格变更须另提PR并经人审；当前按验证所需复用或补齐必要API，不要求全量实现。\n';
 map=map.replaceAll('20个',`${d.review.core_groups.length}个`).replace('归并后28个，原31个全部有归宿',`${d.resources.length}个；原资源归并并补v4判定输入`).replace('27张物理表不变','v4补齐后29张物理表').replaceAll('13个',`${Object.keys(d.states).length}个`);
 if(map.trimEnd().split('\n').length>120)throw new Error('spec-map exceeds 120 lines');
 emit('docs/spec-map.md',map);
@@ -82,5 +116,5 @@ for(const [name,s]of Object.entries(d.states)){
 }
 states+='## brand_lexicon版本审核（不新增状态枚举）\n\ncreate生成完整新version（不生效）；submit创建waiting队列；FactCheck非版本作者approve后该版本生效。rejected/withdrawn按既有队列规则退回未生效草稿，旧版本始终只读。词表表不增加status列，审核结果由review_queue承载。\n';
 emit('docs/api/states.md',states);
-for(const file of readdirSync('docs/api/generated')){const path=`docs/api/generated/${file}`;if(!outputs.has(path)){if(process.argv.includes('--check'))throw new Error(`Unexpected generated file ${path}`);unlinkSync(path);}}
+for(const file of readdirSync('docs/archive/reference/api/generated')){const path=`docs/archive/reference/api/generated/${file}`;if(!outputs.has(path)){if(process.argv.includes('--check'))throw new Error(`Unexpected generated file ${path}`);unlinkSync(path);}}
 console.log(`${d.resources.length} resources; ${d.endpoints.length} endpoints; ${rows.length-2} allow rows`);

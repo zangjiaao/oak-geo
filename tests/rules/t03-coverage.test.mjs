@@ -26,5 +26,5 @@ test('T02冻结来自负责人明确批准，附录生成不能退回草案', ()
  d.review.core_endpoint_ids=d.review.core_endpoint_ids.filter(id=>id!=='question_pool.delete');
  const {status,freeze,...content}=d;assert.equal(createHash('sha256').update(JSON.stringify(content)).digest('hex'),d.freeze.content_sha256);
  assert.match(d.freeze.approval_quote,/同时批准冻结当前 API 规格/);
- for(const p of ['docs/api-spec.md','docs/spec-map.md','docs/api/core-set.md','docs/api/states.md','docs/api/generated/endpoints.md'])assert.match(readFileSync(p,'utf8'),/已冻结/);
+ for(const p of ['docs/archive/reference/api-spec.md','docs/archive/reference/spec-map.md','docs/archive/reference/api/core-set.md','docs/archive/reference/api/states.md','docs/archive/reference/api/generated/endpoints.md'])assert.match(readFileSync(p,'utf8'),/已冻结/);
 });

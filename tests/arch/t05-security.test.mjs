@@ -14,7 +14,7 @@ const protectedFiles = {
     "ce36fda37b739f9ccc48c5509b58ad7375b0a406071aff8ed0cb161aa22d678c",
   "docs/api/contracts.json":
     "4dbcb6dd247d4e3d236f3404069d9cef19620045f5746f2ef8e033d97d5d550d",
-  "docs/GEO产品文档.md":
+  "docs/archive/GEO产品文档-v3.5.md":
     "4bf10e9d4f46d2851aa7c38497921c9f4ca0203af472db9f2a3424afa1f368be",
 };
 test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41追加", () => {
@@ -33,7 +33,7 @@ test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41�
                 d.review.core_endpoint_ids = d.review.core_endpoint_ids.filter(id => id !== "question_pool.delete");
                 return JSON.stringify(d,null,2)+"\n";
               })()
-            : path === "docs/GEO产品文档.md"
+            : path === "docs/archive/GEO产品文档-v3.5.md"
             ? readFileSync(path, "utf8").replace(
                 "| T06 并入 T05 完成交付 | v3.5 |\n",
                 "",
