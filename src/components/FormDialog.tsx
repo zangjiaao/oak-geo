@@ -15,6 +15,7 @@ export function FormDialog({
   onClose,
   onSubmit,
   submitLabel,
+  destructive = false,
   busy = false,
   disabled = false,
   error,
@@ -26,6 +27,7 @@ export function FormDialog({
   onClose: () => void;
   onSubmit?: () => void | Promise<void>;
   submitLabel?: string;
+  destructive?: boolean;
   busy?: boolean;
   disabled?: boolean;
   error?: string;
@@ -68,7 +70,7 @@ export function FormDialog({
               {onSubmit && (
                 <Button
                   label={submitLabel ?? "保存"}
-                  variant="primary"
+                  variant={destructive ? "destructive" : "primary"}
                   isLoading={busy}
                   isDisabled={disabled || busy}
                   onClick={onSubmit}

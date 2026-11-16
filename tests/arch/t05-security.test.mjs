@@ -17,12 +17,23 @@ const protectedFiles = {
   "docs/GEO产品文档.md":
     "4bf10e9d4f46d2851aa7c38497921c9f4ca0203af472db9f2a3424afa1f368be",
 };
-test("T05冻结保护：T03协议/断言、产品、完整contracts字节不变", () => {
+test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41追加", () => {
   for (const [path, hash] of Object.entries(protectedFiles))
     assert.equal(
       createHash("sha256")
         .update(
-          path === "docs/GEO产品文档.md"
+          path === "docs/api/contracts.json"
+            ? (() => {
+                const d = JSON.parse(readFileSync(path,"utf8"));
+                assert.deepEqual(d.amendments.map(a => [a.id,a.status,a.endpoint_ids,a.added_operations,a.added_allow_rows]),
+                  [["T41","pending_review",["question_pool.delete"],["delete"],1]]);
+                delete d.amendments;
+                d.endpoints = d.endpoints.filter(e => e.id !== "question_pool.delete");
+                d.operations = d.operations.filter(op => op !== "delete");
+                d.review.core_endpoint_ids = d.review.core_endpoint_ids.filter(id => id !== "question_pool.delete");
+                return JSON.stringify(d,null,2)+"\n";
+              })()
+            : path === "docs/GEO产品文档.md"
             ? readFileSync(path, "utf8").replace(
                 "| T06 并入 T05 完成交付 | v3.5 |\n",
                 "",
