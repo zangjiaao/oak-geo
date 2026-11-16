@@ -13,7 +13,14 @@ const installerOperations = new Set([
   "brand.configure",
   "user_member.configure",
 ]);
+// Human Web Owners use current memberships across their authorized brands.
+// Brand-bound PAT/agent credentials retain their narrower signed scope.
+export const ownerWorkspaceCredential = (principal) =>
+  principal.role === "owner" &&
+  principal.actor_type === "human" &&
+  principal.credential_kind === "web";
 const humanDecisions = new Set([
+  "brand.create",
   "product_profile.save",
   "product_profile.investigate",
   "product_profile.confirm",
@@ -146,13 +153,17 @@ export async function checkScope({
 }) {
   const claimed =
     request.params?.bid ?? request.body?.brand_id ?? request.actor.brand_id;
-  if (principal.brand_id && claimed && claimed !== principal.brand_id)
+  if (
+    !ownerWorkspaceCredential(principal) &&
+    principal.brand_id && claimed && claimed !== principal.brand_id
+  )
     throw permission("brand mismatch");
   if (scope.brand_id && claimed && scope.brand_id !== claimed)
     throw permission("object outside requested brand");
   if (
     ["owner", "editor", "viewer"].includes(principal.role) &&
-    operation !== "user_member.read"
+    operation !== "user_member.read" &&
+    operation !== "brand.create"
   ) {
     if (
       !scope.brand_id ||

@@ -67,7 +67,8 @@ export function createProductOnboardingTransport(runtimeFactory) {
     const meta = { snapshot_id: null, data_as_of: new Date().toISOString() };
     try {
       const url = new URL(request.url);
-      const match = url.pathname.match(
+      const create = url.pathname.match(/^\/api\/tenants\/([^/]+)\/brands\/create$/);
+      const match = create ? [create[0], create[1], undefined, "create"] : url.pathname.match(
         /^\/api\/tenants\/([^/]+)\/brands\/([^/]+)\/product-profile(?:\/(save|investigate|confirm)|\/facts\/([^/]+)\/approve)?$/,
       );
       if (
@@ -105,9 +106,9 @@ export function createProductOnboardingTransport(runtimeFactory) {
       const actor = runtime.application.actorFromCredential(credential),
         params = {
           tid: decodeURIComponent(match[1]),
-          bid: decodeURIComponent(match[2]),
+          ...(match[2] ? { bid: decodeURIComponent(match[2]) } : {}),
         };
-      const operation = match[4]
+      const operation = create ? "brand.create" : match[4]
         ? "official_fact.approve"
         : "product_profile." + (match[3] ?? "read");
       let response = await runtime.application.call(

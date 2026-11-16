@@ -804,6 +804,12 @@ export function createFixtureRegistry(
     return factories[name](options);
   }
   async function authorizedRequest(id) {
+    if (id === 'brand.create') {
+      const f = await base();
+      return request(f.actors.owner, {
+        input: { name: '新增测试品牌', description: '全量鉴权回归使用的虚构资料。' },
+      }, { tid: f.tenant_id });
+    }
     if (id.startsWith('product_profile.')) {
       const f=await base(),params={tid:f.tenant_id,bid:f.brand_id};
       const input={name:'虚构测试产品',website:'https://example.com/',description:'测试产品',audience:'开发者',notes:'',official_urls:[]};

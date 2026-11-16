@@ -1,4 +1,4 @@
-import { withoutT42 } from '../support/frozen-contract-baseline.mjs';
+import { withoutProductAmendments } from '../support/frozen-contract-baseline.mjs';
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -18,14 +18,14 @@ const protectedFiles = {
   "docs/archive/GEO产品文档-v3.5.md":
     "4bf10e9d4f46d2851aa7c38497921c9f4ca0203af472db9f2a3424afa1f368be",
 };
-test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41/T42授权追加", () => {
+test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41/T42/T43授权追加", () => {
   for (const [path, hash] of Object.entries(protectedFiles))
     assert.equal(
       createHash("sha256")
         .update(
           path === "docs/api/contracts.json"
             ? (() => {
-                const d = withoutT42(JSON.parse(readFileSync(path,"utf8")));
+                const d = withoutProductAmendments(JSON.parse(readFileSync(path,"utf8")));
                 assert.deepEqual(d.amendments.map(a => [a.id,a.status,a.endpoint_ids,a.added_operations,a.added_allow_rows]),
                   [["T41","pending_review",["question_pool.delete"],["delete"],1]]);
                 delete d.amendments;

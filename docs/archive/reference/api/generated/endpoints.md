@@ -72,6 +72,49 @@
 }
 ```
 
+### brand.create
+
+> T43补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /tenants/{tid}/brands/create` · 语义 write · destructive=false · 幂等=24h
+
+权限：owner；system：无。权限行：`(role, brand, create)`。审阅风险：承重动作。
+
+校验：仅人类Owner在当前可写租户创建；品牌ID与Owner关联由服务端生成；不接收成员或权限字段；行业和市场未知时留空；提交品牌名称与描述；Web Owner按当前成员记录访问原有授权及新建品牌，其他Owner不可见，PAT品牌范围不扩大。
+
+审计：brand.create。副作用：同一事务新增品牌、自身Owner成员关系和当前产品资料；全部审计，失败全回滚；不运行外部调查。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "input": {
+    "name": "示例品牌",
+    "description": "产品介绍",
+    "website": "",
+    "official_urls": [],
+    "audience": "",
+    "notes": ""
+  }
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "b2",
+    "name": "示例品牌",
+    "research_configured": false
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+
 ## user_member
 
 ### user_member.read

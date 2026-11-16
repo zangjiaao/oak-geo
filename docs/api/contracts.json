@@ -3767,6 +3767,41 @@
         "judge_input"
       ],
       "amendment_id": "T42"
+    },
+    {
+      "id": "brand.create",
+      "resource": "brand",
+      "operation": "create",
+      "method": "POST",
+      "path": "/tenants/{tid}/brands/create",
+      "semantic": "write",
+      "destructive": false,
+      "mutates_state": true,
+      "idempotency_hours": 24,
+      "audit": "brand.create",
+      "request": {
+        "input": {
+          "name": "示例品牌",
+          "description": "产品介绍",
+          "website": "",
+          "official_urls": [],
+          "audience": "",
+          "notes": ""
+        }
+      },
+      "response": {
+        "id": "b2",
+        "name": "示例品牌",
+        "research_configured": false
+      },
+      "validation": "仅人类Owner在当前可写租户创建；品牌ID与Owner关联由服务端生成；不接收成员或权限字段；行业和市场未知时留空；提交品牌名称与描述；Web Owner按当前成员记录访问原有授权及新建品牌，其他Owner不可见，PAT品牌范围不扩大",
+      "side_effects": "同一事务新增品牌、自身Owner成员关系和当前产品资料；全部审计，失败全回滚；不运行外部调查",
+      "grants": [
+        "owner"
+      ],
+      "system_job": null,
+      "risk_tags": [],
+      "amendment_id": "T43"
     }
   ],
   "states": {
@@ -5055,6 +5090,16 @@
       ],
       "added_operations": [],
       "added_allow_rows": 11
+    },
+    {
+      "id": "T43",
+      "status": "pending_review",
+      "authorization": "负责人要求补充新增品牌；Owner仅管理原有授权及自己新建品牌，其他Owner品牌不可见（2026-11-16）",
+      "endpoint_ids": [
+        "brand.create"
+      ],
+      "added_operations": [],
+      "added_allow_rows": 1
     }
   ]
 }

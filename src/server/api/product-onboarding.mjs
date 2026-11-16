@@ -59,8 +59,80 @@ async function run(ctx, lock = false) {
     throw permission("调查任务不在当前范围");
   return row;
 }
+async function saveProductProfile(ctx) {
+  const input = validateProductInput(ctx.body.input),
+    row = await current(ctx, true),
+    digest = hash(input);
+  if (Buffer.byteLength(JSON.stringify(input)) > 10000)
+    throw validation("品牌资料过长，请精简描述或链接");
+  if (
+    row &&
+    Buffer.byteLength(JSON.stringify(presented({ ...row, input }))) > 16000
+  )
+    throw validation("品牌资料与知识内容过多，请精简描述后保存");
+  if (!row) {
+    const id = randomUUID();
+    await ctx.client.query(
+      "INSERT INTO product_profile(id,tenant_id,brand_id,input,input_hash,onboarded_at,updated_at,updated_by) VALUES($1,$2,$3,$4,$5,$6,$6,$7)",
+      [
+        id,
+        ...args(ctx),
+        JSON.stringify(input),
+        digest,
+        timestamp(ctx),
+        ctx.principal.user_id,
+      ],
+    );
+  } else if (row.input_hash !== digest) {
+    await ctx.client.query(
+      "UPDATE product_profile SET input=$1,input_hash=$2,updated_at=$3,updated_by=$4 WHERE tenant_id=$5 AND brand_id=$6",
+      [
+        JSON.stringify(input),
+        digest,
+        timestamp(ctx),
+        ctx.principal.user_id,
+        ...args(ctx),
+      ],
+    );
+  }
+  await ctx.client.query(
+    "UPDATE brand SET name=$1 WHERE tenant_id=$2 AND id=$3",
+    [input.name, ...args(ctx)],
+  );
+  event(ctx, "brand.profile_updated", "brand", ctx.scope.brand_id);
+  return { data: presented(await current(ctx)) };
+}
 export function productOnboardingHandlers() {
   return {
+    "brand.create": async (ctx) => {
+      if (Object.keys(ctx.body).some((key) => key !== "input"))
+        throw validation("新增品牌仅接受产品资料");
+      const input = validateProductInput(ctx.body.input),
+        id = randomUUID(),
+        memberId = randomUUID(),
+        tid = ctx.principal.tenant_id;
+      await ctx.client.query(
+        "INSERT INTO brand(id,tenant_id,name,industry,market) VALUES($1,$2,$3,'','')",
+        [id, tid, input.name],
+      );
+      await ctx.client.query(
+        "INSERT INTO user_member(id,tenant_id,user_id,role,brand_id) VALUES($1,$2,$3,'owner',$4)",
+        [memberId, tid, ctx.principal.user_id, id],
+      );
+      const profile = await saveProductProfile({
+        ...ctx, body: { input }, scope: { ...ctx.scope, brand_id: id },
+      });
+      ctx.audit.add({
+        action: "brand.owner_assigned", object_type: "user_member", object_id: memberId,
+      });
+      ctx.audit.add({
+        action: "product_profile.save", object_type: "product_profile", object_id: profile.data.id,
+      });
+      return {
+        data: { id, name: input.name, research_configured: Boolean(ctx.productResearchAgent.configured) },
+        objectId: id,
+      };
+    },
     "product_profile.read": async (ctx) => {
       if (ctx.query.version != null) throw validation("品牌资料不提供版本查询");
       const profile = await current(ctx);
@@ -113,49 +185,7 @@ export function productOnboardingHandlers() {
         },
       };
     },
-    "product_profile.save": async (ctx) => {
-      const input = validateProductInput(ctx.body.input),
-        row = await current(ctx, true),
-        digest = hash(input);
-      if (Buffer.byteLength(JSON.stringify(input)) > 10000)
-        throw validation("品牌资料过长，请精简描述或链接");
-      if (
-        row &&
-        Buffer.byteLength(JSON.stringify(presented({ ...row, input }))) > 16000
-      )
-        throw validation("品牌资料与知识内容过多，请精简描述后保存");
-      if (!row) {
-        const id = randomUUID();
-        await ctx.client.query(
-          "INSERT INTO product_profile(id,tenant_id,brand_id,input,input_hash,onboarded_at,updated_at,updated_by) VALUES($1,$2,$3,$4,$5,$6,$6,$7)",
-          [
-            id,
-            ...args(ctx),
-            JSON.stringify(input),
-            digest,
-            timestamp(ctx),
-            ctx.principal.user_id,
-          ],
-        );
-      } else if (row.input_hash !== digest) {
-        await ctx.client.query(
-          "UPDATE product_profile SET input=$1,input_hash=$2,updated_at=$3,updated_by=$4 WHERE tenant_id=$5 AND brand_id=$6",
-          [
-            JSON.stringify(input),
-            digest,
-            timestamp(ctx),
-            ctx.principal.user_id,
-            ...args(ctx),
-          ],
-        );
-      }
-      await ctx.client.query(
-        "UPDATE brand SET name=$1 WHERE tenant_id=$2 AND id=$3",
-        [input.name, ...args(ctx)],
-      );
-      event(ctx, "brand.profile_updated", "brand", ctx.scope.brand_id);
-      return { data: presented(await current(ctx)) };
-    },
+    "product_profile.save": saveProductProfile,
     "product_profile.investigate": async (ctx) => {
       if (!ctx.productResearchAgent.configured)
         throw validation("请在服务端配置 DEEPSEEK_API_KEY", {

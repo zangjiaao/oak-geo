@@ -257,3 +257,4 @@ owner,product_profile,create,allow,brand,产品文档§9.3;裁定一轮2/6/7;二
 strategist,product_profile,create,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定T42功能授权,tenant_match;pat_intersection;actor_role_policy;human_decision;endpoint_validation
 owner,product_profile,confirm,allow,brand,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定T42功能授权,tenant_match;pat_intersection;actor_role_policy;own_brand;diagnosis_readonly_except_objection_create;mode_full;human_decision;endpoint_validation
 strategist,product_profile,confirm,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定T42功能授权,tenant_match;pat_intersection;actor_role_policy;human_decision;endpoint_validation
+owner,brand,create,allow,tenant,产品文档§9.3;裁定一轮2/6/7;二轮③;整改R1/R3;裁定T43功能授权,tenant_match;pat_intersection;actor_role_policy;self_owner_assignment_only;diagnosis_readonly_except_objection_create;mode_not_diagnosis;human_decision;endpoint_validation
