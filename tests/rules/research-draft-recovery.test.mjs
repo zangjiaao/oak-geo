@@ -60,6 +60,7 @@ test('模型结果格式失败仍保留实际调用用量和工具记录，不�
   await executeProductResearch({application:app,productResearchAgent:agent},f.actors.owner,params,first.data.id);
   const previous=(await call('product_profile.read')).data.profile.research;assert.equal(previous.facts.length,1);
   malformed=true;
+  env.clock.advanceDays(1/86400); // Distinct run timestamps, as in real network calls.
   const reserve=await call('product_profile.investigate');assert.equal(reserve.status,200);
   await executeProductResearch({application:app,productResearchAgent:agent},f.actors.owner,params,reserve.data.id);
   const state=(await call('product_profile.read')).data;

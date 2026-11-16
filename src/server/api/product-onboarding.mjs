@@ -2,6 +2,7 @@ import { canonicalJson } from "./canonical-json.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import { validation, permission } from "./errors.mjs";
 import { conflict, queueObject, event } from "./domain-common.mjs";
+import {factTopics} from '../../lib/fact-topics.mjs';
 import {
   validateProductInput,
   validateResearchOutput,
@@ -174,6 +175,7 @@ export function productOnboardingHandlers() {
           ...reference,
           id: row.id, fact_id: row.id,
           category: row.fact_category,
+          topic: content.topic,
           text: content.statement ?? reference.text,
           evidence: content.evidence?.map((item, index) => ({
             ...(reference.evidence?.[index] ?? {}), ...item,
@@ -234,6 +236,9 @@ export function productOnboardingHandlers() {
         if (!fact || fact.official_fact_id || seen.has(fact.id)) throw conflict("该事实不能作为草稿修改");
         seen.add(fact.id);
         const edited = {...fact, ...selected};
+        if((edited.kind&&edited.kind!=='product_fact')||edited.has_unresolved_conflict===true)throw validation('资料冲突或调查备注不能作为产品事实保存');
+        if(edited.is_atomic!=null&&typeof edited.is_atomic!=='boolean')throw validation('独立主张标记格式错误');
+        if(edited.topic!=null&&(typeof edited.topic!=='string'||!Object.hasOwn(factTopics,edited.topic)))throw validation('请选择产品事实分类');
         for (const [name,max] of [["text",400],["number_value",200],["caliber",500],["boundary",500]])
           if (edited[name] != null && (typeof edited[name] !== "string" || edited[name].length > max)) throw validation("事实字段格式错误或过长");
         if (edited.has_numbers != null && typeof edited.has_numbers !== "boolean") throw validation("数值标记格式错误");
@@ -426,6 +431,8 @@ export function productOnboardingHandlers() {
         const fact = research.facts.find((f) => f.id === selected.id);
         if (!fact || ids.has(fact.id) || fact.official_fact_id)
           throw conflict("事实不存在或已送审");
+        if((fact.kind&&fact.kind!=='product_fact')||fact.is_atomic===false)
+          throw validation('请先把陈述拆分成一个独立产品主张，再确认事实');
         ids.add(fact.id);
         if (
           typeof selected.text !== "string" ||
@@ -475,6 +482,8 @@ export function productOnboardingHandlers() {
             fact.category,
             JSON.stringify({
               statement: fact.text,
+              topic: fact.topic,
+              kind:'product_fact',
               source_url: source.url ?? null,
               source_ref:
                 source.kind === "user_input"
