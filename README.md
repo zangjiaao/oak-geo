@@ -36,7 +36,7 @@ API 规格从 [`docs/spec-map.md`](./docs/spec-map.md) 开始审阅；核心集�
 
 ## 状态
 
-按 [backlog v2.0](./docs/backlog.md) 先跑通 okdata 的真实模型回答，再用 OKSocial 复现，随后验证发布后的变化。当前尚无真实行业闭环；T10规则、T14模型清单及未合并的 Draft PR #18 仍待审，真实探针未启用。
+按 [backlog v2.0](./docs/backlog.md) 先跑通 okdata 的真实模型回答，再用 OKSocial 复现，随后验证发布后的变化。当前尚无真实行业闭环；T10规则、T14模型清单仍待审（T14工程实现PR #18已合并），真实探针未启用。
 
 - ✅ 产品设计定稿（v3.5）
 - ✅ 技术栈拍板：Next.js（App Router）+ astryx + Cloudflare Workers + Neon Postgres

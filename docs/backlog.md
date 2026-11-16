@@ -22,7 +22,7 @@
 ## 当前状态与开工条件
 
 - 已合并：T01–T09、T12、T13、T37；T10/T11 代码已合并，但真实周批未启用。尚无真实行业闭环。
-- T14 在 [Draft PR #18](https://github.com/zangjiaao/oak-geo/pull/18)，未合并、未批准具体模型；本次不代为放行。
+- T14 已按负责人授权合并 [PR #18](https://github.com/zangjiaao/oak-geo/pull/18)；具体模型清单尚未批准，真实探针仍关闭。
 - 开发先用真实样本提交 T10 规则预览，确认后由周批产出真实簇；不以演示簇替代。
 - 模型优先核查豆包、千问、DeepSeek、点点。点点联网能力、DeepSeek 版本锁定及第四席位待定；清单批准并配置服务端凭证后才调用。采样规模仍按冻结契约，缩减需另批。
 - T40 一次配齐真实品牌、词表和已生效口径；T39 继承真实问句出处。V1 先看回答，T16 判据以真实样例审阅冻结后再评分。
@@ -71,4 +71,4 @@ T38–T40 为补排任务。B 类维持 MVP 人工/半自动采样；OKData API 
 
 ## 详细定义与历史
 
-[原 T01–T37 定义和执行记录](https://github.com/zangjiaao/oak-geo/blob/6f7923c50e64109503c76d2405cc1aed98ebfb66/docs/backlog.md)保留在 Git 固定版本；T14后续实现见 PR #18。未列出的原DoD、依赖与承诺不因精简被取消，包括T04的可选product_line_ref。当前执行顺序以上表为准。
+[原 T01–T37 定义和执行记录](https://github.com/zangjiaao/oak-geo/blob/6f7923c50e64109503c76d2405cc1aed98ebfb66/docs/backlog.md)保留在 Git 固定版本；[T14实现与复核记录](https://github.com/zangjiaao/oak-geo/blob/60cbff3e6fe7bad17af288bddadc1611010a661c/docs/backlog.md)亦保留。未列出的原DoD、依赖与承诺不因精简被取消，包括T04的可选product_line_ref。当前执行顺序以上表为准。
