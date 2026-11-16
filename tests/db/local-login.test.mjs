@@ -72,7 +72,8 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
         const roleUrl=new URL(login.stdout.trim().split('\n').at(-1));
         const token=new URLSearchParams(roleUrl.hash.slice(1)).get('session');
         const response=await exchange(token);assert.equal(response.status,200);
-        const result=await response.json();assert.ok(result.data.next.startsWith(role==='factcheck'?'/knowledge':'/'));
+        const result=await response.json();
+        assert.equal(result.data.next,role==='factcheck'?'/knowledge?brand=fixture-jianzao-brand':'/?brand=fixture-jianzao-brand');
       }
       const admin = app.issueActor({ user_id: "local-migration-admin", tenant_id: "fixture-jianzao", role: "admin", actor_type: "human" });
       ok(await app.call("user_member.configure", { actor: admin, body: { user_id: actor.user_id, role: "cs", replace_role: "strategist" } }));
