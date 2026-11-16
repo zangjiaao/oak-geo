@@ -28,7 +28,7 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
     try {
       writeFileSync(join(dir, ".dev.vars"), `DATABASE_URL='postgresql://postgres@localhost/postgres?host=${host}&port=${port}'\nGEO_APPLICATION_DATABASE_URL='${ordinary}'\nGEO_SESSION_SECRET=${secret}\n`, { mode: 0o600 });
       await invoke("migrate.mjs");
-      const login = await invoke("local-login.mjs");
+      const login = await invoke("local-login.mjs", ["--role=strategist"]);
       assert.ok(!login.stdout.includes(secret) && !login.stdout.includes(ordinary));
       const url = new URL(login.stdout.trim().split("\n").at(-1));
       assert.equal(url.origin, "http://localhost:3000");
@@ -36,6 +36,17 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
       const credential = new URLSearchParams(url.hash.slice(1)).get("session");
       client = await connectDatabase({ connectionString: ordinary });
       const app = await createApplication({ client, secret, publicRootCatalog: new Set(["B2B\0ai 自动排产"]) });
+      const defaultLogin = await invoke("local-login.mjs");
+      const defaultUrl = new URL(defaultLogin.stdout.trim().split("\n").at(-1));
+      const defaultToken = new URLSearchParams(defaultUrl.hash.slice(1)).get("session");
+      const defaultActor = app.actorFromCredential(defaultToken);
+      assert.equal(defaultActor.role, "owner", "MVP默认登录应可直接验收新增品牌与资料整理");
+      const newBrand = ok(await app.call("brand.create", {
+        actor: defaultActor, params: { tid: "fixture-jianzao" },
+        body: { input: { name: "默认登录测试品牌", description: "一次登录验收产品事实。" } },
+      }));
+      assert.notEqual(newBrand.id, "fixture-jianzao-brand");
+      ok(await app.call("product_profile.read", { actor: defaultActor, params: { tid: "fixture-jianzao", bid: newBrand.id } }));
       let closed = 0;
       const serve = createLocalSessionTransport(async (token) => ({ application: app, readWorkspace: () => readWorkspaceContext({ client, application: app, secret, credential: token }), close: async () => { closed++; } }), "development");
       const exchange = (token) => serve(new Request("http://localhost:3000/api/local-session", { method: "POST", headers: { host: "localhost:3000", origin: "http://localhost:3000" }, body: JSON.stringify({ credential: token }) }));
@@ -51,7 +62,7 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
       assert.equal(sources.items.length, 3);
       const source = sources.items[0];
       const question = ok(await app.call("question_pool.create", { actor, params, body: { brand_id: params.bid, cluster_id: clusters.items[0].id, question: "演示 ERP 的适用场景有哪些？", source_word_id: source.id, intent_type: "认知", source_channel: source.channel, collected_at: new Date(source.collected_at).toISOString(), maintainer: "验收人员（虚构）", question_pool_version: 1 } }));
-      await invoke("local-login.mjs");
+      await invoke("local-login.mjs", ["--role=strategist"]);
       const repeated = ok(await app.call("question_pool.read", { actor, params: { ...params, id: question.id } }));
       assert.equal(repeated.question, "演示 ERP 的适用场景有哪些？");
       assert.equal(ok(await app.call("intent_cluster.read", { actor, params })).items.length, 1);
@@ -80,7 +91,7 @@ test("真实本地登录命令→普通角色fixture→会话cookie→问句写�
       const revoked = await exchange(credential);
       assert.equal(revoked.status, 403);
       assert.equal(revoked.headers.get("set-cookie"), null);
-      await assert.rejects(invoke("local-login.mjs"), (e) => e.code === 1);
+      await assert.rejects(invoke("local-login.mjs", ["--role=strategist"]), (e) => e.code === 1);
       assert.equal(closed, 7);
     } finally {
       if (client) await client.end();

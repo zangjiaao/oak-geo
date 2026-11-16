@@ -11,7 +11,7 @@ if (
 )
   throw new Error("Only --origin and --role are supported");
 const role =
-  args.find((arg) => arg.startsWith("--role="))?.slice(7) ?? "strategist";
+  args.find((arg) => arg.startsWith("--role="))?.slice(7) ?? "owner";
 if (!["strategist", "owner", "factcheck"].includes(role))
   throw new Error(
     "Only fixture strategist/owner/factcheck roles are supported",
