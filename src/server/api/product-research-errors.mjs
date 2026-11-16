@@ -21,6 +21,7 @@ const messages = {
   budget: '本轮调查工具次数已用完，请缩小资料范围后重试',
   missing_tools: '模型未完成公开检索与页面读取，请重试',
   json: '模型未返回有效 JSON，请重新调查',
+  result_format: '模型返回的结果缺少有效的事实列表，请重新整理',
   evidence: '调查事实的来源或摘录未通过校验，请重新调查',
   input_changed: '调查开始前品牌资料已更新，请按最新资料重新调查',
   result_rejected: '调查结果未通过入库校验，请缩小资料范围或重新调查',

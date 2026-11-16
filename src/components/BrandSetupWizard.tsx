@@ -12,13 +12,15 @@ import {CheckboxInput} from "@astryxdesign/core/CheckboxInput";
 import {ProgressBar} from "@astryxdesign/core/ProgressBar";
 import {EmptyState} from "@astryxdesign/core/EmptyState";
 import {Card} from "@astryxdesign/core/Card";
+import {Collapsible} from "@astryxdesign/core/Collapsible";
 import {InternationalizationProvider} from "@astryxdesign/core/i18n";
 import zhCN from "@astryxdesign/core/locales/zh-CN.generated.js";
 import {readResearchEvents} from "@/lib/research-events.mjs";
+import {researchProgress} from "@/lib/research-progress.mjs";
 import {BrandProfileForm,useProfile,categories,type Fact,type Source} from "./ProductOnboarding";
 import type {WorkspaceSession} from "./WorkspaceShell";
 
-type Activity={kind:string;phase:string;at?:string;query?:string;url?:string;count?:number;message?:string};
+type Activity={kind:string;phase:string;call_id?:string;at?:string;query?:string;url?:string;count?:number;message?:string};
 type Draft=Fact & {has_numbers:boolean|null;number_value:string;caliber:string;boundary:string};
 const draft=(fact:Fact):Draft=>({...fact,evidence:fact.evidence.slice(0,1),has_numbers:fact.has_numbers??null,number_value:fact.number_value??"",caliber:fact.caliber??"",boundary:fact.boundary??""});
 function issue(fact:Draft,sources:Source[],official:string[]) {
@@ -67,6 +69,7 @@ function FactReview({store,brandId,onBack}:{store:ReturnType<typeof useProfile>;
   if(!facts.length)return <EmptyState title="还没有可编辑的事实候选" description="可以返回检索补充来源，已确认的事实仍保留在知识库。" actions={<Button label="返回检索" onClick={onBack}/>} />;
   return <VStack gap={5}>
     <Text color="secondary">一条事实表达一个可独立核验的主张。核对出处与摘录，编辑后选择需要入库的事实。</Text>
+    {research?.notices?.length?<VStack gap={2}>{research.notices.map((notice,index)=><Text key={index} type="supporting">{notice}</Text>)}</VStack>:null}
     {research?.conflicts.length ? <VStack gap={2}><Text type="label">调查发现的冲突</Text>{research.conflicts.map((text,index)=><Text key={index}>{text}</Text>)}</VStack>:null}
     {research?.unknowns.length ? <VStack gap={2}><Text type="label">待核实</Text>{research.unknowns.map((text,index)=><Text key={index} type="supporting">{text}</Text>)}</VStack>:null}
     <Selector label="编辑事实块" value={active} onChange={id=>{setActive(id);setNotice("");}} options={facts.map((fact,index)=>({value:fact.id,label:`${index+1}. ${(edits[fact.id]?.text||fact.text||'待编辑事实').slice(0,45)}`}))}/>
@@ -111,6 +114,7 @@ export function BrandSetupWizard({session,initialBrandId,creating,investigateOnL
   const [activities,setActivities]=useState<Activity[]>([]),[running,setRunning]=useState(false),[error,setError]=useState(""),[auto,setAuto]=useState(investigateOnLoad);
   const restored=useRef(false),controller=useRef<AbortController|null>(null);
   const canWrite=store.canWrite&&(!creating||session?.role==='owner');
+  const progress=researchProgress(activities,running,error||store.error);
   useEffect(()=>()=>controller.current?.abort(),[]);
   useEffect(()=>{
     if(restored.current||!store.loaded||!store.data)return;
@@ -157,16 +161,22 @@ export function BrandSetupWizard({session,initialBrandId,creating,investigateOnL
       {error||store.error?<Text role="alert">{error||store.error}</Text>:null}
       {step===0?<BrandProfileForm key={brandId??'new'} session={session} brandId={brandId} creating={!brandId&&creating} welcome onSaved={saved}/>:null}
       {step===1?<VStack gap={5}>
-        <Text color="secondary">检索品牌官网、文档等公开资料，提取候选事实和可核验出处。完成后再由你编辑确认。</Text>
+        <Text color="secondary">查找官网、文档等资料，整理成事实块，下一步由你确认。</Text>
+        <VStack gap={2} role="status" aria-live="polite">
+          <Text type="label">{progress.title}</Text>
+          {activities.length?<Text type="supporting">已完成 {progress.searches} 次搜索 · 已读取 {progress.pages} 个页面</Text>:null}
+        </VStack>
         {running?<ProgressBar label="正在检索和读取资料" isIndeterminate/>:null}
-        <VStack gap={3} role="log" aria-label="联网调查过程" aria-live="polite">
-          {activities.map((activity,index)=><VStack key={index} gap={1}>
-            <Text type="label">{activity.kind==='search'?'公开检索':activity.kind==='fetch'?'读取页面':'整理事实'} · {activity.phase==='started'?'进行中':activity.phase==='failed'?'未完成':'完成'}{activity.count!==undefined?` · ${activity.count} 条结果`:''}</Text>
+        {activities.length?<Collapsible trigger="查看检索记录" defaultIsOpen={false}>
+        <VStack gap={3} role="log" aria-label="联网调查过程">
+          {progress.rows.map((activity,index)=><VStack key={index} gap={1}>
+            <Text type="label">{activity.kind==='search'?'公开检索':activity.kind==='fetch'?'读取页面':'资料分析'} · {activity.status}{activity.count!==undefined?` · ${activity.count} 条结果`:''}</Text>
             {activity.query?<Text>{activity.query}</Text>:null}
             {activity.url?<Link href={activity.url} target="_blank" rel="noreferrer">{activity.url}</Link>:null}
             {activity.message?<Text type="supporting">{activity.message}</Text>:null}
           </VStack>)}
         </VStack>
+        </Collapsible>:null}
         {!running&&store.data?.profile?.research&&!store.data.profile.research.facts.length?<Text role="status">本轮没有可确认的事实。请补充官网、资料链接或品牌描述后重新检索。{store.data.profile.research.unknowns.join('；')}</Text>:null}
         {!running&&store.loaded&&!store.data?.research_configured?<Text role="status">调查服务暂不可用。品牌草稿已保存，服务配置完成后可以继续。</Text>:null}
         <HStack gap={3} wrap="wrap">

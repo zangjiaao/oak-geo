@@ -36,13 +36,14 @@ export async function executeProductResearch(runtime, actor, params, runId, opti
     });
   } catch (cause) {
     error = describeResearchFailure(cause);
+    result = cause?.researchContext;
   }
   const finished = await application.call(
     "product_profile.finish",
     {
       actor: job,
       params,
-      body: { run_id: runId, ...(error ? { error } : { result }) },
+      body: { run_id: runId, ...(error ? { error } : {}), ...(result ? {result} : {}) },
     },
     { idempotencyKey: "finish-" + runId },
   );
@@ -91,6 +92,7 @@ function researchEvents(runtime, actor, params, runId, requestSignal, meta) {
             if (!['model', 'search', 'fetch'].includes(event?.kind) ||
                 !['started', 'completed', 'failed'].includes(event?.phase)) return;
             const activity = { kind: event.kind, phase: event.phase, at: event.at };
+            if (typeof event.call_id === 'string' && /^[\w-]{1,80}$/.test(event.call_id)) activity.call_id=event.call_id;
             if (typeof event.query === 'string') activity.query = event.query.slice(0, 128);
             if (typeof event.url === 'string') {
               try { activity.url = publicProductUrl(event.url); } catch {}
