@@ -1,5 +1,7 @@
 # T01 脚手架验证
 
+> 历史技术记录；当前方法论验证方向见[文档入口](../README.md)。以下为当时结果，不代表当前业务验收。
+
 范围按用户指令为 Next.js App Router + Cloudflare Workers + astryx 入口 CSS，AGENTS.md 不变，不代替原任务的人签字。
 
 - 红：入口/CSS、Workers入口资源及固定技术栈三项测试均因目标文件不存在失败，再实现到绿。

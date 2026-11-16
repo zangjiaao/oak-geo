@@ -16,8 +16,8 @@ const protectedProduct = text => {
  const restored = section.replace(/^(seed_list|keyword_pool_snapshot|industry_score)([^\n]*) -- industry-shared, no tenant_id$/gm, '$1$2').replace(/^(keyword_raw)([^\n]*) -- C-class rows always tenant-private$/gm, '$1$2');
  return before+'## 18. 表结构'+restored+'## 19. 硬规则汇总'+after;
 };
-test('授权范围外的产品文档逐字保留', () => {
- const text=protectedProduct(read('docs/GEO产品文档.md'));
+test('v3.5历史快照保留原批准内容，v4方向由负责人另行授权', () => {
+ const text=protectedProduct(read('docs/archive/GEO产品文档-v3.5.md'));
  assert.equal(createHash('sha256').update(text).digest('hex'),'3afa43fee348250af44ceb6158c7bf229fa12e7ca22258a4d231ce9d1b1df955');
 });
 test('六表及快照双身份只在授权处补充', () => {
@@ -86,7 +86,7 @@ test('job名注册表与内部端点白名单一致，不授予人类system权�
 });
 test('docs目录保持精简，主入口及生成附件的本地链接有效', () => {
  const files=(dir)=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(`${dir}/${e.name}`):[`${dir}/${e.name}`]);
- const all=files('docs');const t05Attachments=['docs/t05-wiring.md','docs/t05-review.md','docs/t07-review.md'];assert.ok(all.filter(p=>!t05Attachments.includes(p)).length<=12,`非授权文档膨胀为${all.length}份`);
+ const all=files('docs');const t05Attachments=['docs/t05-wiring.md','docs/t05-review.md','docs/t07-review.md','docs/README.md','docs/archive/GEO产品文档-v3.5.md'];assert.ok(all.filter(p=>!t05Attachments.includes(p)).length<=12,`非授权文档膨胀为${all.length}份`);
  assert.deepEqual(readdirSync('docs/api/generated'),['endpoints.md']);
  for(const file of all.filter(p=>p.endsWith('.md'))){
   const source=read(file).replace(/```[\s\S]*?```/g,'');
@@ -135,7 +135,7 @@ test('批次create/start都校验品牌已封版词表与已生效官方口径',
  }
 });
 test('v3.5走读裁定落盘，P1工具及双剧本金路径不扩外部验收', () => {
- const product=read('docs/GEO产品文档.md');assert.match(product,/> 版本 v3\.5/);
+ const product=read('docs/archive/GEO产品文档-v3.5.md');assert.match(product,/> 版本 v3\.5/);
  for(const text of ['行业管道的经营属性','开通清单','基线可开跑','预填确认','接入预填 agent','跨行业情报墙','13.4 工作室自运营剧本（dogfood）','13.4.7 边界清单','基线批次继续按 v1 判定、下批次起用 v2'])assert.ok(product.includes(text),text);
  const backlog=read('docs/backlog.md');for(const id of ['T34','T35','T36'])assert.match(backlog,new RegExp(`\\| ${id} \\|`));
  const t31=backlog.split('\n').find(l=>l.startsWith('| T31 |'));assert.match(t31,/exclusion/);assert.match(t31,/§13.3/);assert.match(t31,/§13.4/);

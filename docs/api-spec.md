@@ -1,7 +1,7 @@
 # API 契约与状态机设计规格
 
 > 状态：已冻结 · 版本 t02_api_v1 · 产品负责人已明确批准（2026-11-10）。规格变更须另提任务与PR人审。
-> 事实依据：[产品文档](GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定覆盖早期模板及本稿旧版本的冲突描述；产品文档仅按授权修改 §18 和决策记录，其余原文保留。
+> 事实依据：[产品文档](GEO产品文档.md) §3–4、§6、§8–9、§11–14、§16–19；[三轮负责人裁定原文](t02-decisions.md)。裁定保留冻结契约的审批依据；当前方法论验证方向见[文档入口](README.md)，不把契约全量实现作为研究启动前置。
 > 人审从[一页地图](spec-map.md)进入，再读[核心集](api/core-set.md)和[allow权限规范](api/permissions.csv)；[支撑端点](api/generated/endpoints.md)默认抽检。[结构化源](api/contracts.json)用于生成与机器校验，不要求人逐行审。
 
 ## 0. 冻结流程与审阅 checklist
@@ -25,7 +25,7 @@
 
 Web 会话 + per-user PAT，解析 `(user, role, tenant, actor_type)`；PAT scopes 与用户实时权限取交集，不能提升角色权限。服务端先校验租户，再校验品牌或关联任务，再查权限矩阵三键，最后执行端点前置条件。顺序中的任何deny或条件不满足均403 permission_denied；未知三键默认deny。URL中的tid/bid/对象ID不是授权凭证。所有写操作经 `src/server/api`，路由和jobs只调用该层，不直接修改数据库。
 
-九角色：owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin。actor_type 独立于角色：human/agent/system/external_agent；MVP不实现Agent Runtime或MCP。人类决策动作（放行、确认、升级问句、人工下线等）必须human，agent/external_agent无绿色通道。作者不等于状态属性。
+九角色：owner/editor/viewer/strategist/content/evidence/factcheck/cs/admin。actor_type 独立于角色：human/agent/system/external_agent；当前MVP从首轮使用受监督Agent分析，但不先建设通用Agent Runtime或MCP；这不扩张任何接口或权限。人类决策动作（放行、确认、升级问句、人工下线等）必须human，agent/external_agent无绿色通道。作者不等于状态属性。
 
 权限矩阵中allow是“该角色可在条件满足时执行”，不是无条件开放。每行conditions与以下规则共同强制，deny优先：
 
