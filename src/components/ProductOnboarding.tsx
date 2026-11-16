@@ -9,6 +9,9 @@ import { Link } from "@astryxdesign/core/Link";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Table } from "@astryxdesign/core/Table";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Icon } from "@astryxdesign/core/Icon";
+import { InternationalizationProvider } from "@astryxdesign/core/i18n";
+import zhCN from "@astryxdesign/core/locales/zh-CN.generated.js";
 import type { WorkspaceSession } from "./WorkspaceShell";
 type Input = {
   name: string;
@@ -227,108 +230,130 @@ export function BrandProfileForm({
     });
   }
   return (
-    <VStack gap={5}>
-      <VStack gap={2}>
-        <Heading level={1}>{welcome ? "欢迎使用 GEO" : "品牌设置"}</Heading>
+    <InternationalizationProvider locale="zh-CN" messages={{ "zh-CN": zhCN }}>
+      <VStack gap={welcome ? 6 : 5} width="100%">
+        <VStack gap={3}>
+          <Heading level={1}>{welcome ? "介绍一下你的品牌" : "品牌设置"}</Heading>
+          {welcome ? (
+            <Text color="secondary">
+              从一段产品介绍开始，整理品牌事实与来源，供你逐条确认。
+            </Text>
+          ) : null}
+        </VStack>
+        {store.error ? <Text role="alert">{store.error}</Text> : null}
+        {notice ? <Text role="status">{notice}</Text> : null}
+        {!store.canWrite ? (
+          <Text type="supporting">当前账号只读，Owner 可修改品牌资料。</Text>
+        ) : null}
+        {welcome && !store.canWrite ? (
+          <Link href={"/knowledge?brand=" + brandId}>查看品牌知识库</Link>
+        ) : null}
+        <TextInput
+          label="品牌名称"
+          placeholder={welcome ? "例如：okdata" : undefined}
+          size={welcome ? "lg" : "md"}
+          autoComplete="organization"
+          value={input.name}
+          onChange={(value) => change("name", value)}
+          isRequired
+          isDisabled={!store.canWrite || store.busy || !ready}
+        />
+        <TextArea
+          label="品牌描述"
+          rows={welcome ? 8 : 3}
+          placeholder={
+            welcome
+              ? "可以直接粘贴已有的产品介绍。\n\n它提供什么产品或服务？适合谁使用？有哪些能力、价格或使用限制？"
+              : undefined
+          }
+          value={input.description}
+          onChange={(value) => change("description", value)}
+          description={welcome ? undefined : "介绍产品能力、适用人群、价格与限制。"}
+          maxLength={2000}
+          isRequired
+          isDisabled={!store.canWrite || store.busy || !ready}
+        />
         {welcome ? (
-          <Text color="secondary">
-            先介绍你的品牌，我们来整理可引用的事实。
+          <HStack>
+            <Button
+              label={extras ? "收起补充资料" : "补充资料（选填）"}
+              variant="ghost"
+              icon={<Icon icon={extras ? "chevronDown" : "externalLink"} />}
+              aria-expanded={extras}
+              aria-controls="brand-additional-sources"
+              onClick={() => setExtras(!extras)}
+              isDisabled={store.busy}
+            />
+          </HStack>
+        ) : null}
+        {extras ? (
+          <VStack gap={4} id="brand-additional-sources">
+            <TextInput
+              label="官网（选填）"
+              value={input.website}
+              onChange={(value) => change("website", value)}
+              placeholder="https://example.com/"
+              isDisabled={!store.canWrite || store.busy || !ready}
+            />
+            <TextArea
+              label="官方资料链接（选填，每行一个）"
+              value={links}
+              onChange={setLinks}
+              isDisabled={!store.canWrite || store.busy || !ready}
+            />
+            <TextArea
+              label="重点核查或补充说明（选填）"
+              value={input.notes}
+              onChange={(value) => change("notes", value)}
+              maxLength={1000}
+              isDisabled={!store.canWrite || store.busy || !ready}
+            />
+          </VStack>
+        ) : null}
+        {!store.data?.research_configured && store.loaded ? (
+          <Text type="supporting">
+            资料调查暂不可用。你仍可保存品牌资料，稍后在知识库继续整理。
           </Text>
         ) : null}
-      </VStack>
-      {store.error ? <Text role="alert">{store.error}</Text> : null}
-      {notice ? <Text role="status">{notice}</Text> : null}
-      {!store.canWrite ? (
-        <Text type="supporting">当前账号只读，Owner 可修改品牌资料。</Text>
-      ) : null}
-      {welcome&&!store.canWrite?<Link href={"/knowledge?brand="+brandId}>查看品牌知识库</Link>:null}
-      <TextInput
-        label="品牌名称"
-        value={input.name}
-        onChange={(value) => change("name", value)}
-        isRequired
-        isDisabled={!store.canWrite || store.busy || !ready}
-      />
-      <TextArea
-        label="品牌描述"
-        value={input.description}
-        onChange={(value) => change("description", value)}
-        description="介绍产品能力、适用人群、价格与限制。"
-        maxLength={2000}
-        isRequired
-        isDisabled={!store.canWrite || store.busy || !ready}
-      />
-      {welcome ? (
-        <Button
-          label={extras ? "收起补充资料" : "补充官网或资料链接（选填）"}
-          variant="secondary"
-          onClick={() => setExtras(!extras)}
-          isDisabled={store.busy}
-        />
-      ) : null}
-      {extras ? (
-        <VStack gap={4}>
-          <TextInput
-            label="官网（选填）"
-            value={input.website}
-            onChange={(value) => change("website", value)}
-            placeholder="https://example.com/"
-            isDisabled={!store.canWrite || store.busy || !ready}
-          />
-          <TextArea
-            label="官方资料链接（选填，每行一个）"
-            value={links}
-            onChange={setLinks}
-            isDisabled={!store.canWrite || store.busy || !ready}
-          />
-          <TextArea
-            label="重点核查或补充说明（选填）"
-            value={input.notes}
-            onChange={(value) => change("notes", value)}
-            maxLength={1000}
-            isDisabled={!store.canWrite || store.busy || !ready}
-          />
-        </VStack>
-      ) : null}
-      {!store.data?.research_configured && store.loaded ? (
-        <Text type="supporting">
-          调查服务未配置。资料仍会保存到知识库，管理员配置 DeepSeek
-          后可继续整理。
-        </Text>
-      ) : null}
-      {store.busy ? (
-        <Text role="status">正在保存并整理品牌事实，请稍候…</Text>
-      ) : null}
-      <HStack gap={3}>
-        <Button
-          label={welcome ? "建立品牌知识库" : "保存资料"}
-          onClick={() => save(welcome)}
-          isDisabled={
-            !store.canWrite ||
-            store.busy ||
-            !ready ||
-            !input.name.trim() ||
-            !input.description.trim()
-          }
-        />
-        {!welcome ? (
+        {store.busy ? (
+          <Text role="status">正在保存并整理品牌事实，请稍候…</Text>
+        ) : null}
+        <HStack gap={3} width="100%">
           <Button
-            label="保存并重新调查"
-            variant="secondary"
-            onClick={() => save(true)}
+            label={welcome ? "建立品牌知识库" : "保存资料"}
+            variant="primary"
+            size={welcome ? "lg" : "md"}
+            width={welcome ? "100%" : undefined}
+            isLoading={store.busy}
+            endContent={welcome ? <Icon icon="chevronRight" /> : undefined}
+            onClick={() => save(welcome)}
             isDisabled={
               !store.canWrite ||
               store.busy ||
               !ready ||
-              !store.data?.research_configured
+              !input.name.trim() ||
+              !input.description.trim()
             }
           />
-        ) : null}
-        {!welcome ? (
-          <Link href={"/knowledge?brand=" + brandId}>查看知识库</Link>
-        ) : null}
-      </HStack>
-    </VStack>
+          {!welcome ? (
+            <Button
+              label="保存并重新调查"
+              variant="secondary"
+              onClick={() => save(true)}
+              isDisabled={
+                !store.canWrite ||
+                store.busy ||
+                !ready ||
+                !store.data?.research_configured
+              }
+            />
+          ) : null}
+          {!welcome ? (
+            <Link href={"/knowledge?brand=" + brandId}>查看知识库</Link>
+          ) : null}
+        </HStack>
+      </VStack>
+    </InternationalizationProvider>
   );
 }
 export function BrandKnowledgePanel({
