@@ -78,7 +78,7 @@ export function QuestionPoolPanel({
   const [query, setQuery] = useState(""),
     [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<
-    "create" | "revise" | "freeze" | "anchor" | "archive" | null
+    "create" | "revise" | "freeze" | "anchor" | "archive" | "delete" | null
   >(null);
   const [sourceId, setSourceId] = useState(""),
     [question, setQuestion] = useState("");
@@ -158,6 +158,11 @@ export function QuestionPoolPanel({
     }
   }
   async function submit() {
+    if (dialog === "delete" && revision)
+      return write("/" + encodeURIComponent(revision.id) + "/delete", {
+        confirmed: true,
+        question_pool_version: revision.question_pool_version,
+      });
     if (dialog === "revise" && revision)
       return write(
         "/" + encodeURIComponent(revision.id) + "/revisions",
@@ -205,19 +210,22 @@ export function QuestionPoolPanel({
     freeze: `冻结 v${version}`,
     anchor: anchorLabel,
     archive: `归档 v${version}`,
+    delete: "删除问句草稿",
   };
   const description =
-    dialog === "freeze"
-      ? `封版整个品牌版本：${current?.cluster_count} 簇、${current?.question_count} 条问句，之后只可开新版本修订。`
-      : dialog === "archive"
-        ? "停止新锚定；历史记录与已有锚定保留。"
-        : dialog === "anchor"
-          ? `将当前簇锚定到 v${version}，后续需重开基线。`
-          : dialog === "revise"
-            ? "修订另开版本，旧版本与当前锚定不变。"
-            : target !== version
-              ? `保存首条问句后创建 v${target}，当前锚定不变。`
-              : undefined;
+    dialog === "delete"
+      ? "仅删除这条未冻结、未被引用的草稿；冻结及入测历史保留。"
+      : dialog === "freeze"
+        ? `封版整个品牌版本：${current?.cluster_count} 簇、${current?.question_count} 条问句，之后只可开新版本修订。`
+        : dialog === "archive"
+          ? "停止新锚定；历史记录与已有锚定保留。"
+          : dialog === "anchor"
+            ? `将当前簇锚定到 v${version}，后续需重开基线。`
+            : dialog === "revise"
+              ? "修订另开版本，旧版本与当前锚定不变。"
+              : target !== version
+                ? `保存首条问句后创建 v${target}，当前锚定不变。`
+                : undefined;
   const disabled =
     dialog === "create"
       ? !source || !question.trim() || !maintainer.trim()
@@ -389,6 +397,21 @@ export function QuestionPoolPanel({
                       setDialog("revise");
                     }}
                   />
+                ) : session?.can_write &&
+                  !current?.locked &&
+                  !q.frozen &&
+                  !q.archived_at &&
+                  cluster?.question_pool_version !== q.question_pool_version ? (
+                  <Button
+                    label="删除草稿"
+                    size="sm"
+                    isDisabled={busy}
+                    onClick={() => {
+                      setRevision(q);
+                      setMessage("");
+                      setDialog("delete");
+                    }}
+                  />
                 ) : (
                   <Text type="supporting">—</Text>
                 ),
@@ -411,19 +434,23 @@ export function QuestionPoolPanel({
         busy={busy}
         error={message}
         disabled={disabled}
+        destructive={dialog === "delete"}
         onClose={() => {
           setDialog(null);
           setMessage("");
         }}
         onSubmit={submit}
         submitLabel={
-          dialog === "create"
-            ? "添加问句"
-            : dialog === "revise"
-              ? "保存新版本问句"
-              : "确认"
+          dialog === "delete"
+            ? "删除草稿"
+            : dialog === "create"
+              ? "添加问句"
+              : dialog === "revise"
+                ? "保存新版本问句"
+                : "确认"
         }
       >
+        {dialog === "delete" && revision && <Text>{revision.question}</Text>}
         {(dialog === "create" || dialog === "revise") && (
           <>
             {dialog === "create" ? (

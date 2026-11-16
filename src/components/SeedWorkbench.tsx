@@ -43,7 +43,7 @@ export function SeedWorkbench({
     [cursor, setCursor] = useState<string | null>(null),
     [revision, setRevision] = useState(0);
   const [query, setQuery] = useState(""),
-    [status, setStatus] = useState("all"),
+    [status, setStatus] = useState("active"),
     [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),

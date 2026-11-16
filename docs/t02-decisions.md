@@ -433,3 +433,15 @@ T38实现草案随PR人审：复用 `keyword_raw.import` 的 `source_query`（Se
 实现草案续补：现有source_query/trend_import可带seed_context（seed_ids，或generation配置与selected_keywords）；服务端校验同一行业、公共许可、当前active版本及扩词集合后派生检索词，保存种子id/logical_id/seed_version与模板溯源。read趋势视图可按seed_id/seed_logical_id过滤，历史记录不因种子修订消失。品牌market沿用已授权brand.read结果，仅作采集地域的可编辑默认值。接口、角色、状态与冻结文件不变；T10真实周批、T19搜索证据、T39真实问句和真实模型批准仍按原边界推进，不将本次入口调整记作整个V1完成。
 
 边界说明：公共词根许可约束共享seed_list写入；从合法种子模板扩出的词可走既有Strategist keyword_raw.import权限做本租户私有采集，无需逐词扩充共享目录。共享种子的T08准入与人审确认逻辑保持不变。
+
+## T41 问句草稿清理与种子默认筛选（2026-11-16）
+
+开发侧建议原文：
+
+> 建议补齐的边界是：未冻结、未被引用的问句草稿允许删除；冻结或已入测的问句保留历史，通过修订新版本、归档处理。种子继续采用停用，并让列表默认只显示启用项。问句草稿删除需要补 API 契约，现有冻结契约尚未定义这个操作。
+
+负责人答复原文：
+
+> 可以，这个需要补的
+
+实现及契约补充草案：仅新增POST question_pool/{id}/delete（question_pool.delete），human Strategist、同租户同品牌、PAT scope取交集；confirmed=true与版本校验。删除锁簇后锁整个品牌版本并重读，拒绝冻结/归档版本、锚定、probe/question_score/probe_batch引用。同事务硬删除该草稿并写审计；审计reason存JSON归属标识（brand/cluster/source/version），不存问句全文，供删除后重放幂等结果前重新执行完整鉴权。审计失败整事务回滚；来源及其他问句不删，种子仍只软停用。接口细节随T41独立PR人审，未自行扩大t02_api_v1冻结范围；保留T02原契约规范化SHA，只有本增量可以通过保护测试。产品正文、AGENTS及T03业务用例/协议字节不改；规格完整性测试仅剥离T41授权追加后复验原冻结SHA，不更新原freeze元数据。无数据库字段/迁移新增。

@@ -115,10 +115,36 @@ export async function resourceScope(client, endpoint, request, principal) {
       );
   }
   if (id && resource === "question_pool") {
-    const row = await read(
-      "SELECT cluster_id,source_word_id FROM question_pool WHERE tenant_id=$1 AND id=$2",
-      [tid, id],
-    );
+    let row = (
+      await client.query(
+        "SELECT cluster_id,source_word_id FROM question_pool WHERE tenant_id=$1 AND id=$2",
+        [tid, id],
+      )
+    ).rows[0];
+    // A deleted draft still needs ordinary tenant/brand/allow/PAT checks before
+    // the dispatcher may replay its encrypted idempotency result. Only the
+    // deletion action may recover IDs from its immutable, server-written audit.
+    if (!row && endpoint.id === "question_pool.delete") {
+      const receipt = (
+        await client.query(
+          "SELECT reason FROM audit_log WHERE tenant_id=$1 AND object_type='question_pool' AND object_id=$2 AND action='question_pool.delete' ORDER BY at DESC LIMIT 1",
+          [tid, id],
+        )
+      ).rows[0];
+      try {
+        const saved = JSON.parse(receipt?.reason ?? "null");
+        if (
+          saved?.operation === endpoint.id &&
+          typeof saved.cluster_id === "string" &&
+          typeof saved.source_word_id === "string"
+        )
+          row = {
+            cluster_id: saved.cluster_id,
+            source_word_id: saved.source_word_id,
+          };
+      } catch {}
+    }
+    if (!row) throw permission("object outside accessible scope");
     clusterId = row.cluster_id;
     sourceId = row.source_word_id;
   }
@@ -222,16 +248,28 @@ export async function resourceScope(client, endpoint, request, principal) {
     keys.push(...assignments.map((a) => `${a.object_type}:${a.object_id}`));
     brand_id = id;
   }
-  if (!id && (resource === "question_pool" || (resource === "intent_cluster" && endpoint.operation === "read"))) {
+  if (
+    !id &&
+    (resource === "question_pool" ||
+      (resource === "intent_cluster" && endpoint.operation === "read"))
+  ) {
     if (!brand_id) throw permission("brand required for list");
-    await read("SELECT id FROM brand WHERE tenant_id=$1 AND id=$2", [tid, brand_id]);
+    await read("SELECT id FROM brand WHERE tenant_id=$1 AND id=$2", [
+      tid,
+      brand_id,
+    ]);
     if (["content", "evidence"].includes(principal.role)) {
-      const assigned = (await client.query(`SELECT DISTINCT a.object_type,a.object_id FROM task_assignment a
+      const assigned = (
+        await client.query(
+          `SELECT DISTINCT a.object_type,a.object_id FROM task_assignment a
         LEFT JOIN intent_cluster c ON a.object_type='intent_cluster' AND c.tenant_id=a.tenant_id AND c.id=a.object_id
         LEFT JOIN opportunity_card o ON a.object_type='opportunity_card' AND o.tenant_id=a.tenant_id AND o.id=a.object_id
         WHERE a.tenant_id=$1 AND a.user_id=$2 AND ((c.brand_id=$3 AND ($4::text IS NULL OR c.id=$4)) OR (o.brand_id=$3 AND ($4::text IS NULL OR o.intent_cluster_id=$4)) OR
-        (a.object_type='keyword_raw' AND EXISTS(SELECT 1 FROM question_pool q JOIN intent_cluster k ON k.tenant_id=q.tenant_id AND k.id=q.cluster_id WHERE q.tenant_id=a.tenant_id AND q.source_word_id=a.object_id AND k.brand_id=$3 AND ($4::text IS NULL OR q.cluster_id=$4))))`, [tid,principal.user_id,brand_id,clusterId??null])).rows;
-      keys.push(...assigned.map(a=>`${a.object_type}:${a.object_id}`));
+        (a.object_type='keyword_raw' AND EXISTS(SELECT 1 FROM question_pool q JOIN intent_cluster k ON k.tenant_id=q.tenant_id AND k.id=q.cluster_id WHERE q.tenant_id=a.tenant_id AND q.source_word_id=a.object_id AND k.brand_id=$3 AND ($4::text IS NULL OR q.cluster_id=$4))))`,
+          [tid, principal.user_id, brand_id, clusterId ?? null],
+        )
+      ).rows;
+      keys.push(...assigned.map((a) => `${a.object_type}:${a.object_id}`));
     }
   }
   return { brand_id, clusterId, cardId, assetId, sourceId, snapshot_id, keys };

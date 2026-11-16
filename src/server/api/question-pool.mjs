@@ -174,6 +174,74 @@ export async function listClusters(ctx) {
 }
 export function questionPoolHandlers() {
   return {
+    "question_pool.delete": async (ctx) => {
+      if (ctx.body.confirmed !== true) throw validation("请确认删除问句草稿");
+      required(ctx.body, ["question_pool_version"]);
+      const version = questionVersion(ctx);
+      const readDraft = async (lock = false) =>
+        (
+          await ctx.client.query(
+            "SELECT id,cluster_id,source_word_id,question_pool_version,frozen,archived_at FROM question_pool WHERE tenant_id=$1 AND id=$2" +
+              (lock ? " FOR UPDATE" : ""),
+            [ctx.principal.tenant_id, ctx.params.id],
+          )
+        ).rows[0];
+      const initial = await readDraft();
+      if (!initial) throw conflict("该问句草稿已删除");
+      // Same lock order as anchoring: cluster first, then brand/version. Reread
+      // after the lock so a concurrent freeze cannot leave a stale draft check.
+      // NO KEY UPDATE still serializes anchor changes, while allowing the FK
+      // KEY SHARE lock of a simultaneous draft insert to finish before we wait
+      // on its brand/version lock.
+      const cluster = (
+        await ctx.client.query(
+          "SELECT id,brand_id,question_pool_version FROM intent_cluster WHERE tenant_id=$1 AND id=$2 FOR NO KEY UPDATE",
+          [ctx.principal.tenant_id, initial.cluster_id],
+        )
+      ).rows[0];
+      if (!cluster) throw conflict("问句关联簇已不可用");
+      await lockVersion(ctx, cluster.brand_id, initial.question_pool_version);
+      const row = await readDraft(true);
+      if (!row || row.question_pool_version !== version)
+        throw conflict("问句版本已变更或草稿已删除");
+      const sealed = await ctx.client.query(
+        "SELECT 1 FROM question_pool q JOIN intent_cluster c ON c.tenant_id=q.tenant_id AND c.id=q.cluster_id WHERE q.tenant_id=$1 AND c.brand_id=$2 AND q.question_pool_version=$3 AND (q.frozen OR q.archived_at IS NOT NULL) LIMIT 1",
+        [ctx.principal.tenant_id, cluster.brand_id, version],
+      );
+      if (row.frozen || row.archived_at || sealed.rowCount)
+        throw conflict("冻结或归档版本不可删除，请修订新版本");
+      const referenced = (
+        await ctx.client.query(
+          `SELECT EXISTS(SELECT 1 FROM probe WHERE tenant_id=$1 AND question_id=$2)
+          OR EXISTS(SELECT 1 FROM question_score WHERE tenant_id=$1 AND question_id=$2)
+          OR EXISTS(SELECT 1 FROM probe_batch WHERE tenant_id=$1 AND cluster_question_sets @> $3::jsonb) AS used`,
+          [
+            ctx.principal.tenant_id,
+            row.id,
+            JSON.stringify([{ question_ids: [row.id] }]),
+          ],
+        )
+      ).rows[0].used;
+      if (cluster.question_pool_version === version || referenced)
+        throw conflict("已锚定或被批次/评分引用的问句不可删除");
+      await ctx.client.query(
+        "DELETE FROM question_pool WHERE tenant_id=$1 AND id=$2",
+        [ctx.principal.tenant_id, row.id],
+      );
+      return {
+        data: { id: row.id, deleted: true, question_pool_version: version },
+        objectId: row.id,
+        auditMeta: {
+          reason: JSON.stringify({
+            operation: "question_pool.delete",
+            brand_id: cluster.brand_id,
+            cluster_id: row.cluster_id,
+            source_word_id: row.source_word_id,
+            question_pool_version: version,
+          }),
+        },
+      };
+    },
     "question_pool.create": async (ctx) => {
       required(ctx.body, ["cluster_id", ...fields]);
       const version = questionVersion(ctx);

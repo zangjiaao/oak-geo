@@ -25,6 +25,7 @@ const humanDecisions = new Set([
   "evidence_package.approve",
   "diagnosis_report.approve",
   "question_pool.upgrade_anchor",
+  "question_pool.delete",
   "opportunity_card.confirm",
   "content_asset.retire",
 ]);

@@ -17,6 +17,13 @@ test('T03覆盖产品实际19条硬规则，验收用例不以skip或占位断�
 test('T02冻结来自负责人明确批准，附录生成不能退回草案', () => {
  const d=JSON.parse(readFileSync('docs/api/contracts.json','utf8'));
  assert.equal(d.status,'frozen');assert.equal(d.freeze.approved_by,'产品负责人');assert.equal(d.freeze.source_pr,4);
+ // T41 is an authorized pending amendment, not an extension of the original
+ // freeze approval. Restore only that addition before checking the OLD hash.
+ assert.deepEqual(d.amendments.map(a=>[a.id,a.status,a.endpoint_ids]),[['T41','pending_review',['question_pool.delete']]]);
+ delete d.amendments;
+ d.endpoints=d.endpoints.filter(e=>e.id!=='question_pool.delete');
+ d.operations=d.operations.filter(op=>op!=='delete');
+ d.review.core_endpoint_ids=d.review.core_endpoint_ids.filter(id=>id!=='question_pool.delete');
  const {status,freeze,...content}=d;assert.equal(createHash('sha256').update(JSON.stringify(content)).digest('hex'),d.freeze.content_sha256);
  assert.match(d.freeze.approval_quote,/同时批准冻结当前 API 规格/);
  for(const p of ['docs/api-spec.md','docs/spec-map.md','docs/api/core-set.md','docs/api/states.md','docs/api/generated/endpoints.md'])assert.match(readFileSync(p,'utf8'),/已冻结/);
