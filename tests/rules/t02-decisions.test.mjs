@@ -44,8 +44,10 @@ test('全资源端点均有独立请求响应及语义和审计定义', () => {
 test('权限规范仅含allow且每行有依据，默认拒绝不再展开', () => {
  const d=data();const lines=read('docs/api/permissions.csv').trim().split('\n');
  assert.equal(lines[0],'# 未出现 (role, resource, operation) allow 行即 deny');
- const rows=lines.slice(2).map(x=>x.split(','));assert.equal(rows.length,d.endpoints.reduce((n,e)=>n+e.grants.length,0));
+ const expected=new Set(d.endpoints.flatMap(e=>e.grants.map(role=>[role,e.resource,e.operation].join(':'))));
+ const rows=lines.slice(2).map(x=>x.split(','));assert.equal(rows.length,expected.size);
  const keys=new Set();for(const [role,resource,operation,effect,scope,basis,condition]of rows){const k=[role,resource,operation].join(':');assert.ok(!keys.has(k),k);keys.add(k);assert.equal(effect,'allow');assert.ok(basis.includes('§9.3')||basis.includes('裁定'));assert.ok(scope&&condition);}
+ assert.deepEqual(keys,expected);
  for(const role of ['admin','owner','editor','viewer'])assert.ok(!keys.has(`${role}:probe_result:read_raw`));
  const registration=rows.find(r=>r[0]==='editor'&&r[1]==='publish_registration'&&r[2]==='register');assert.ok(registration[6].includes('full'));
 });

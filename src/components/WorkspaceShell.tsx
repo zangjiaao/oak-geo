@@ -32,9 +32,9 @@ type Selection = {
   industry: string;
 };
 
-function WorkspaceBody({ children }: { children: ReactNode }) {
+function WorkspaceBody({ children, path }: { children: ReactNode; path: string }) {
   const { isMobile } = useAppShellMobile();
-  if (!isMobile) return children;
+  if (!isMobile || ["/knowledge", "/settings/brand"].includes(path)) return children;
   return (
     <VStack gap={4}>
       <Heading level={1}>移动端日报</Heading>
@@ -61,7 +61,6 @@ export function WorkspaceShell({
 }) {
   const groups = navigationFor(session);
   const brands = session?.brands ?? [];
-  const industries = [...new Set(brands.map((b) => b.industry).filter(Boolean))];
   const href = (next: string) => workspaceHref(next, selection);
   function selectBrand(id: string) {
     const brand = brands.find((b) => b.id === id);
@@ -89,23 +88,6 @@ export function WorkspaceShell({
       {session?.role === "owner" && session.mode !== "diagnosis" ? (
         <Button label="新增品牌" variant="ghost" size="sm" href="/welcome?new=1" />
       ) : null}
-      <Selector
-        label="行业"
-        isLabelHidden
-        value={selection.industry}
-        options={industries.map((industry) => ({
-          value: industry,
-          label: industry,
-        }))}
-        placeholder="尚未选择行业"
-        isDisabled={!industries.length}
-        size="sm"
-        variant="secondary"
-        onChange={(industry) => {
-          const brand = brands.find((b) => b.industry === industry);
-          if (brand) selectBrand(brand.id);
-        }}
-      />
     </HStack>
   );
   return (
@@ -163,7 +145,7 @@ export function WorkspaceShell({
             未登录，仅可预览和下载模板。
           </Text>
         )}
-        <WorkspaceBody>{children}</WorkspaceBody>
+        <WorkspaceBody path={path}>{children}</WorkspaceBody>
       </VStack>
     </AppShell>
   );

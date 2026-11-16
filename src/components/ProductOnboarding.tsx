@@ -6,14 +6,15 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { Button } from "@astryxdesign/core/Button";
 import { Link } from "@astryxdesign/core/Link";
-import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
-import { Table } from "@astryxdesign/core/Table";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Selector } from "@astryxdesign/core/Selector";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { InternationalizationProvider } from "@astryxdesign/core/i18n";
 import zhCN from "@astryxdesign/core/locales/zh-CN.generated.js";
 import type { WorkspaceSession } from "./WorkspaceShell";
-type Input = {
+export type Input = {
   name: string;
   description: string;
   website: string;
@@ -27,23 +28,31 @@ type Evidence = {
   url?: string | null;
   title?: string;
   kind?: string;
+  collected_at?: string;
 };
-type Fact = {
+export type Fact = {
   id: string;
   category: string;
   text: string;
   evidence: Evidence[];
   official_fact_id?: string;
+  fact_id?: string;
+  issues?: string[];
+  has_numbers?: boolean | null;
+  number_value?: string;
+  caliber?: string;
+  boundary?: string;
 };
-type Source = {
+export type Source = {
   id: string;
   url: string | null;
   title: string;
   kind: string;
   official: boolean;
+  text?: string;
   collected_at: string;
 };
-type Research = {
+export type Research = {
   facts: Fact[];
   sources: Source[];
   summary: string;
@@ -52,7 +61,7 @@ type Research = {
   model: string;
   completed_at: string;
 };
-type State = {
+export type State = {
   profile: {
     id: string;
     input: Input;
@@ -68,7 +77,7 @@ type State = {
   reviews: { id: string; status: string }[];
   research_configured: boolean;
 };
-const empty: Input = {
+export const empty: Input = {
   name: "",
   description: "",
   website: "",
@@ -76,13 +85,13 @@ const empty: Input = {
   audience: "",
   notes: "",
 };
-const categories: Record<string, string> = {
+export const categories: Record<string, string> = {
   price: "价格",
   spec: "产品能力",
   boundary: "适用边界",
   service_promise: "服务承诺",
 };
-function useProfile(session: WorkspaceSession, brandId: string | null) {
+export function useProfile(session: WorkspaceSession, brandId: string | null) {
   const [data, setData] = useState<State | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -177,11 +186,13 @@ export function BrandProfileForm({
   brandId,
   welcome = false,
   creating = false,
+  onSaved,
 }: {
   session: WorkspaceSession;
   brandId: string | null;
   welcome?: boolean;
   creating?: boolean;
+  onSaved?: (brandId: string) => void;
 }) {
   const store = useProfile(session, brandId),
     [input, setInput] = useState<Input>(empty),
@@ -238,29 +249,25 @@ export function BrandProfileForm({
           await store.mutate("save", data, root + "/" + encodeURIComponent(createdBrand.current.id) + "/product-profile");
         savedId = createdBrand.current!.id;
       } else await store.mutate("save", data);
-      if (
-        investigate &&
-        (creating ? createdBrand.current?.research_configured : store.data?.research_configured)
-      )
-        await store.mutate("investigate", {}, root + "/" + encodeURIComponent(savedId!) + "/product-profile");
+      if (onSaved) { onSaved(savedId!); return; }
       if (welcome || investigate)
         window.location.assign(
-          "/knowledge?brand=" + encodeURIComponent(savedId!),
+          "/welcome?brand=" + encodeURIComponent(savedId!) + (investigate ? "&investigate=1" : ""),
         );
-      else setNotice("品牌资料已保存，知识库已同步");
+      else setNotice("品牌资料已保存");
     });
   }
   return (
     <InternationalizationProvider locale="zh-CN" messages={{ "zh-CN": zhCN }}>
       <VStack gap={welcome ? 6 : 5} width="100%">
-        <VStack gap={3}>
+        {!onSaved ? <VStack gap={3}>
           <Heading level={1}>{welcome ? "介绍一下你的品牌" : "品牌设置"}</Heading>
           {welcome ? (
             <Text color="secondary">
               从一段产品介绍开始，整理品牌事实与来源，供你逐条确认。
             </Text>
           ) : null}
-        </VStack>
+        </VStack> : null}
         {store.error ? <Text role="alert">{store.error}</Text> : null}
         {store.error && creating && createdBrand.current ? (
           <Link href={"/knowledge?brand=" + encodeURIComponent(createdBrand.current.id)}>
@@ -336,7 +343,7 @@ export function BrandProfileForm({
             />
           </VStack>
         ) : null}
-        {!store.data?.research_configured && store.loaded ? (
+        {!onSaved && !store.data?.research_configured && store.loaded ? (
           <Text type="supporting">
             资料调查暂不可用。你仍可保存品牌资料，稍后在知识库继续整理。
           </Text>
@@ -346,7 +353,7 @@ export function BrandProfileForm({
         ) : null}
         <HStack gap={3} width="100%">
           <Button
-            label={welcome ? "建立品牌知识库" : "保存资料"}
+            label={onSaved ? "下一步：检索资料" : welcome ? "建立品牌知识库" : "保存资料"}
             variant="primary"
             size={welcome ? "lg" : "md"}
             width={welcome ? "100%" : undefined}
@@ -382,337 +389,74 @@ export function BrandProfileForm({
     </InternationalizationProvider>
   );
 }
-export function BrandKnowledgePanel({
-  session,
-  brandId,
-}: {
-  session: WorkspaceSession;
-  brandId: string | null;
+export function BrandKnowledgePanel({ session, brandId }: {
+  session: WorkspaceSession; brandId: string | null;
 }) {
-  const store = useProfile(session, brandId),
-    [selected, setSelected] = useState<string[]>([]),
-    [edits, setEdits] = useState<Record<string, string>>({}),
-    [notice, setNotice] = useState("");
-  const [officialSources, setOfficialSources] = useState<string[]>([]);
-  const data = store.data,
-    research = data?.profile?.research,
-    sources = research?.sources ?? [],
-    known = data?.knowledge.facts ?? [];
-  const facts = [
-    ...known,
-    ...(research?.facts ?? []).filter((f) => !known.some((k) => k.id === f.id)),
-  ];
-  const sourceFor = (fact: Fact) =>
-    fact.evidence.map((e) => sources.find((s) => s.id === e.source_id));
-  const confirmable = (fact: Fact) =>
-    !store.data?.research_stale &&
-    !fact.official_fact_id &&
-    sourceFor(fact).some(
-      (s) =>
-        s?.official ||
-        s?.kind === "user_input" ||
-        (s?.kind === "page" && officialSources.includes(s.id)),
-    );
-  if (!session)
-    return (
-      <EmptyState
-        title="登录后查看品牌知识"
-        actions={<Link href="/account">登录</Link>}
-      />
-    );
+  const store = useProfile(session, brandId);
+  const [category, setCategory] = useState("all");
+  if (!session) return <EmptyState title="登录后查看品牌知识" actions={<Link href="/account">登录</Link>} />;
   if (!brandId) return <EmptyState title="请先选择品牌" />;
-  async function confirm() {
-    await store.act(async () => {
-      await store.mutate("confirm", {
-        official_source_ids: officialSources,
-        facts: selected.map((id) => ({
-          id,
-          text: edits[id] ?? facts.find((f) => f.id === id)?.text,
-        })),
-      });
-      setSelected([]);
-      setEdits({});
-      setNotice("已确认并送审，独立放行后可作为官方事实使用");
-    });
-  }
+  const facts = store.data?.knowledge.facts ?? [];
+  const shown = facts.filter((fact) => category === "all" || fact.category === category);
+  const href = "/welcome?brand=" + encodeURIComponent(brandId);
   return (
-    <VStack gap={5}>
-      <HStack gap={3} justify="between" wrap="wrap">
-        <Heading level={1}>知识库</Heading>
-        <HStack gap={3}>
-          <Link href={"/settings/brand?brand=" + brandId}>品牌设置</Link>
-          <Button
-            label="刷新"
-            variant="secondary"
-            isDisabled={store.busy}
-            onClick={() =>
-              store.act(async () => {
-                await store.refresh();
-              })
-            }
-          />
+    <InternationalizationProvider locale="zh-CN" messages={{ "zh-CN": zhCN }}>
+      <VStack gap={6}>
+        <HStack gap={3} hAlign="between" wrap="wrap">
+          <Heading level={1}>知识库</Heading>
+          <HStack gap={3} wrap="wrap">
+            <Link href={"/settings/brand?brand=" + encodeURIComponent(brandId)}>品牌设置</Link>
+            {store.canWrite ? <Button label="整理事实块" href={href} variant="primary" /> : null}
+            <Button label="刷新" variant="secondary" isDisabled={store.busy} onClick={() => store.act(async () => { await store.refresh(); })} />
+          </HStack>
         </HStack>
-      </HStack>
-      {store.error ? <Text role="alert">{store.error}</Text> : null}
-      {notice ? <Text role="status">{notice}</Text> : null}
-      {!store.loaded ? <Text role="status">正在读取品牌知识…</Text> : null}
-      {!data?.profile && store.loaded ? (
-        <EmptyState
-          title="先介绍你的品牌"
-          actions={<Link href={"/welcome?brand=" + brandId}>开始引导</Link>}
-        />
-      ) : null}
-      {data?.knowledge.user_provided ? (
-        <VStack gap={2}>
-          <Heading level={2}>{data.profile?.input.name}</Heading>
-          <Text>{data.profile?.input.description}</Text>
-          <Text type="supporting">
-            来源：用户提供。独立审核前作为品牌声明与研究材料使用。
-          </Text>
-        </VStack>
-      ) : null}
-      {data?.profile ? (
-        <HStack gap={3}>
-          <Button
-            label={store.busy ? "正在调查…" : "检索并整理事实"}
-            isDisabled={
-              !store.canWrite || store.busy || !data.research_configured
-            }
-            onClick={() =>
-              store.act(async () => {
-                await store.mutate("investigate");
-              })
-            }
-          />
-          {!data.research_configured ? (
-            <Text type="supporting">
-              调查服务未配置，请管理员设置 DEEPSEEK_API_KEY。
-            </Text>
-          ) : null}
-        </HStack>
-      ) : null}
-      {data?.run?.error ? <Text role="alert">{data.run.error}</Text> : null}
-      {data?.run && !data.run.finished_at ? (
-        <Text role="status">
-          调查尚未完成，可稍后刷新；中断任务两分钟后可重试。
-        </Text>
-      ) : null}
-      {data?.research_stale ? (
-        <Text role="status">
-          品牌资料已修改，请重新调查。已送审事实仍保留。
-        </Text>
-      ) : null}
-      {research ? (
-        <>
-          <Text>{research.summary}</Text>
-          {research.conflicts.length ? (
-            <VStack gap={2}>
-              <Heading level={2}>口径冲突</Heading>
-              {research.conflicts.map((s, i) => (
-                <Text key={i}>{s}</Text>
-              ))}
-            </VStack>
-          ) : null}
-          {research.unknowns.length ? (
-            <VStack gap={2}>
-              <Heading level={2}>待核实</Heading>
-              {research.unknowns.map((s, i) => (
-                <Text key={i}>{s}</Text>
-              ))}
-            </VStack>
-          ) : null}
-        </>
-      ) : null}
-      {facts.length ? (
-        <>
-          <Table
-            data={facts}
-            idKey="id"
-            density="compact"
-            columns={[
-              {
-                key: "select",
-                header: "确认",
-                renderCell: (fact) => (
-                  <CheckboxInput
-                    label={"选择事实：" + fact.text}
-                    isLabelHidden
-                    value={selected.includes(fact.id)}
-                    isDisabled={
-                      !store.canWrite || store.busy || !confirmable(fact)
-                    }
-                    onChange={(value) =>
-                      setSelected((old) =>
-                        value
-                          ? [...old, fact.id]
-                          : old.filter((id) => id !== fact.id),
-                      )
-                    }
-                  />
-                ),
-              },
-              {
-                key: "category",
-                header: "类型",
-                renderCell: (fact) => categories[fact.category],
-              },
-              {
-                key: "text",
-                header: "事实",
-                renderCell: (fact) =>
-                  store.canWrite && !fact.official_fact_id ? (
-                    <TextArea
-                      label="修改事实"
-                      value={edits[fact.id] ?? fact.text}
-                      onChange={(text) =>
-                        setEdits((old) => ({ ...old, [fact.id]: text }))
-                      }
-                      maxLength={400}
-                      isDisabled={store.busy}
-                    />
-                  ) : (
-                    <Text>{fact.text}</Text>
-                  ),
-              },
-              {
-                key: "evidence",
-                header: "出处",
-                renderCell: (fact) => (
-                  <VStack gap={2}>
-                    {fact.evidence.map((e, i) => {
-                      const source = sources.find((s) => s.id === e.source_id),
-                        url = e.url ?? source?.url,
-                        title = e.title ?? source?.title ?? "用户提供";
-                      return (
-                        <VStack key={i} gap={0}>
-                          {url ? (
-                            <Link href={url}>{title}</Link>
-                          ) : (
-                            <Text>{title}</Text>
-                          )}
-                          <Text>{e.quote}</Text>
+        {store.error ? <Text role="alert">{store.error}</Text> : null}
+        {!store.loaded ? <Text role="status">正在读取事实块…</Text> : null}
+        {store.loaded && !facts.length ? (
+          <EmptyState title="还没有已确认的事实块" description="完成资料填写、联网检索和事实确认后，事实块会显示在这里。"
+            actions={store.canWrite ? <Button label="继续品牌引导" href={href} variant="primary" /> : undefined} />
+        ) : null}
+        {facts.length ? (
+          <Selector label="事实分类" value={category} onChange={setCategory} options={[
+            {value:"all",label:"全部"}, ...Object.entries(categories).map(([value,label])=>({value,label})),
+          ]} />
+        ) : null}
+        {shown.length ? (
+          <Grid columns={{minWidth:280,max:3}} gap={4}>
+            {shown.map((fact) => {
+              const review = store.data?.reviews.find((row) => row.id === fact.official_fact_id);
+              return (
+                <Card key={fact.official_fact_id} padding={5}>
+                  <VStack gap={4}>
+                    <HStack hAlign="between" gap={3} wrap="wrap">
+                      <Text type="label">{categories[fact.category]}</Text>
+                      <Text type="supporting">{review?.status === "approved" ? "已放行" : review?.status === "retracted" ? "已撤回" : "用户已确认"}</Text>
+                    </HStack>
+                    <Text type="large">{fact.text}</Text>
+                    {fact.number_value ? <Text type="supporting">数值：{fact.number_value}</Text> : null}
+                    {fact.caliber ? <Text type="supporting">口径：{fact.caliber}</Text> : null}
+                    {fact.boundary ? <Text type="supporting">适用范围与限制：{fact.boundary}</Text> : null}
+                    <VStack gap={3}>
+                      {fact.evidence.map((evidence,index) => (
+                        <VStack key={index} gap={1}>
+                          {evidence.url ? <Link href={evidence.url} target="_blank" rel="noreferrer">{evidence.title || evidence.url}</Link> : <Text type="supporting">品牌方提供的资料</Text>}
+                          <Text type="supporting">{evidence.quote}</Text>
+                          {evidence.collected_at ? <Text type="supporting">采集时间：{evidence.collected_at}</Text> : null}
                         </VStack>
-                      );
-                    })}
+                      ))}
+                    </VStack>
+                    {session.role === "factcheck" && review?.status === "draft" ? (
+                      <Button label="放行事实" isDisabled={store.busy} onClick={() => store.act(async () => {
+                        await store.mutate("facts/" + encodeURIComponent(fact.official_fact_id!) + "/approve");
+                      })} />
+                    ) : null}
                   </VStack>
-                ),
-              },
-              {
-                key: "review",
-                header: "状态",
-                renderCell: (fact) => {
-                  const review = data?.reviews.find(
-                    (r) => r.id === fact.official_fact_id,
-                  );
-                  return session.role === "factcheck" &&
-                    review?.status === "draft" ? (
-                    <Button
-                      label="放行事实"
-                      isDisabled={store.busy}
-                      onClick={() =>
-                        store.act(async () => {
-                          await store.mutate(
-                            "facts/" + fact.official_fact_id + "/approve",
-                          );
-                          setNotice("事实已独立放行");
-                        })
-                      }
-                    />
-                  ) : (
-                    <Text>
-                      {review?.status === "approved"
-                        ? "已放行"
-                        : review?.status === "draft"
-                          ? "待独立审核"
-                          : fact.official_fact_id
-                            ? "已送审"
-                            : confirmable(fact)
-                              ? "待确认"
-                              : "待补官方出处"}
-                    </Text>
-                  );
-                },
-              },
-            ]}
-          />
-          <Button
-            label="确认所选事实并送审"
-            isDisabled={
-              !store.canWrite ||
-              store.busy ||
-              !selected.length ||
-              data?.research_stale
-            }
-            onClick={confirm}
-          />
-        </>
-      ) : research ? (
-        <Text>
-          暂未取得足够证据形成独立事实，可补充描述或官方资料后重新调查。
-        </Text>
-      ) : null}
-      {sources.length ? (
-        <>
-          <Heading level={2}>调查来源</Heading>
-          <Table
-            data={sources}
-            idKey="id"
-            density="compact"
-            columns={[
-              {
-                key: "title",
-                header: "来源",
-                renderCell: (s) =>
-                  s.url ? (
-                    <Link href={s.url}>{s.title}</Link>
-                  ) : (
-                    <Text>{s.title}</Text>
-                  ),
-              },
-              {
-                key: "kind",
-                header: "依据",
-                renderCell: (s) =>
-                  s.kind === "user_input"
-                    ? "用户提供"
-                    : s.official
-                      ? "官方原文"
-                      : s.kind === "search"
-                        ? "搜索摘要"
-                        : "外部原文",
-              },
-              {
-                key: "official",
-                header: "官方来源",
-                renderCell: (s) =>
-                  s.kind === "page" && !s.official && store.canWrite ? (
-                    <CheckboxInput
-                      label={"确认官方来源：" + s.title}
-                      value={officialSources.includes(s.id)}
-                      isDisabled={store.busy}
-                      onChange={(value) =>
-                        setOfficialSources((old) =>
-                          value
-                            ? [...old, s.id]
-                            : old.filter((id) => id !== s.id),
-                        )
-                      }
-                    />
-                  ) : (
-                    <Text>
-                      {s.official
-                        ? "已确认"
-                        : s.kind === "user_input"
-                          ? "品牌方声明"
-                          : "—"}
-                    </Text>
-                  ),
-              },
-              { key: "collected_at", header: "采集时间" },
-            ]}
-          />
-        </>
-      ) : null}
-    </VStack>
+                </Card>
+              );
+            })}
+          </Grid>
+        ) : null}
+      </VStack>
+    </InternationalizationProvider>
   );
 }

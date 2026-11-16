@@ -18,7 +18,7 @@ const protectedFiles = {
   "docs/archive/GEO产品文档-v3.5.md":
     "4bf10e9d4f46d2851aa7c38497921c9f4ca0203af472db9f2a3424afa1f368be",
 };
-test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41/T42/T43授权追加", () => {
+test("T05冻结保护：T03协议/断言与产品不变，contracts仅允许T41/T42/T43/T44授权追加", () => {
   for (const [path, hash] of Object.entries(protectedFiles))
     assert.equal(
       createHash("sha256")

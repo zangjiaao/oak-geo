@@ -84,13 +84,14 @@ export async function readWorkspaceContext({
         result.error.code,
         "工作区暂不可用",
       );
-    let has_profile=false;
+    let has_profile=false,setup_complete=false;
     if(['owner','strategist'].includes(principal.role)){
       const profile=await application.call('product_profile.read',{actor,params:{tid:principal.tenant_id,bid:id}});
       has_profile=profile.status===200&&Boolean(profile.data.profile);
+      setup_complete=profile.status===200&&profile.data.knowledge.facts.length>0;
     }
     brands.push({
-      has_profile,
+      has_profile, setup_complete,
       id: result.data.id,
       name: result.data.name,
       industry: result.data.industry,

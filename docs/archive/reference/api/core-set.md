@@ -2245,7 +2245,7 @@
 
 权限：owner / editor / viewer / strategist / factcheck；system：无。权限行：`(role, product_profile, read)`。审阅风险：承重动作。
 
-校验：读取本品牌最新产品档案、调查进度与审核状态；不返回完整来源正文、秘密或其他品牌资料。
+校验：读取本品牌最新产品档案、调查进度与审核状态；不返回完整来源正文、秘密或其他品牌资料；知识库facts只投影已确认引用的official_fact当前内容，source文本仅来自已取得的公开资料／品牌方输入供引导核对，候选与输入介绍不作为知识卡片。
 
 审计：普通只读无业务审计。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。GET不迁移业务对象状态。
 
@@ -2326,7 +2326,7 @@
 
 权限：owner / strategist；system：无。权限行：`(role, product_profile, create)`。审阅风险：quota。
 
-校验：human Owner(full/self)或Strategist；已保存品牌资料并配置DeepSeek；预留drafting用量后才调用；每租户一个有效调查，每小时最多10次。
+校验：human Owner(full/self)或Strategist；已保存品牌资料并配置DeepSeek；预留drafting用量后才调用；每租户一个有效调查，每小时最多10次；Accept:text/event-stream时先返回真实工具活动，再返回最终读取结果；JSON调用保持兼容；流结束或取消后关闭持有的runtime。
 
 审计：product_profile.investigate。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
 
@@ -2427,7 +2427,7 @@
 
 权限：owner / strategist；system：无。权限行：`(role, product_profile, confirm)`。审阅风险：judge_input。
 
-校验：human Owner(full/self)或Strategist；仅确认当前调查中的真实事实候选；用户声明或官方原文可创建draft官方事实及waiting审核；第三方描述不可冒充L1；FactCheck独立放行。
+校验：human Owner(full/self)或Strategist；仅确认当前调查中的真实事实候选；用户声明或官方原文可创建draft官方事实及waiting审核；第三方描述不可冒充L1；FactCheck独立放行；编辑确认时重验真实来源和逐字摘录，接收可选分类/依据修正，数值等属性非必填；知识记录只留稳定事实ID引用，正文与依据以official_fact为唯一事实源。
 
 审计：product_profile.confirm。副作用：维护当前品牌资料、来源与知识；保留调查执行审计；确认只创建待独立审核的官方事实；不生成需求簇、监控问句、分数或自动发布。
 

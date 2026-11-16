@@ -150,8 +150,7 @@ export function selectWorkspace(session, query) {
     : brands[0];
   if (
     session &&
-    ((query.brand && !brand) ||
-      (query.industry && query.industry !== brand?.industry))
+    (query.brand && !brand)
   )
     return { valid: false, brand: null, industry: "" };
   return { valid: true, brand: brand ?? null, industry: brand?.industry ?? "" };
@@ -164,6 +163,5 @@ export function workspaceHref(path, selection) {
     throw new Error("Unknown workspace route");
   const params = new URLSearchParams();
   if (selection.brand?.id) params.set("brand", selection.brand.id);
-  if (selection.industry) params.set("industry", selection.industry);
   return path + (params.size ? "?" + params : "");
 }

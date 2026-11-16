@@ -5,6 +5,7 @@ import { conflict, queueObject, event } from "./domain-common.mjs";
 import {
   validateProductInput,
   validateResearchOutput,
+  prepareResearchDraft,
   isOfficialProductUrl,
 } from "./product-profile.mjs";
 const timestamp = (ctx) => new Date(ctx.now()).toISOString();
@@ -67,7 +68,7 @@ async function saveProductProfile(ctx) {
     throw validation("品牌资料过长，请精简描述或链接");
   if (
     row &&
-    Buffer.byteLength(JSON.stringify(presented({ ...row, input }))) > 16000
+    Buffer.byteLength(JSON.stringify(presented({ ...row, input }))) > 65536
   )
     throw validation("品牌资料与知识内容过多，请精简描述后保存");
   if (!row) {
@@ -102,6 +103,16 @@ async function saveProductProfile(ctx) {
   event(ctx, "brand.profile_updated", "brand", ctx.scope.brand_id);
   return { data: presented(await current(ctx)) };
 }
+function officialContent(value) {
+  if (typeof value === "string") {
+    try { value = JSON.parse(value); } catch { return { statement: value }; }
+  }
+  return value && typeof value === "object" ? value : {};
+}
+const factIdentity = (fact) => canonicalJson([
+  fact.category, fact.text.trim().replace(/\s+/gu, " "),
+  fact.number_value?.trim() ?? "", fact.caliber?.trim() ?? "", fact.boundary?.trim() ?? "",
+]);
 export function productOnboardingHandlers() {
   return {
     "brand.create": async (ctx) => {
@@ -146,15 +157,40 @@ export function productOnboardingHandlers() {
       const ids = (profile?.knowledge ?? [])
         .map((f) => f.official_fact_id)
         .filter(Boolean);
-      const reviews = ids.length
+      const officialFacts = ids.length
         ? (
             await ctx.client.query(
-              "SELECT id,status,effective_from FROM official_fact WHERE tenant_id=$1 AND brand_id=$2 AND id=ANY($3::text[])",
+              "SELECT id,status,effective_from,fact_category,content FROM official_fact WHERE tenant_id=$1 AND brand_id=$2 AND id=ANY($3::text[])",
               [...args(ctx), ids],
             )
           ).rows
         : [];
+      const reviews = officialFacts.map(({id,status,effective_from}) => ({id,status,effective_from}));
+      const confirmedFacts = (profile?.knowledge ?? []).flatMap((reference) => {
+        const row = officialFacts.find((fact) => fact.id === reference.official_fact_id);
+        if (!row) return [];
+        const content = officialContent(row.content);
+        return [{
+          ...reference,
+          id: row.id, fact_id: row.id,
+          category: row.fact_category,
+          text: content.statement ?? reference.text,
+          evidence: content.evidence?.map((item, index) => ({
+            ...(reference.evidence?.[index] ?? {}), ...item,
+            url: item.url ?? reference.evidence?.[index]?.url ?? content.source_url,
+          })) ?? reference.evidence ?? [],
+          has_numbers: content.has_numbers,
+          number_value: content.number_value,
+          caliber: content.caliber,
+          boundary: content.boundary,
+        }];
+      });
       const view = presented(profile);
+      if (view?.research) {
+        view.research.sources = profile.research.sources.map((source) => ({
+          ...source, text: String(source.text ?? "").slice(0, 7000),
+        }));
+      }
       if (view) {
         delete view.knowledge;
         if (view.research)
@@ -173,7 +209,7 @@ export function productOnboardingHandlers() {
                   updated_at: profile.updated_at,
                 }
               : null,
-            facts: profile?.knowledge ?? [],
+            facts: confirmedFacts,
           },
           research_stale: Boolean(
             profile?.research &&
@@ -186,6 +222,29 @@ export function productOnboardingHandlers() {
       };
     },
     "product_profile.save": saveProductProfile,
+    "product_profile.revise": async (ctx) => {
+      const profile = await current(ctx, true);
+      if (!profile?.research || profile.research.input_hash !== profile.input_hash)
+        throw conflict("资料已变化，请重新调查后编辑事实");
+      if (!Array.isArray(ctx.body.facts) || !ctx.body.facts.length || ctx.body.facts.length > 12)
+        throw validation("请选择需要保存的事实草稿");
+      const research = structuredClone(profile.research), seen = new Set();
+      for (const selected of ctx.body.facts) {
+        const fact = research.facts.find((item) => item.id === selected.id);
+        if (!fact || fact.official_fact_id || seen.has(fact.id)) throw conflict("该事实不能作为草稿修改");
+        seen.add(fact.id);
+        const edited = {...fact, ...selected};
+        for (const [name,max] of [["text",400],["number_value",200],["caliber",500],["boundary",500]])
+          if (edited[name] != null && (typeof edited[name] !== "string" || edited[name].length > max)) throw validation("事实字段格式错误或过长");
+        if (edited.has_numbers != null && typeof edited.has_numbers !== "boolean") throw validation("数值标记格式错误");
+        const prepared = prepareResearchDraft({summary:"",conflicts:[],unknowns:[],facts:[edited]},research.sources).facts[0];
+        Object.assign(fact, prepared, {id: selected.id});
+      }
+      if (Buffer.byteLength(JSON.stringify(presented({...profile,research}))) > 65536)
+        throw validation("草稿内容较多，请拆分后保存");
+      await ctx.client.query("UPDATE product_profile SET research=$1 WHERE tenant_id=$2 AND brand_id=$3", [JSON.stringify(research),...args(ctx)]);
+      return {data: presented({...profile,research})};
+    },
     "product_profile.investigate": async (ctx) => {
       if (!ctx.productResearchAgent.configured)
         throw validation("请在服务端配置 DEEPSEEK_API_KEY", {
@@ -291,7 +350,7 @@ export function productOnboardingHandlers() {
           official:
             s.kind === "page" && isOfficialProductUrl(s.url, profile.input),
         }));
-        const validated = validateResearchOutput(result, sources),
+        const validated = prepareResearchDraft(result, sources),
           stored = {
             ...result,
             ...validated,
@@ -301,7 +360,7 @@ export function productOnboardingHandlers() {
         if (
           Buffer.byteLength(
             JSON.stringify(presented({ ...profile, research: stored })),
-          ) > 16000
+          ) > 65536
         )
           throw validation("调查内容过多，请缩小资料范围后重试");
         await ctx.client.query(
@@ -345,6 +404,15 @@ export function productOnboardingHandlers() {
       const research = structuredClone(profile.research),
         knowledge = structuredClone(profile.knowledge),
         ids = new Set();
+      const existingIds = knowledge.map((fact) => fact.official_fact_id).filter(Boolean);
+      const canonicalFacts = existingIds.length ? (await ctx.client.query(
+        "SELECT id,fact_category,content FROM official_fact WHERE tenant_id=$1 AND brand_id=$2 AND id=ANY($3::text[]) AND status<>'retracted'",
+        [...args(ctx), existingIds],
+      )).rows : [];
+      const identities = new Map(canonicalFacts.map((row) => {
+        const content = officialContent(row.content);
+        return [factIdentity({...content,category:row.fact_category,text:content.statement ?? ""}), row.id];
+      }));
       const officialSourceIds = ctx.body.official_source_ids ?? [];
       if (!Array.isArray(officialSourceIds) || officialSourceIds.length > 16)
         throw validation("官方来源确认无效");
@@ -365,6 +433,12 @@ export function productOnboardingHandlers() {
           selected.text.length > 400
         )
           throw validation("事实不能为空或过长");
+        const verified = validateResearchOutput({
+          summary: "", conflicts: [], unknowns: [],
+          facts: [{ category: selected.category ?? fact.category, text: selected.text, evidence: selected.evidence ?? fact.evidence }],
+        }, research.sources).facts[0];
+        fact.category = verified.category;
+        fact.evidence = verified.evidence;
         const evidence = fact.evidence.map((e) => ({
           ...e,
           source: research.sources.find((s) => s.id === e.source_id),
@@ -376,11 +450,23 @@ export function productOnboardingHandlers() {
           throw validation(
             "第三方描述不能作为官方口径送审，请补充官方出处或品牌方声明",
           );
+        const canonicalEvidence = evidence.map(({ source_id, quote, source }) => ({
+          source_id, quote, url: source?.url ?? null,
+          title: source?.title ?? "用户提供", kind: source?.kind,
+          collected_at: source?.collected_at,
+        }));
         fact.text = selected.text.trim();
         fact.confirmed_by = ctx.principal.user_id;
         fact.confirmed_at = timestamp(ctx);
+        const identity = factIdentity(fact), existingId = identities.get(identity);
+        if (existingId) {
+          fact.official_fact_id = existingId;
+          event(ctx, "product_profile.reuse_fact", "official_fact", existingId);
+          continue;
+        }
         const id = randomUUID();
         fact.official_fact_id = id;
+        identities.set(identity, id);
         await ctx.client.query(
           "INSERT INTO official_fact(id,tenant_id,brand_id,fact_category,content,source_level,status,effective_from) VALUES($1,$2,$3,$4,$5,'L1','draft',$6)",
           [
@@ -395,7 +481,11 @@ export function productOnboardingHandlers() {
                   ? "product_profile:" + profile.id
                   : source.url,
               collected_at: source.collected_at,
-              evidence: fact.evidence,
+              evidence: canonicalEvidence,
+              has_numbers: fact.has_numbers,
+              number_value: fact.number_value,
+              caliber: fact.caliber,
+              boundary: fact.boundary,
             }),
             timestamp(ctx),
           ],
@@ -403,21 +493,14 @@ export function productOnboardingHandlers() {
         await queueObject(ctx, "official_fact", id);
         event(ctx, "official_fact.create", "official_fact", id);
         knowledge.push({
-          ...fact,
-          evidence: evidence.map(({ source_id, quote, source }) => ({
-            source_id,
-            quote,
-            url: source?.url ?? null,
-            title: source?.title ?? "用户提供",
-            kind: source?.kind,
-            collected_at: source?.collected_at,
-          })),
+          id: fact.id, official_fact_id: id,
+          confirmed_at: fact.confirmed_at, confirmed_by: fact.confirmed_by,
         });
       }
       if (
         Buffer.byteLength(
           JSON.stringify(presented({ ...profile, research, knowledge })),
-        ) > 16000
+        ) > 65536
       )
         throw validation("当前知识较多，请分批整理事实");
       await ctx.client.query(

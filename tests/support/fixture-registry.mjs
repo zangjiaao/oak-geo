@@ -824,6 +824,7 @@ export function createFixtureRegistry(
       if(id==='product_profile.finish')return request(actor,{run_id:run.id,error:'fixture failure evidence'},params);
       await invoke('product_profile.finish',actor,{run_id:run.id,result:{agent_run_id:run.id,prompt_version:'product_facts_v1',model:'fixture-research',sources:[{id:'s1',url:input.website,text:'测试产品提供接口',kind:'page',collected_at:new Date(clock.now()).toISOString()}],facts:[{category:'spec',text:'测试产品提供接口',evidence:[{source_id:'s1',quote:'测试产品提供接口'}]}],summary:'测试产品',conflicts:[],unknowns:[],trace:[],usage:{input_tokens:1,output_tokens:1}}},params);
       const read=await invoke('product_profile.read',f.actors.owner,{},params);
+      if(id==='product_profile.revise')return request(f.actors.owner,{facts:[{...read.profile.research.facts[0],has_numbers:false,number_value:'',caliber:'',boundary:''}]},params);
       return request(f.actors.owner,{facts:[{id:read.profile.research.facts[0].id,text:'测试产品提供接口'}]},params);
     }
 

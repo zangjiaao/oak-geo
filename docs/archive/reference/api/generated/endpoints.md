@@ -1950,3 +1950,55 @@
 }
 ```
 
+## product_profile
+
+### product_profile.revise
+
+> T44补充草案：行为已获负责人授权，接口细节待本PR人审；不纳入原t02_api_v1冻结批准。
+
+`POST /tenants/{tid}/brands/{bid}/product-profile/revise` · 语义 draft · destructive=false · 幂等=24h
+
+权限：owner / strategist；system：无。权限行：`(role, product_profile, revise)`。审阅风险：承重动作。
+
+校验：human Owner或Strategist；仅同品牌当前输入对应、尚未确认的调查候选；可保存出处待修正的草稿，确认时重验来源与摘录；数值/口径/边界为可选属性，不强制数字，不影响正式评分判据。
+
+审计：product_profile.revise。副作用：只更新引导草稿与审计，不进入知识库、不修改已确认事实或原始来源。
+
+请求JSON（另带Idempotency-Key）：
+
+```json
+{
+  "facts": [
+    {
+      "id": "candidate1",
+      "category": "spec",
+      "text": "支持MCP接入",
+      "has_numbers": false,
+      "number_value": "",
+      "caliber": "",
+      "boundary": "",
+      "evidence": [
+        {
+          "source_id": "src1",
+          "quote": "支持MCP接入"
+        }
+      ]
+    }
+  ]
+}
+```
+
+响应JSON：
+
+```json
+{
+  "data": {
+    "id": "profile1"
+  },
+  "meta": {
+    "snapshot_id": null,
+    "data_as_of": "2026-11-09T00:00:00Z"
+  }
+}
+```
+

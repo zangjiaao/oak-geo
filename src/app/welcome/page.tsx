@@ -4,11 +4,11 @@ import { Card } from "@astryxdesign/core/Card";
 import { Text } from "@astryxdesign/core/Text";
 import { Link } from "@astryxdesign/core/Link";
 import { Icon } from "@astryxdesign/core/Icon";
-import { BrandProfileForm } from "@/components/ProductOnboarding";
+import { BrandSetupWizard } from "@/components/BrandSetupWizard";
 import { readWorkbenchSession } from "@/server/api/worker-runtime.mjs";
 import { selectWorkspace } from "@/lib/workspace-navigation.mjs";
 export const dynamic = "force-dynamic";
-// Adapted from Astryx contact-form: centered, full-width form with a bounded reading width.
+// Astryx contact-form frame with the form-wizard horizontal progress track.
 export default async function WelcomePage({
   searchParams,
 }: {
@@ -29,7 +29,7 @@ export default async function WelcomePage({
       paddingBlock={10}
       style={{ fontFamily: "var(--font-family-body)" }}
     >
-      <VStack width="100%" maxWidth="44rem" gap={6}>
+      <VStack width="100%" maxWidth="56rem" gap={6}>
         <HStack hAlign="between" vAlign="center">
           <HStack gap={2} vAlign="center">
             <Icon icon="search" color="primary" />
@@ -40,19 +40,19 @@ export default async function WelcomePage({
           </Text>
         </HStack>
         <Card width="100%" padding={8}>
-          <BrandProfileForm
+          <BrandSetupWizard
             key={creating ? "new-brand" : selection.brand?.id}
             session={session}
-            brandId={creating ? null : selection.valid ? (selection.brand?.id ?? null) : null}
+            initialBrandId={creating ? null : selection.valid ? (selection.brand?.id ?? null) : null}
             creating={creating}
-            welcome
+            investigateOnLoad={query.investigate === "1"}
           />
         </Card>
         {creating && session ? (
           <Link href="/settings/brand">返回品牌设置</Link>
         ) : null}
         <Text type="supporting" color="secondary" justify="center">
-          资料会同步到品牌设置和知识库，之后随时可以修改。
+          前两步保存引导草稿，确认后的事实才会进入知识库。
         </Text>
       </VStack>
     </VStack>

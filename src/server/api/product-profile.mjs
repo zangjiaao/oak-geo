@@ -107,3 +107,35 @@ export function validateResearchOutput(value, sources) {
     unknowns: list(value.unknowns, "待核实项"),
   };
 }
+
+// Model output is a review draft. A broken citation must not discard unrelated
+// candidates; strict source validation is repeated when a human confirms a fact.
+export function prepareResearchDraft(value, sources) {
+  if (!value || !Array.isArray(value.facts) || value.facts.length > 12)
+    throw validation("调查结果需要有效的事实候选");
+  const envelope = validateResearchOutput({ ...value, facts: [] }, sources);
+  return {
+    ...envelope,
+    facts: value.facts.map((raw) => {
+      const issues = [];
+      const category = factCategories.includes(raw?.category) ? raw.category : "spec";
+      if (category !== raw?.category) issues.push("请选择正确的事实分类");
+      const statement = typeof raw?.text === "string" ? raw.text.trim() : "";
+      if (statement.length > 400) issues.push("陈述超过400字，请拆分为独立事实");
+      const evidence = (Array.isArray(raw?.evidence) ? raw.evidence : []).slice(0, 3).map((item) => ({
+        source_id: typeof item?.source_id === "string" ? item.source_id.slice(0, 160) : "",
+        quote: typeof item?.quote === "string" ? item.quote.trim().slice(0, 240) : "",
+      }));
+      const candidate = { category, text: statement.slice(0, 400), evidence };
+      try { validateResearchOutput({ ...envelope, facts: [candidate] }, sources); }
+      catch (error) { issues.push(error.code === "validation_failed" ? error.message : "该条事实需要人工修正"); }
+      return {
+        id: randomUUID(), ...candidate, issues,
+        has_numbers: typeof raw?.has_numbers === "boolean" ? raw.has_numbers : null,
+        number_value: typeof raw?.number_value === "string" ? raw.number_value.slice(0, 200) : "",
+        caliber: typeof raw?.caliber === "string" ? raw.caliber.slice(0, 500) : "",
+        boundary: typeof raw?.boundary === "string" ? raw.boundary.slice(0, 500) : "",
+      };
+    }),
+  };
+}

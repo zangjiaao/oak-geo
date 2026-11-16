@@ -40,7 +40,7 @@ test("T37导航覆盖八组；客户与diagnosis菜单遵循现有边界，未�
   assert.deepEqual(navigationFor({ role: "invented", mode: "full" }), []);
 });
 
-test("T37品牌/行业上下文只接受服务端可见集合；跳页保留上下文且拒绝外部跳转", async () => {
+test("T37品牌上下文只接受服务端可见集合；忽略旧行业筛选，跳页仅保留品牌且拒绝外部跳转", async () => {
   const { selectWorkspace, workspaceHref } = await import(
     "../../src/lib/workspace-navigation.mjs"
   );
@@ -50,7 +50,7 @@ test("T37品牌/行业上下文只接受服务端可见集合；跳页保留上�
   assert.equal(selectWorkspace(s, { brand: "other-tenant" }).valid, false);
   assert.equal(
     selectWorkspace(s, { brand: "a", industry: "开发工具" }).valid,
-    false,
+    true,
   );
   assert.equal(
     selectWorkspace(s, { role: "admin", tenant: "other" }).brand.id,
@@ -64,7 +64,8 @@ test("T37品牌/行业上下文只接受服务端可见集合；跳页保留上�
     "https://geo.test",
   );
   assert.equal(url.searchParams.get("brand"), "b");
-  assert.equal(url.searchParams.get("industry"), "开发工具");
+  assert.equal(url.searchParams.has("industry"), false);
+  assert.equal(selectWorkspace({...s,brands:[{id:'free',name:'无行业品牌',industry:''}]},{brand:'free',industry:'旧值'}).valid,true);
   assert.throws(() => workspaceHref("https://evil.test", {}));
   assert.throws(() => workspaceHref("//evil.test", {}));
 });
